@@ -14,7 +14,7 @@ services:
     plan: standard
     region: oregon
     rootDir: backend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build && npx prisma migrate deploy
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
