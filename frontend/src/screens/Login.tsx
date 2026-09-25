@@ -132,7 +132,8 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       name: data.name,
       phone: data.phone,
       email: data.email || null,
-      password: data.password
+      password: data.password,
+      confirmPassword: data.confirmPassword
     };
     try {
       const response = await api.post("/auth/register/customer", payload);
@@ -179,7 +180,8 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       phone: data.phone,
       email: data.email,
       address: data.address,
-      password: data.password
+      password: data.password,
+      confirmPassword: data.confirmPassword
     };
     try {
       const response = await api.post("/auth/register/merchant", payload);
