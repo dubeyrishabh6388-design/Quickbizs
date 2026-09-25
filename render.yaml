@@ -1,0 +1,63 @@
+# ==============================================================================
+# Render Blueprint Specification for QuickBizs
+# Deploys:
+#   1. quickbizs-backend (Web Service - Node.js Express + Prisma)
+#   2. quickbizs-frontend (Static Site - React Vite SPA)
+# ==============================================================================
+services:
+  # ----------------------------------------------------------------------------
+  # Backend Web Service
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: quickbizs-backend
+    runtime: node
+    plan: standard
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: JWT_SECRET
+        generateValue: true
+      # Connect your managed MySQL (e.g. Aiven, PlanetScale, Render External DB)
+      - key: DATABASE_URL
+        sync: false
+      # Allowed frontend origin for CORS (Set to your Render frontend domain)
+      - key: FRONTEND_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
+
+  # ----------------------------------------------------------------------------
+  # Frontend Static Site
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: quickbizs-frontend
+    runtime: static
+    plan: free
+    region: oregon
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_APP_NAME
+        value: QuickBizs
+      - key: VITE_APP_ENV
+        value: production
+      - key: VITE_GEMINI_API_KEY
+        sync: false

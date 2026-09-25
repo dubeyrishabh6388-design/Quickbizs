@@ -1,21 +1,34 @@
 import { PrismaClient } from "../generated/client/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import dotenv from "dotenv";
-import path from "path";
+import { env } from "./environment";
 
-dotenv.config({ path: path.join(__dirname, "../../.env") });
+const buildAdapter = (): PrismaMariaDb => {
+  const databaseUrl = env.databaseUrl;
 
-const dbUrl = process.env.DATABASE_URL || "";
-const portMatch = dbUrl.match(/:(\d+)\//);
-const dbPort = portMatch ? parseInt(portMatch[1], 10) : 3307;
+  // 1. If a full connection URI is provided, use it directly (works with cloud providers & local)
+  if (databaseUrl && (databaseUrl.startsWith("mysql://") || databaseUrl.startsWith("mariadb://"))) {
+    return new PrismaMariaDb(databaseUrl);
+  }
 
-const adapter = new PrismaMariaDb({
-  host: "127.0.0.1",
-  port: dbPort,
-  user: "root",
-  password: "",
-  database: "quickbiz",
-  connectionLimit: 20,
-});
+  // 2. Decomposed database credentials support (Render / Cloud / Local)
+  const host = env.dbHost || "127.0.0.1";
+  const port = env.dbPort || 3306;
+  const user = env.dbUser || "root";
+  const password = env.dbPassword || "";
+  const database = env.dbName || "quickbiz";
+  const ssl = env.dbSsl ? { rejectUnauthorized: false } : undefined;
 
+  return new PrismaMariaDb({
+    host,
+    port,
+    user,
+    password,
+    database,
+    ssl,
+    connectionLimit: env.dbConnectionLimit || 10,
+  });
+};
+
+const adapter = buildAdapter();
 export const prisma = new PrismaClient({ adapter });
+

@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 */node_modules/
 
@@ -29,6 +29,9 @@ pnpm-debug.log*
 *.db-journal
 *.sqlite
 *.sqlite3
+*.sql
+*.dump
+backend/prisma/*.sql
 
 # Generated files
 backend/scratch/
