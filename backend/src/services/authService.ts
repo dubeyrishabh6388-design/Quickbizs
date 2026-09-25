@@ -363,18 +363,43 @@ export class AuthService {
         },
       });
 
-      // 2. Seed default roles
+      console.log(`[AUTH_DIAG] Created business.id: ${business.id}, name: ${business.name}`);
+      const verifyOnTx = await tx.business.findUnique({ where: { id: business.id } });
+      console.log(`[AUTH_DIAG] Immediate tx.business.findUnique:`, verifyOnTx ? `EXISTS (id=${verifyOnTx.id})` : "NOT_FOUND");
+
+      try {
+        const dbName: any = await tx.$queryRawUnsafe(`SELECT DATABASE() as db`);
+        const txIso: any = await tx.$queryRawUnsafe(`SELECT @@transaction_isolation as iso`);
+        const autoCommit: any = await tx.$queryRawUnsafe(`SELECT @@autocommit as ac`);
+        const safe = (v: any) => JSON.stringify(v, (_, val) => (typeof val === "bigint" ? val.toString() : val));
+        console.log(`[AUTH_DIAG] Connection context: DB=${safe(dbName)}, Isolation=${safe(txIso)}, Autocommit=${safe(autoCommit)}`);
+      } catch (diagErr: any) {
+        console.warn(`[AUTH_DIAG] Could not retrieve DB context:`, diagErr.message);
+      }
+
+      // 2. Seed default roles sequentially
       const rolesToCreate = ["Owner", "Cashier", "Accountant", "Warehouse", "SuperAdmin"];
-      const createdRoles = await Promise.all(
-        rolesToCreate.map((r) =>
-          tx.role.create({
+      const createdRoles = [];
+      for (const roleName of rolesToCreate) {
+        console.log(`[AUTH_DIAG] Creating role "${roleName}" for businessId: ${business.id}`);
+        try {
+          const role = await tx.role.create({
             data: {
               businessId: business.id,
-              name: r,
+              name: roleName,
             },
-          })
-        )
-      );
+          });
+          console.log(`[AUTH_DIAG] Successfully created role "${roleName}" (id: ${role.id})`);
+          createdRoles.push(role);
+        } catch (roleErr: any) {
+          console.error(`[AUTH_DIAG] Failed creating role "${roleName}" for businessId ${business.id}:`, {
+            message: roleErr.message,
+            code: roleErr.code,
+            meta: roleErr.meta,
+          });
+          throw roleErr;
+        }
+      }
 
       const targetRole = createdRoles.find((r) => r.name === "Owner") || createdRoles[0];
 
