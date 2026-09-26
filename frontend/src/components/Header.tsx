@@ -273,11 +273,11 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={() => window.dispatchEvent(new Event("open-pwa-install"))}
-              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold bg-brand-orange/15 hover:bg-brand-orange/25 text-brand-orange border border-brand-orange/30 transition-all cursor-pointer shadow-xs active:scale-95"
+              className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-black bg-brand-orange/15 hover:bg-brand-orange/25 text-brand-orange border border-brand-orange/30 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
               title={platformType === "desktop" ? "Download QuickBizs for Desktop" : "Install QuickBizs Mobile App"}
             >
-              <Download className="h-3.5 w-3.5 animate-bounce" />
-              <span className="hidden sm:inline font-black">{platformType === "desktop" ? "Install App" : "Get App"}</span>
+              <Download className="h-3.5 w-3.5 animate-bounce text-brand-orange" />
+              <span className="text-[11px] font-black">{platformType === "desktop" ? "Install" : "App"}</span>
             </button>
           )}
 

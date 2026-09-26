@@ -5,7 +5,9 @@ const STATIC_ASSETS = [
   "/index.html",
   "/manifest.json",
   "/favicon.jpg",
-  "/pwa-icon.svg"
+  "/pwa-icon.svg",
+  "/pwa-192.png",
+  "/pwa-512.png"
 ];
 
 // 1. Install event: Cache critical shell assets & skip waiting

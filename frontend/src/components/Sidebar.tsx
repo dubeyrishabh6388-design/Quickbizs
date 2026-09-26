@@ -19,12 +19,14 @@ import {
   Check,
   Search,
   X,
-  Lock
+  Lock,
+  Download
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusiness } from "../context/BusinessContext";
 import type { UserRole } from "../context/BusinessContext";
 import { OwnerPinModal } from "./OwnerPinModal";
+import { usePWAInstall } from "../hooks/usePWAInstall";
 import logo from "../assets/logo.jpg";
 
 export type ScreenType = "dashboard" | "incoming-orders" | "billing" | "inventory" | "customers" | "suppliers" | "reports" | "ai" | "staff" | "superadmin" | "automation" | "settings" | "tasks" | "recovery" | "counter";
@@ -121,6 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   pendingDuesCount
 }) => {
   const { currentRole, setCurrentRole, operatingMode, getRoleAllowedModules } = useBusiness();
+  const { isInstalled, platformType } = usePWAInstall();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [pinModalOpen, setPinModalOpen] = useState(false);
   const [pendingTargetRole, setPendingTargetRole] = useState<RoleConfig | null>(null);
@@ -443,6 +446,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
       </nav>
+
+      {/* Download / Install App Section in Mobile & Desktop Sidebar */}
+      {!isInstalled && (
+        <div className="p-3 mx-3 mb-3 rounded-2xl bg-gradient-to-br from-brand-orange/20 via-orange-950/40 to-slate-900 border border-brand-orange/40 shadow-lg shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-brand-orange to-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-brand-orange/30">
+              <Download className="h-4.5 w-4.5 animate-bounce" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-black text-white truncate">
+                {platformType === "desktop" ? "QuickBizs Desktop" : "QuickBizs Mobile App"}
+              </p>
+              <p className="text-[10px] text-orange-200/80 truncate">
+                {platformType === "desktop" ? "Install for Windows/Mac" : "Add to Mobile Home Screen"}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (onClose && window.innerWidth < 1024) {
+                onClose();
+              }
+              window.dispatchEvent(new Event("open-pwa-install"));
+            }}
+            className="w-full mt-2.5 py-2 px-3 rounded-xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 text-white font-extrabold text-xs shadow-md shadow-brand-orange/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Download / Install App</span>
+          </button>
+        </div>
+      )}
 
       {/* Owner PIN Security Modal for Indian Counter Protection */}
       <OwnerPinModal
