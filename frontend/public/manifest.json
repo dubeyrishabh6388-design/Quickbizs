@@ -1,0 +1,80 @@
+{
+  "name": "QuickBizs - Smart Retail & POS",
+  "short_name": "QuickBizs",
+  "description": "Smart Retail Billing, POS, Live Inventory & Customer Khata Management Operating System",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
+  "background_color": "#090d16",
+  "theme_color": "#f97316",
+  "orientation": "any",
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "business",
+    "finance",
+    "productivity",
+    "shopping",
+    "utilities"
+  ],
+  "shortcuts": [
+    {
+      "name": "Quick POS Billing",
+      "short_name": "POS Billing",
+      "description": "Launch instant counter barcode billing terminal",
+      "url": "/?screen=billing",
+      "icons": [
+        {
+          "src": "/pwa-icon.svg",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Live Stock Inventory",
+      "short_name": "Inventory",
+      "description": "Check live product stock and restock shelves",
+      "url": "/?screen=inventory",
+      "icons": [
+        {
+          "src": "/pwa-icon.svg",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Customer Khata Ledger",
+      "short_name": "Khata",
+      "description": "Log Udhaar and Jama customer payments",
+      "url": "/?screen=customers",
+      "icons": [
+        {
+          "src": "/pwa-icon.svg",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

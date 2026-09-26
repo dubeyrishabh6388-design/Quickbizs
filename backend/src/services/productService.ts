@@ -133,9 +133,16 @@ export class ProductService {
       throw err;
     }
 
+    const cleanData = {
+      ...data,
+      barcode: data.barcode && data.barcode.trim() !== "" ? data.barcode.trim() : undefined,
+      sku: data.sku && data.sku.trim() !== "" ? data.sku.trim() : undefined,
+      categoryId: data.categoryId && data.categoryId.trim() !== "" ? data.categoryId.trim() : undefined,
+    };
+
     // Check Barcode duplicate
-    if (data.barcode) {
-      const existing = await productRepository.findByBarcode(businessId, data.barcode);
+    if (cleanData.barcode) {
+      const existing = await productRepository.findByBarcode(businessId, cleanData.barcode);
       if (existing) {
         const err: any = new Error("Product barcode already exists.");
         err.statusCode = 400;
@@ -145,8 +152,8 @@ export class ProductService {
     }
 
     // Check SKU duplicate
-    if (data.sku) {
-      const existing = await productRepository.findBySku(businessId, data.sku);
+    if (cleanData.sku) {
+      const existing = await productRepository.findBySku(businessId, cleanData.sku);
       if (existing) {
         const err: any = new Error("Product SKU already exists.");
         err.statusCode = 400;
@@ -171,7 +178,7 @@ export class ProductService {
       }
     }
 
-    const product = await productRepository.create(businessId, data);
+    const product = await productRepository.create(businessId, cleanData);
 
     if (data.customFields) {
       try {
@@ -191,7 +198,6 @@ export class ProductService {
         minimumStock: data.minStock,
         maximumStock: 100,
         reorderLevel: data.minStock + 5,
-        warehouseId: "wh-main",
       },
     });
 

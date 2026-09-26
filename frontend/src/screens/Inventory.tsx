@@ -68,11 +68,11 @@ export const Inventory: React.FC = () => {
     showToast(`✓ Updated ${product.name} stock`);
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !price || !stock) return;
 
-    addProduct({
+    const res = await addProduct({
       name,
       price: parseFloat(price),
       costPrice: parseFloat(price) * 0.8,
@@ -82,11 +82,15 @@ export const Inventory: React.FC = () => {
       supplierName: "General Supplier"
     });
 
-    setName("");
-    setPrice("");
-    setStock("");
-    setIsAddOpen(false);
-    showToast("✓ Product Added Successfully");
+    if (res?.success) {
+      setName("");
+      setPrice("");
+      setStock("");
+      setIsAddOpen(false);
+      showToast("✓ Product Added Successfully");
+    } else {
+      showToast(res?.message || "Failed to add product");
+    }
   };
 
   return (

@@ -23,6 +23,7 @@ import { GlobalSearchOverlay } from "./components/GlobalSearchOverlay";
 import { Login } from "./screens/Login";
 import { CustomerDashboard } from "./screens/CustomerDashboard";
 import { IncomingOrders } from "./screens/IncomingOrders";
+import { PWAInstallModal } from "./components/PWAInstallModal";
 import { 
   LayoutDashboard, 
   Receipt, 
@@ -40,6 +41,7 @@ function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isPWAInstallForced, setIsPWAInstallForced] = useState(false);
 
   // Responsive Sidebar State - default open on desktop, persisted in localStorage
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
@@ -106,6 +108,15 @@ function AppContent() {
     };
     window.addEventListener("counter-locked", handleCounterLocked);
     return () => window.removeEventListener("counter-locked", handleCounterLocked);
+  }, []);
+
+  // Listen for custom trigger to open PWA install modal on-demand
+  useEffect(() => {
+    const handleOpenPWA = () => {
+      setIsPWAInstallForced(true);
+    };
+    window.addEventListener("open-pwa-install", handleOpenPWA);
+    return () => window.removeEventListener("open-pwa-install", handleOpenPWA);
   }, []);
 
   // Check auth session validity on mount
@@ -392,6 +403,14 @@ function AppContent() {
         onClose={() => setIsSearchOpen(false)}
         setActiveScreen={setActiveScreen}
       />
+
+      {/* PWA Download / Install Modal */}
+      {isAuthenticated && (
+        <PWAInstallModal
+          forceOpen={isPWAInstallForced}
+          onClose={() => setIsPWAInstallForced(false)}
+        />
+      )}
     </div>
   );
 }

@@ -877,7 +877,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
     }
   }, [productSchema]);
 
-  const handleAddProductSubmit = (e: React.FormEvent) => {
+  const handleAddProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prodName.trim()) return;
 
@@ -895,7 +895,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       return;
     }
 
-    addProduct({
+    const res = await addProduct({
       name: prodName,
       price,
       costPrice: cost,
@@ -907,14 +907,18 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       customFields: JSON.stringify(customAttributeValues)
     });
 
-    showToast(`Added product "${prodName}" to store catalog!`);
-    setIsAddingProduct(false);
-    setProdName("");
-    setProdPrice("");
-    setProdCost("");
-    setProdStock("");
-    setProdMinStock("5");
-    setCustomAttributeValues({});
+    if (res?.success) {
+      showToast(`Added product "${prodName}" to store catalog!`);
+      setIsAddingProduct(false);
+      setProdName("");
+      setProdPrice("");
+      setProdCost("");
+      setProdStock("");
+      setProdMinStock("5");
+      setCustomAttributeValues({});
+    } else {
+      showToast(res?.message || "Failed to add product");
+    }
   };
 
   const handleCreateCustomer = (e: React.FormEvent) => {

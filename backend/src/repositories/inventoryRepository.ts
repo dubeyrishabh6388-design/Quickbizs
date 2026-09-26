@@ -25,10 +25,6 @@ export class InventoryRepository {
       };
     }
 
-    if (params.warehouseId) {
-      where.warehouseId = params.warehouseId;
-    }
-
     const orderBy: any = {};
     if (params.sortBy) {
       orderBy[params.sortBy] = params.sortOrder || "desc";
@@ -152,10 +148,11 @@ export class InventoryRepository {
   }
 
   async create(businessId: string, data: any) {
+    const { warehouseId, ...cleanData } = data;
     return prisma.inventory.create({
       data: {
         businessId,
-        ...data,
+        ...cleanData,
       },
     });
   }

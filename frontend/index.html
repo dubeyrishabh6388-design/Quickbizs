@@ -3,7 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/jpeg" href="/favicon.jpg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="apple-touch-icon" href="/pwa-icon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta name="theme-color" content="#f97316" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="QuickBizs" />
+    <meta name="application-name" content="QuickBizs" />
+    <meta name="description" content="QuickBizs - Smart Retail Billing, POS, Inventory & Khata Management Operating System" />
     <title>QuickBizs - Business Operating System</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,6 +21,17 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ("serviceWorker" in navigator && !window.location.host.includes("localhost:5173")) {
+        window.addEventListener("load", function() {
+          navigator.serviceWorker.register("/sw.js").then(function(reg) {
+            console.log("[PWA] ServiceWorker registered with scope:", reg.scope);
+          }).catch(function(err) {
+            console.warn("[PWA] ServiceWorker registration failed:", err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>
 

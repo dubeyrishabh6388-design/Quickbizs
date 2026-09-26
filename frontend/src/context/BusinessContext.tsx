@@ -164,7 +164,7 @@ interface BusinessContextType {
     splitDetails?: { cash: number; upi: number }
   ) => any;
   updateProductStock: (id: string, amount: number, reason: string) => void;
-  addProduct: (product: Omit<Product, "id">) => void;
+  addProduct: (product: Omit<Product, "id">) => Promise<{ success: boolean; message?: string }>;
   addCustomer: (name: string, phone: string, email?: string) => void;
   settleCustomerDues: (id: string, amount: number) => void;
   addSupplier: (name: string, phone: string, contactPerson: string) => void;
@@ -298,16 +298,10 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const fetchProducts = async () => {
-    const token = localStorage.getItem("qb_token");
-    if (!token) return;
-
     try {
-      const response = await fetch(`${env.apiUrl}/api/v1/products`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await response.json();
-      if (json.success && json.data?.products) {
-        setProducts(json.data.products);
+      const response = await api.get("/products");
+      if (response.data?.success && response.data?.data?.products) {
+        setProducts(response.data.data.products);
       }
     } catch (err) {
       console.error("Failed to fetch products from backend:", err);
@@ -983,57 +977,49 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Adjust stock manually via backend API
   const updateProductStock = async (id: string, amount: number, reason: string) => {
-    const token = localStorage.getItem("qb_token");
-    if (!token) return;
-
     const prod = products.find(p => p.id === id);
     if (!prod) return;
 
+    // Optimistic stock update for instant UI feedback
+    setProducts(prev =>
+      prev.map(p => (p.id === id ? { ...p, stock: Math.max(0, p.stock + amount) } : p))
+    );
+
     try {
-      const response = await fetch(`${env.apiUrl}/api/v1/inventory/adjust`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          productId: id,
-          adjustedQty: amount,
-          reason,
-        }),
+      const response = await api.post("/inventory/adjust", {
+        productId: id,
+        adjustedQty: amount,
+        reason,
       });
-      const json = await response.json();
-      if (json.success) {
-        fetchProducts();
+      if (response.data?.success) {
+        await fetchProducts();
         logStockMovement(id, prod.name, amount, reason);
         logAutomation("Manual Stock Adjust", "Shelf Inventory Update", `Adjusted product ${prod.name} by ${amount} units. Reason: ${reason}`, "Success", "5ms");
       }
     } catch (err) {
       console.error("Failed to adjust product stock:", err);
+      await fetchProducts();
     }
   };
 
-  // Add Product (Chapter 6 & 7) via backend API
-  const addProduct = async (newProdData: Omit<Product, "id">) => {
-    const token = localStorage.getItem("qb_token");
-    if (!token) return;
-
+  // Add Product via backend API
+  const addProduct = async (newProdData: Omit<Product, "id">): Promise<{ success: boolean; message?: string }> => {
     try {
-      const response = await fetch(`${env.apiUrl}/api/v1/products`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newProdData),
-      });
-      const json = await response.json();
-      if (json.success) {
-        fetchProducts();
+      const response = await api.post("/products", newProdData);
+      if (response.data?.success) {
+        const createdProd = response.data.data?.product || response.data.data;
+        if (createdProd && createdProd.id) {
+          setProducts(prev => [createdProd, ...prev.filter(p => p.id !== createdProd.id)]);
+        }
+        await fetchProducts();
         logAutomation("Product Added", "Expand Product Catalog Ledger", `Added new product "${newProdData.name}" to inventory shelf catalog`, "Success", "3ms");
+        return { success: true };
       }
-    } catch (err) {
+      return { success: false, message: response.data?.message || "Failed to add product" };
+    } catch (err: any) {
       console.error("Failed to add product:", err);
+      const msg = err.response?.data?.message || err.message || "Failed to add product";
+      return { success: false, message: msg };
     }
   };
 

@@ -18,7 +18,8 @@ import {
   BarChart3,
   Sparkles,
   Settings,
-  Shield
+  Shield,
+  Download
 } from "lucide-react";
 import logo from "../assets/logo.jpg";
 import { NotificationBell } from "./NotificationDrawer";
@@ -26,6 +27,7 @@ import type { ScreenType } from "./Sidebar";
 import { useBusiness } from "../context/BusinessContext";
 import type { UserRole } from "../context/BusinessContext";
 import { OwnerPinModal } from "./OwnerPinModal";
+import { usePWAInstall } from "../hooks/usePWAInstall";
 
 interface HeaderProps {
   activeScreen: ScreenType;
@@ -61,6 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSearch
 }) => {
   const { operatingMode, setCurrentRole, getRoleAllowedModules, products, customers } = useBusiness();
+  const { isInstalled, platformType } = usePWAInstall();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isOwnerPinOpen, setIsOwnerPinOpen] = useState(false);
 
@@ -263,7 +266,20 @@ export const Header: React.FC<HeaderProps> = ({
         )}
 
         {/* Right Section: Controls, Logged-in User Profile & Sign Out */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+
+          {/* Install / Download App Quick Action */}
+          {!isInstalled && (
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("open-pwa-install"))}
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold bg-brand-orange/15 hover:bg-brand-orange/25 text-brand-orange border border-brand-orange/30 transition-all cursor-pointer shadow-xs active:scale-95"
+              title={platformType === "desktop" ? "Download QuickBizs for Desktop" : "Install QuickBizs Mobile App"}
+            >
+              <Download className="h-3.5 w-3.5 animate-bounce" />
+              <span className="hidden sm:inline font-black">{platformType === "desktop" ? "Install App" : "Get App"}</span>
+            </button>
+          )}
 
           {/* Dark / Light Mode Toggle */}
           <button
