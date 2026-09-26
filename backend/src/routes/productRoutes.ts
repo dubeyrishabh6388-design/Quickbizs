@@ -47,7 +47,12 @@ router.get("/", requireAuth, (req: any, res: any, next: any) =>
   controller.getProducts(req, res, next)
 );
 
-// 4. Retrieve detailed product info
+// 4. Retrieve dynamic product template (Precedence over /:id)
+router.get("/template", requireAuth, (req: any, res: any, next: any) =>
+  controller.getTemplate(req, res, next)
+);
+
+// 5. Retrieve detailed product info
 router.get("/:id", requireAuth, (req: any, res: any, next: any) =>
   controller.getProductById(req, res, next)
 );

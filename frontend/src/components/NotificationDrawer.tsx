@@ -130,22 +130,38 @@ export const NotificationBell: React.FC = () => {
 
   // ── Fetch unread count ──
   const fetchUnreadCount = useCallback(async () => {
+    const token = localStorage.getItem("qb_token");
+    if (!token) return;
+
     try {
       const res = await fetch(`${env.apiUrl}/api/v1/notifications/unread-count`, {
-        headers: authHeader(),
+        headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
-      if (json.success) setUnreadCount(json.data.count ?? 0);
+      if (json.success && json.data) setUnreadCount(json.data.count ?? 0);
     } catch {
       /* silent */
     }
   }, []);
 
-  // Poll unread count every 10s
+  // Refresh unread count on mount, login, and on a calm 60s background interval
   useEffect(() => {
-    fetchUnreadCount();
-    const iv = setInterval(fetchUnreadCount, 10000);
-    return () => clearInterval(iv);
+    const token = localStorage.getItem("qb_token");
+    if (token) {
+      fetchUnreadCount();
+    }
+
+    const iv = setInterval(() => {
+      if (localStorage.getItem("qb_token")) {
+        fetchUnreadCount();
+      }
+    }, 60000);
+
+    window.addEventListener("auth-success", fetchUnreadCount);
+    return () => {
+      clearInterval(iv);
+      window.removeEventListener("auth-success", fetchUnreadCount);
+    };
   }, [fetchUnreadCount]);
 
   // Fetch notifications when drawer opens or filters change

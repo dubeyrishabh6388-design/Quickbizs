@@ -41,6 +41,7 @@ router.use("/pwa-customer", pwaCustomerRoutes);
 router.use("/pickup-orders", pickupOrderRoutes);
 router.use("/business", businessRoutes);
 router.use("/products", productRoutes);
+router.use("/product", productRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/customers", customerLedgerRoutes);
 router.use("/customers", customerRoutes);

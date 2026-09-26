@@ -12,6 +12,7 @@ export interface DynamicProductSchema {
   categories: string[];
   units?: string[];
   fields: ProductFieldSpec[];
+  sections?: { name: string; fields: ProductFieldSpec[] }[];
 }
 
 export const PRODUCT_SCHEMAS: Record<string, DynamicProductSchema> = {

@@ -9,7 +9,18 @@ export class ProductTemplateService {
     if (templateCache[businessType]) {
       return templateCache[businessType];
     }
-    const defaultSchema = PRODUCT_SCHEMAS[businessType] || PRODUCT_SCHEMAS["Custom Business"];
+    const base = PRODUCT_SCHEMAS[businessType] || PRODUCT_SCHEMAS["Custom Business"] || {
+      businessType: businessType || "Grocery Store",
+      categories: ["Dairy", "Snacks", "Grocery", "Drinks", "Household", "Personal Care"],
+      units: ["Kg", "Gram", "Litre", "ml", "Packet", "Piece"],
+      fields: [],
+    };
+    const defaultSchema: DynamicProductSchema = {
+      ...base,
+      sections: base.sections || [
+        { name: "Product Specifications", fields: base.fields || [] },
+      ],
+    };
     templateCache[businessType] = defaultSchema;
     return defaultSchema;
   }

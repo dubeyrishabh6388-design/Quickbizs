@@ -669,6 +669,16 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const token = localStorage.getItem("qb_token");
     if (!token) return;
 
+    // Only SuperAdmin is authorized to fetch all tenants across the SaaS platform
+    try {
+      const userStr = localStorage.getItem("qb_user");
+      if (!userStr) return;
+      const user = JSON.parse(userStr);
+      if (user?.role !== "SuperAdmin") return;
+    } catch {
+      return;
+    }
+
     try {
       const response = await fetch(`${env.apiUrl}/api/v1/admin/tenants`, {
         headers: { Authorization: `Bearer ${token}` },

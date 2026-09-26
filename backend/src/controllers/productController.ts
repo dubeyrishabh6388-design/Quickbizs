@@ -1,10 +1,41 @@
 import { Response, NextFunction } from "express";
 import { ProductService } from "../services/productService";
 import { AuthenticatedRequest } from "../middlewares/auth";
+import { prisma } from "../config/prisma";
+import { productTemplateService } from "../services/productTemplateService";
 
 const productService = new ProductService();
 
 export class ProductController {
+  async getTemplate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const businessId = req.user?.tenantId;
+      let businessType = (req.query.businessType as string) || "";
+      if (!businessType && businessId) {
+        const business = await prisma.business.findUnique({
+          where: { id: businessId },
+          select: { businessType: true },
+        });
+        if (business?.businessType) {
+          businessType = business.businessType;
+        }
+      }
+      if (!businessType) {
+        businessType = "Grocery Store";
+      }
+
+      const template = await productTemplateService.getTemplate(businessType);
+      res.json({
+        success: true,
+        message: "Product dynamic schema template retrieved successfully.",
+        data: template,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getProducts(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       let businessId = req.user!.tenantId as string;
