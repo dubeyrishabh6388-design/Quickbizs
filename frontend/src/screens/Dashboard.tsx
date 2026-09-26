@@ -475,7 +475,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
   };
 
   return (
-    <div className="relative min-h-screen p-3.5 sm:p-6 lg:p-8 w-full space-y-4 sm:space-y-6 pb-28 text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-950 transition-colors duration-200">
+    <div className="relative min-h-screen p-2.5 sm:p-5 lg:p-8 w-full space-y-2.5 sm:space-y-5 pb-24 text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-950 transition-colors duration-200">
       
       {/* Ambient background glow effects */}
       <div className="absolute top-10 right-1/4 w-96 h-96 bg-brand-orange/5 dark:bg-brand-orange/10 rounded-full blur-3xl pointer-events-none -z-10" />
@@ -483,37 +483,37 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
 
       {/* Dynamic Toast Feedback */}
       {toastMsg && (
-        <div className="fixed top-5 right-5 bg-brand-orange text-white px-5 py-3 rounded-2xl shadow-2xl font-black text-xs z-50 flex items-center gap-2.5 animate-bounce shadow-brand-orange/30">
+        <div className="fixed top-5 right-5 bg-brand-orange text-white px-4 py-2.5 rounded-xl shadow-2xl font-black text-xs z-50 flex items-center gap-2 animate-bounce shadow-brand-orange/30">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>{toastMsg}</span>
         </div>
       )}
 
       {/* 1. TOP HERO COMMAND BAR - RESPONSIVE & MOBILE-OPTIMIZED */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 sm:gap-4 pt-1 pb-1">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-2.5 sm:gap-4 pt-0.5 pb-0.5">
 
         {/* Store Identity & Live Status */}
-        <div className="flex items-center justify-between sm:justify-start gap-3">
-          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-            <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-gradient-to-tr from-brand-orange to-amber-500 text-white flex items-center justify-center shadow-md shadow-brand-orange/25 shrink-0">
-              <Building2 className="h-5 w-5 sm:h-5.5 sm:w-5.5" />
+        <div className="flex items-center justify-between sm:justify-start gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-3.5 min-w-0">
+            <div className="h-9 w-9 sm:h-11 sm:w-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-brand-orange to-amber-500 text-white flex items-center justify-center shadow-md shadow-brand-orange/25 shrink-0">
+              <Building2 className="h-4.5 w-4.5 sm:h-5.5 sm:w-5.5" />
             </div>
 
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white truncate">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h1 className="text-base sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white truncate">
                   Store Command Center
                 </h1>
-                <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 shrink-0">
+                <span className="inline-flex items-center gap-1 px-1.5 sm:px-2.5 py-0.2 sm:py-0.5 rounded-full text-[8px] sm:text-[10px] font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 shrink-0">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   LIVE
                 </span>
               </div>
 
               {/* Subtitle Status Meta */}
-              <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
                 <span className="flex items-center gap-1">
-                  <ShieldCheck className="h-3.5 w-3.5 text-brand-orange" />
+                  <ShieldCheck className="h-3 w-3 text-brand-orange" />
                   Terminal 01
                 </span>
                 {pickupStats.total > 0 && (
@@ -523,7 +523,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                       onClick={() => setActiveScreen("incoming-orders")}
                       className="flex items-center gap-1 font-bold text-brand-orange hover:underline cursor-pointer transition-colors"
                     >
-                      <Package className="h-3.5 w-3.5" />
+                      <Package className="h-3 w-3" />
                       <span>{pickupStats.pending} Pickups (₹{pickupStats.revenue.toLocaleString("en-IN")})</span>
                     </button>
                   </>
@@ -537,7 +537,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full xl:w-auto">
 
           {/* Minimal Time Horizon Pills */}
-          <div className="w-full sm:w-auto grid grid-cols-4 sm:flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs transition-colors">
+          <div className="w-full sm:w-auto grid grid-cols-4 sm:flex items-center bg-slate-100 dark:bg-slate-900 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs transition-colors">
             {(["today", "yesterday", "week", "month"] as TimeHorizon[]).map(tab => (
               <button
                 key={tab}
@@ -547,7 +547,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                     setIsDailyBriefingOpen(true);
                   }
                 }}
-                className={`py-1.5 px-2.5 sm:px-3.5 rounded-xl text-[11px] sm:text-xs font-bold capitalize text-center transition-all cursor-pointer ${
+                className={`py-1 px-1.5 sm:py-1.5 sm:px-3.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold capitalize text-center transition-all cursor-pointer ${
                   timeHorizon === tab
                     ? "bg-brand-orange text-white font-black shadow-xs"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800/60"
@@ -560,11 +560,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
           </div>
 
           {/* Action Buttons Row */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
             {/* New Bill */}
             <button
               onClick={() => setActiveScreen("billing")}
-              className="flex-1 sm:flex-initial bg-brand-orange hover:bg-brand-orange-hover text-white font-black px-3.5 sm:px-4 py-2 sm:py-2 rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              className="flex-1 sm:flex-initial bg-brand-orange hover:bg-brand-orange-hover text-white font-black px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
             >
               <ShoppingCart className="h-3.5 w-3.5" />
               <span>+ New Bill</span>
@@ -595,19 +595,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
       </div>
 
       {/* 2. DYNAMIC SMART COPILOT RECOMMENDATIONS & STORE HEALTH GAUGE */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-2.5 sm:gap-4">
 
         {/* Store Health Scorecard Widget — Theme-Adaptive & Mobile-Balanced */}
         <div 
           onClick={() => setActiveScreen("reports")}
-          className="lg:col-span-1 relative bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:via-[#111827] dark:to-slate-950 text-slate-900 dark:text-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs dark:shadow-lg flex flex-col justify-between overflow-hidden cursor-pointer group hover:border-brand-orange/40 hover:shadow-md transition-all"
+          className="lg:col-span-1 relative bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-3.5 sm:p-5 rounded-xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs dark:shadow-lg flex flex-col justify-between overflow-hidden cursor-pointer group hover:border-brand-orange/40 hover:shadow-md transition-all"
           title="Click to view full store data analysis & diagnostics"
         >
           {/* Background glow */}
           <div className="absolute -bottom-6 -right-6 w-28 h-28 bg-brand-orange/10 dark:bg-brand-orange/20 rounded-full blur-2xl pointer-events-none" />
           <div className="absolute top-0 left-0 w-20 h-20 bg-brand-orange/5 dark:bg-brand-orange/10 rounded-full blur-2xl pointer-events-none" />
 
-          <div className="flex items-center justify-between mb-2 sm:mb-4 relative z-10">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-4 relative z-10">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Store Health
             </span>
@@ -624,8 +624,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
 
           {/* Large gauge in center */}
           <div className="flex sm:flex-col items-center justify-center gap-3 sm:gap-2 my-1 sm:my-2 relative z-10">
-            <div className="relative h-16 w-16 sm:h-20 sm:w-20 flex items-center justify-center shrink-0">
-              <svg className="h-16 w-16 sm:h-20 sm:w-20 -rotate-90" viewBox="0 0 36 36">
+            <div className="relative h-14 w-14 sm:h-20 sm:w-20 flex items-center justify-center shrink-0">
+              <svg className="h-14 w-14 sm:h-20 sm:w-20 -rotate-90" viewBox="0 0 36 36">
                 {/* Track */}
                 <path
                   className="text-slate-100 dark:text-slate-800/90"
@@ -646,7 +646,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                 />
               </svg>
               <div className="absolute flex flex-col items-center">
-                <span className="font-black text-base sm:text-lg text-slate-900 dark:text-white leading-none">{storeHealthScore}%</span>
+                <span className="font-black text-sm sm:text-lg text-slate-900 dark:text-white leading-none">{storeHealthScore}%</span>
               </div>
             </div>
             <div className="text-left sm:text-center">
@@ -672,11 +672,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
         </div>
 
         {/* Copilot AI Insight Cards */}
-        <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm flex flex-col justify-between gap-3 sm:gap-4 transition-colors">
+        <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-5 rounded-xl sm:rounded-3xl shadow-sm flex flex-col justify-between gap-2.5 sm:gap-4 transition-colors">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-2.5">
-              <div className="h-7 w-7 rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center shrink-0">
-                <Sparkles className="h-4 w-4" />
+              <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg sm:rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center shrink-0">
+                <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </div>
               <div>
                 <span className="text-xs font-black text-slate-900 dark:text-white block">
@@ -695,36 +695,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             )}
           </div>
 
-          <div className="flex md:grid md:grid-cols-3 gap-2.5 sm:gap-3 overflow-x-auto no-scrollbar pb-1 snap-x">
+          <div className="flex md:grid md:grid-cols-3 gap-2 sm:gap-3 overflow-x-auto no-scrollbar pb-1 snap-x">
 
             {/* Insight 1 — Digital Adoption */}
-            <div className="min-w-[240px] sm:min-w-0 flex-1 snap-start relative p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-xl sm:rounded-2xl overflow-hidden group hover:border-brand-orange/40 hover:shadow-md transition-all">
+            <div className="min-w-[210px] sm:min-w-0 flex-1 snap-start relative p-3 sm:p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-xl sm:rounded-2xl overflow-hidden group hover:border-brand-orange/40 hover:shadow-md transition-all">
               <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-brand-orange rounded-l-2xl" />
               <div className="pl-1">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center">
-                    <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg sm:rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center">
+                    <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
                   </div>
-                  <span className="text-[9px] font-black text-brand-orange bg-brand-orange/10 px-1.5 py-0.5 rounded-md border border-brand-orange/20">
+                  <span className="text-[8px] sm:text-[9px] font-black text-brand-orange bg-brand-orange/10 px-1.5 py-0.5 rounded-md border border-brand-orange/20">
                     #{digitalSharePct}% UPI
                   </span>
                 </div>
-                <span className="font-black text-xs text-slate-900 dark:text-white block mb-1">Digital QR Adoption</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                <span className="font-black text-xs text-slate-900 dark:text-white block mb-0.5">Digital QR Adoption</span>
+                <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                   {digitalSharePct}% via UPI QR. Low drawer cash discrepancy.
                 </p>
               </div>
             </div>
 
             {/* Insight 2 — Restock Priority */}
-            <div className="min-w-[240px] sm:min-w-0 flex-1 snap-start relative p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-xl sm:rounded-2xl overflow-hidden group hover:border-brand-orange/40 hover:shadow-md transition-all">
+            <div className="min-w-[210px] sm:min-w-0 flex-1 snap-start relative p-3 sm:p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-xl sm:rounded-2xl overflow-hidden group hover:border-brand-orange/40 hover:shadow-md transition-all">
               <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl ${lowStockItems.length > 0 ? "bg-brand-orange" : "bg-slate-300 dark:bg-slate-700"}`} />
               <div className="pl-1">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center">
-                    <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg sm:rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center">
+                    <Package className="h-3 w-3 sm:h-4 sm:w-4" />
                   </div>
-                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md border ${
+                  <span className={`text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded-md border ${
                     lowStockItems.length > 0
                       ? "text-brand-orange bg-brand-orange/10 border-brand-orange/20"
                       : "text-slate-400 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
@@ -732,8 +732,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                     {lowStockItems.length} LOW
                   </span>
                 </div>
-                <span className="font-black text-xs text-slate-900 dark:text-white block mb-1">Restock Priority</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                <span className="font-black text-xs text-slate-900 dark:text-white block mb-0.5">Restock Priority</span>
+                <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                   {lowStockItems.length > 0
                     ? `${lowStockItems.length} products near minimum safe level.`
                     : "All fast-moving SKUs are well replenished."}
@@ -742,19 +742,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             </div>
 
             {/* Insight 3 — Rush Shift */}
-            <div className="min-w-[240px] sm:min-w-0 flex-1 snap-start relative p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-xl sm:rounded-2xl overflow-hidden group hover:border-brand-orange/40 hover:shadow-md transition-all">
+            <div className="min-w-[210px] sm:min-w-0 flex-1 snap-start relative p-3 sm:p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-xl sm:rounded-2xl overflow-hidden group hover:border-brand-orange/40 hover:shadow-md transition-all">
               <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-slate-300 dark:bg-slate-600 rounded-l-2xl" />
               <div className="pl-1">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl bg-slate-200/60 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 flex items-center justify-center">
-                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg sm:rounded-xl bg-slate-200/60 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 flex items-center justify-center">
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                   </div>
-                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
+                  <span className="text-[8px] sm:text-[9px] font-black text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
                     5:30 PM
                   </span>
                 </div>
-                <span className="font-black text-xs text-slate-900 dark:text-white block mb-1">Rush Shift Ahead</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                <span className="font-black text-xs text-slate-900 dark:text-white block mb-0.5">Rush Shift Ahead</span>
+                <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                   Evening rush starts ~5:30 PM. Keep 2 counters active.
                 </p>
               </div>
@@ -766,29 +766,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
       </div>
 
       {/* 3. EXECUTIVE KPI MATRIX (6 HIGH-DENSITY CARDS WITH INLINE SPARKLINES) */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2.5 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-4">
         
         {/* KPI 1: Gross Sales */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
           <div>
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate pr-1">
                 {periodLabel} Revenue
               </span>
-              <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg sm:rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+              <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                 <Receipt className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </div>
             </div>
-            <div className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            <div className="text-base sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
               ₹{salesTotal.toLocaleString("en-IN")}
             </div>
           </div>
-          <div className="h-4 sm:h-6 w-full my-1 sm:my-2">
+          <div className="h-3 sm:h-6 w-full my-1 sm:my-2">
             <svg className="w-full h-full text-brand-orange" viewBox="0 0 100 20" preserveAspectRatio="none">
               <path d="M0 16 Q 25 18, 50 10 T 100 4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </div>
-          <div className="pt-1.5 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[10px] sm:text-[11px]">
+          <div className="pt-1 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] sm:text-[11px]">
             <span className="font-bold text-slate-500 dark:text-slate-400 truncate">{billsCount} Bills</span>
             <span className="font-extrabold text-brand-orange flex items-center gap-0.5 shrink-0" title={compLabel}>
               <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
@@ -798,27 +798,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
         </div>
 
         {/* KPI 2: Gross Profit & Margin */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
           <div>
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate pr-1">
                 Gross Profit
               </span>
-              <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg sm:rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+              <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                 <TrendingUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </div>
             </div>
-            <div className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            <div className="text-base sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
               ₹{grossProfit.toLocaleString("en-IN")}
             </div>
           </div>
           {/* Inline SVG Sparkline */}
-          <div className="h-4 sm:h-6 w-full my-1 sm:my-2">
+          <div className="h-3 sm:h-6 w-full my-1 sm:my-2">
             <svg className="w-full h-full text-brand-orange" viewBox="0 0 100 20" preserveAspectRatio="none">
               <path d="M0 18 Q 30 12, 65 14 T 100 5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </div>
-          <div className="pt-1.5 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[10px] sm:text-[11px]">
+          <div className="pt-1 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] sm:text-[11px]">
             <span className="font-bold text-slate-500 dark:text-slate-400">Margin</span>
             <span className="font-extrabold text-brand-orange shrink-0">
               {profitMarginPct}%
@@ -827,26 +827,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
         </div>
 
         {/* KPI 3: Average Order Value (AOV) */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
           <div>
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate pr-1">
-                Avg Basket (AOV)
+                Avg Basket
               </span>
-              <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+              <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                 <Percent className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </div>
             </div>
-            <div className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            <div className="text-base sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
               ₹{aov.toLocaleString("en-IN")}
             </div>
           </div>
-          <div className="h-4 sm:h-6 w-full my-1 sm:my-2">
+          <div className="h-3 sm:h-6 w-full my-1 sm:my-2">
             <svg className="w-full h-full text-slate-400 dark:text-slate-600" viewBox="0 0 100 20" preserveAspectRatio="none">
               <path d="M0 12 Q 35 18, 70 8 T 100 6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </div>
-          <div className="pt-1.5 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[10px] sm:text-[11px]">
+          <div className="pt-1 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] sm:text-[11px]">
             <span className="font-bold text-slate-500 dark:text-slate-400">Net Profit</span>
             <span className="font-extrabold text-slate-700 dark:text-slate-300 shrink-0">
               ₹{netProfit.toLocaleString("en-IN")}
@@ -855,28 +855,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
         </div>
 
         {/* KPI 4: Customer Khata / Udhaar */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
           <div>
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate pr-1">
                 Udhaar Khata
               </span>
-              <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg sm:rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+              <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                 <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </div>
             </div>
-            <div className="text-lg sm:text-2xl font-black tracking-tight text-rose-600 dark:text-rose-400">
+            <div className="text-base sm:text-2xl font-black tracking-tight text-rose-600 dark:text-rose-400">
               ₹{totalPendingUdhaar.toLocaleString("en-IN")}
             </div>
           </div>
           {/* Inline SVG Sparkline */}
-          <div className="h-4 sm:h-6 w-full my-1 sm:my-2">
+          <div className="h-3 sm:h-6 w-full my-1 sm:my-2">
             <svg className="w-full h-full text-rose-500" viewBox="0 0 100 20" preserveAspectRatio="none">
               <path d="M0 10 Q 30 16, 60 12 T 100 15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </div>
-          <div className="pt-1.5 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[10px] sm:text-[11px]">
-            <span className="font-bold text-slate-500 dark:text-slate-400 truncate">{totalDebtorsCount} Accounts</span>
+          <div className="pt-1 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] sm:text-[11px]">
+            <span className="font-bold text-slate-500 dark:text-slate-400 truncate">{totalDebtorsCount} Accs</span>
             <button 
               onClick={() => setActiveScreen("recovery")}
               className="font-extrabold text-brand-orange hover:underline cursor-pointer flex items-center gap-0.5 shrink-0"
@@ -887,26 +887,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
         </div>
 
         {/* KPI 5: Stock Health & Valuation */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
           <div>
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate pr-1">
                 Stock Value
               </span>
-              <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+              <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                 <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </div>
             </div>
-            <div className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            <div className="text-base sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
               ₹{Math.round(inventoryValuation).toLocaleString("en-IN")}
             </div>
           </div>
-          <div className="h-4 sm:h-6 w-full my-1 sm:my-2">
+          <div className="h-3 sm:h-6 w-full my-1 sm:my-2">
             <svg className="w-full h-full text-slate-400 dark:text-slate-600" viewBox="0 0 100 20" preserveAspectRatio="none">
               <path d="M0 14 Q 40 6, 75 12 T 100 8" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </div>
-          <div className="pt-1.5 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[10px] sm:text-[11px]">
+          <div className="pt-1 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] sm:text-[11px]">
             <span className="font-bold text-slate-500 dark:text-slate-400 truncate">{totalCatalogItems} Items</span>
             <span className={`font-extrabold shrink-0 ${lowStockItems.length > 0 ? "text-brand-orange" : "text-slate-500 dark:text-slate-400"}`}>
               {lowStockItems.length} Low
@@ -915,26 +915,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
         </div>
 
         {/* KPI 6: Staff & Store Ops */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
           <div>
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate pr-1">
                 Attendance
               </span>
-              <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+              <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                 <ShieldCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </div>
             </div>
-            <div className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            <div className="text-base sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
               {presentStaffCount} / {totalStaffCount || 1}
             </div>
           </div>
-          <div className="h-4 sm:h-6 w-full my-1 sm:my-2">
+          <div className="h-3 sm:h-6 w-full my-1 sm:my-2">
             <svg className="w-full h-full text-slate-400 dark:text-slate-600" viewBox="0 0 100 20" preserveAspectRatio="none">
               <path d="M0 10 L 40 10 L 60 10 L 100 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </div>
-          <div className="pt-1.5 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[10px] sm:text-[11px]">
+          <div className="pt-1 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] sm:text-[11px]">
             <span className="font-bold text-slate-500 dark:text-slate-400 truncate">Exp: ₹{periodExpenses.toLocaleString("en-IN")}</span>
             <button 
               onClick={() => setIsExpenseModalOpen(true)}

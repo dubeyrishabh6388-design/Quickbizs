@@ -115,11 +115,81 @@ export const Header: React.FC<HeaderProps> = ({
   const isDark = theme === "dark";
 
   return (
-    <header className="hidden lg:block sticky top-0 z-30 transition-all duration-200 shrink-0 bg-brand-navy border-b border-slate-800 text-slate-300 shadow-md">
+    <header className="sticky top-0 z-30 transition-all duration-200 shrink-0 bg-brand-navy border-b border-slate-800 text-slate-300 shadow-md">
       {/* Brand Glowing Top Accent Bar */}
       <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-brand-orange to-transparent shadow-[0_0_12px_rgba(249,115,22,0.6)]" />
 
-      <div className="flex items-center justify-between gap-3 w-full px-3 sm:px-5 lg:px-6 py-2">
+      {/* ─── MOBILE NATIVE APP BAR (Visible on < lg screens) ─── */}
+      <div className="flex lg:hidden items-center justify-between gap-2 w-full px-3 py-2 bg-brand-navy/98 backdrop-blur-xl">
+        {/* Left: Drawer toggle + Brand & Store Name */}
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            className="p-1.5 rounded-xl cursor-pointer transition-all flex items-center justify-center shrink-0 bg-slate-850 hover:bg-slate-800 text-slate-200 border border-slate-700/70 active:scale-95 shadow-xs"
+            aria-label="Open Navigation Menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
+          <div className="flex items-center gap-2 min-w-0">
+            <img src={logo} alt="Logo" className="h-7 w-7 rounded-lg object-cover ring-1 ring-brand-orange/40 shrink-0" />
+            <div className="flex flex-col min-w-0 leading-none">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black text-white truncate max-w-[120px] sm:max-w-[200px]">
+                  {currentUser?.businessName || "QuickBizs"}
+                </span>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Store Live" />
+              </div>
+              <span className="text-[9px] font-bold text-brand-orange uppercase tracking-wider truncate mt-0.5">
+                {currentRole}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Quick Actions */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Quick Search */}
+          <button
+            onClick={onOpenSearch}
+            className="p-1.5 rounded-xl transition-all cursor-pointer flex items-center justify-center bg-slate-900/80 hover:bg-slate-850 text-slate-300 border border-slate-700/80 active:scale-95 shadow-xs"
+            aria-label="Search"
+            title="Search (Ctrl+K)"
+          >
+            <Search className="h-4 w-4" />
+          </button>
+
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-1.5 rounded-xl transition-all cursor-pointer flex items-center justify-center bg-slate-900/80 hover:bg-slate-850 text-brand-orange border border-slate-700/80 active:scale-95 shadow-xs"
+            aria-label="Toggle Theme"
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {isDark ? (
+              <Sun className="h-4 w-4 text-amber-400" />
+            ) : (
+              <Moon className="h-4 w-4 text-slate-300" />
+            )}
+          </button>
+
+          {/* Notification Bell */}
+          <NotificationBell />
+
+          {/* User Avatar */}
+          <div 
+            onClick={onToggleSidebar}
+            className="h-7 w-7 rounded-xl bg-brand-orange text-white flex items-center justify-center font-black text-[10px] shrink-0 select-none shadow-sm cursor-pointer active:scale-95 ring-1 ring-brand-orange/40"
+            title={`${displayName} (${currentRole})`}
+          >
+            {initials}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── DESKTOP HEADER (Visible on lg+ screens) ─── */}
+      <div className="hidden lg:flex items-center justify-between gap-3 w-full px-5 lg:px-6 py-2">
         
         {/* WHEN SIDEBAR IS OPEN: Show Search Bar in Header */}
         {isSidebarOpen ? (

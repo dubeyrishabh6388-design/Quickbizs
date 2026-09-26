@@ -28,8 +28,7 @@ import {
   Receipt, 
   Package, 
   Users, 
-  BarChart3, 
-  Settings as SettingsIcon
+  BarChart3
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -306,7 +305,7 @@ function AppContent() {
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 h-screen overflow-hidden flex flex-col relative pb-16 lg:pb-0 bg-slate-50 dark:bg-slate-950 transition-all duration-300">
+      <main className="flex-1 h-screen overflow-hidden flex flex-col relative pb-20 lg:pb-0 bg-slate-50 dark:bg-slate-950 transition-all duration-300">
         
         {/* Unified Responsive Header */}
         <Header 
@@ -325,32 +324,64 @@ function AppContent() {
         <div className="flex-1 overflow-y-auto min-h-0 w-full">{renderScreen()}</div>
       </main>
 
-      {/* Bottom Navigation for Mobile Devices */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-around py-3 px-4 shadow-xl">
-        {[
-          { id: "dashboard", label: "Home", icon: LayoutDashboard },
-          { id: "billing", label: "Billing", icon: Receipt },
-          { id: "inventory", label: "Inventory", icon: Package },
-          { id: "customers", label: "Customers", icon: Users },
-          { id: "reports", label: "Reports", icon: BarChart3 },
-          { id: "settings", label: "Settings", icon: SettingsIcon },
-        ].map(item => {
-          const Icon = item.icon;
-          const isActive = activeScreen === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveScreen(item.id as ScreenType)}
-              className={`flex flex-col items-center gap-1 cursor-pointer transition-colors active:scale-95 ${
-                isActive ? "text-brand-orange font-bold" : "text-slate-400 hover:text-slate-600"
-              }`}
-            >
-              <Icon className="h-5 w-5" />
-              <span className="text-[10px] tracking-tight">{item.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Native Mobile App Floating Dock Navigation */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 px-3 pt-1 pb-[max(env(safe-area-inset-bottom),6px)] shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center justify-around max-w-md mx-auto relative">
+          {[
+            { id: "dashboard", label: "Home", icon: LayoutDashboard },
+            { id: "inventory", label: "Stock", icon: Package },
+            { id: "billing", label: "Quick POS", icon: Receipt, isCenter: true },
+            { id: "customers", label: "Khata", icon: Users },
+            { id: "reports", label: "Analytics", icon: BarChart3 },
+          ].map(item => {
+            const Icon = item.icon;
+            const isActive = activeScreen === item.id;
+
+            if (item.isCenter) {
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveScreen("billing")}
+                  className="flex flex-col items-center -mt-5 group cursor-pointer active:scale-90 transition-transform relative z-10"
+                >
+                  <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-lg transition-all ${
+                    isActive
+                      ? "bg-gradient-to-tr from-brand-orange to-amber-500 text-white shadow-brand-orange/40 ring-4 ring-slate-100 dark:ring-slate-900 scale-105"
+                      : "bg-slate-900 dark:bg-brand-orange text-white shadow-slate-900/30 dark:shadow-brand-orange/30 ring-4 ring-white dark:ring-slate-900"
+                  }`}>
+                    <Icon className="h-5.5 w-5.5 stroke-[2.5]" />
+                  </div>
+                  <span className={`text-[10px] font-black mt-1 tracking-tight ${
+                    isActive ? "text-brand-orange" : "text-slate-600 dark:text-slate-400"
+                  }`}>
+                    {item.label}
+                  </span>
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveScreen(item.id as ScreenType)}
+                className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl cursor-pointer transition-all active:scale-90 ${
+                  isActive
+                    ? "text-brand-orange font-black"
+                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-medium"
+                }`}
+              >
+                <div className="relative">
+                  <Icon className={`h-5 w-5 transition-transform ${isActive ? "scale-110" : ""}`} />
+                  {isActive && (
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-brand-orange" />
+                  )}
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
 
       {/* Floating AI Panel Nudge */}
       {currentRole === "Owner" && <AIAssistPanel />}

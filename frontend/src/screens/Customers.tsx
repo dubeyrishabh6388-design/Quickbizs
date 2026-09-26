@@ -122,81 +122,98 @@ export const Customers: React.FC = () => {
   const totalUdhaarSum = customers.reduce((acc, c) => acc + Math.max(0, c.pendingDues), 0);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 w-full space-y-6 pb-28 text-slate-900 dark:text-white">
+    <div className="p-2.5 sm:p-5 lg:p-8 w-full space-y-3 sm:space-y-5 pb-24 text-slate-900 dark:text-white">
       
       {/* Toast Banner */}
       {toastMsg && (
-        <div className="fixed top-4 right-4 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-xl font-black text-xs z-50 flex items-center gap-2 animate-bounce">
+        <div className="fixed top-4 right-4 bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-xl font-black text-xs z-50 flex items-center gap-2 animate-bounce">
           <CheckCircle2 className="h-4 w-4" />
           {toastMsg}
         </div>
       )}
 
       {/* Standard Adaptive Page Header Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center shrink-0">
-            <Users className="h-6 w-6" />
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-5 rounded-xl sm:rounded-2xl shadow-xs flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="h-9 w-9 sm:h-12 sm:w-12 rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center shrink-0">
+            <Users className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                Customer Accounts & Khata
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-base sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white truncate">
+                Customer Khata
               </h1>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                {customers.length} Accounts
+              <span className="text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">
+                {customers.length}
               </span>
             </div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5 hidden sm:block">
               Udhaar ledger, customer credit tracking, WhatsApp balance reminders, and instant Jama/Udhaar entries
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <div className="text-right hidden sm:block">
             <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase block">Total Pending Udhaar</span>
-            <span className="text-lg font-black text-rose-500 tabular-nums">₹{totalUdhaarSum.toLocaleString("en-IN")}</span>
+            <span className="text-base sm:text-lg font-black text-rose-500 tabular-nums">₹{totalUdhaarSum.toLocaleString("en-IN")}</span>
           </div>
 
           <button
             type="button"
             onClick={() => setIsAddOpen(true)}
-            className="bg-brand-orange hover:bg-brand-orange-hover text-white font-black px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-98 cursor-pointer shrink-0"
+            className="bg-brand-orange hover:bg-brand-orange-hover text-white font-black px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer shrink-0"
           >
-            <UserPlus className="h-4 w-4" />
-            Add Customer
+            <UserPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Add Customer</span>
+            <span className="sm:hidden">Add</span>
           </button>
         </div>
       </div>
 
+      {/* Mobile Udhaar Quick Summary Banner (Prominently visible on mobile phones) */}
+      <div className="sm:hidden bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 rounded-xl p-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center font-black text-xs">
+            ₹
+          </div>
+          <div>
+            <span className="text-[9px] font-extrabold uppercase text-slate-400 dark:text-slate-500 tracking-wider block">Total Outstanding Udhaar</span>
+            <span className="text-sm font-black text-rose-600 dark:text-rose-400 tabular-nums">₹{totalUdhaarSum.toLocaleString("en-IN")}</span>
+          </div>
+        </div>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400">
+          {customers.filter(c => c.pendingDues > 0).length} Due
+        </span>
+      </div>
+
       {/* Search & Filter */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="relative">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search customer by name or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 sm:py-2.5 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange"
           />
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <button
             onClick={() => setSelectedFilter("All")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-black cursor-pointer transition-all ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold cursor-pointer transition-all ${
               selectedFilter === "All"
                 ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
                 : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-brand-orange/50"
             }`}
           >
-            All Customers ({customers.length})
+            All ({customers.length})
           </button>
           <button
             onClick={() => setSelectedFilter("Pending Udhaar")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-black cursor-pointer transition-all ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold cursor-pointer transition-all ${
               selectedFilter === "Pending Udhaar"
                 ? "bg-rose-600 text-white shadow-xs"
                 : "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-slate-200 dark:border-slate-800 hover:border-rose-500/50"
@@ -207,47 +224,47 @@ export const Customers: React.FC = () => {
         </div>
       </div>
 
-      {/* Customer List View (Mobile: 1 Col, Desktop: Multi-Col Grid) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* Customer List View (Mobile: Compact Cards, Desktop: Multi-Col Grid) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
         {filteredCustomers.length === 0 ? (
-          <div className="col-span-full text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
-            <User className="h-10 w-10 text-slate-400 mx-auto mb-2" />
+          <div className="col-span-full text-center py-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
+            <User className="h-8 w-8 text-slate-400 mx-auto mb-2" />
             <p className="text-xs text-slate-500 font-bold">No customers found.</p>
           </div>
         ) : (
           filteredCustomers.map((c) => (
             <div 
               key={c.id}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 rounded-2xl shadow-xs space-y-3 transition-all hover:border-slate-300 dark:hover:border-slate-700"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs space-y-2.5 transition-all hover:border-slate-300 dark:hover:border-slate-700"
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">{c.name}</h3>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                    <Phone className="h-3.5 w-3.5 text-slate-400" />
+                <div className="min-w-0 pr-2">
+                  <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate">{c.name}</h3>
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                    <Phone className="h-3 w-3 text-slate-400 shrink-0" />
                     <span>{c.phone}</span>
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <span className="text-[10px] font-black text-slate-400 uppercase block">Balance Due</span>
-                  <span className={`text-lg font-black ${c.pendingDues > 0 ? "text-rose-600" : c.pendingDues < 0 ? "text-emerald-600" : "text-slate-500"}`}>
-                    {c.pendingDues > 0 ? `₹${c.pendingDues} (Udhaar)` : c.pendingDues < 0 ? `₹${Math.abs(c.pendingDues)} (Advance)` : "₹0 (Clear)"}
+                <div className="text-right shrink-0">
+                  <span className="text-[9px] font-black text-slate-400 uppercase block">Balance Due</span>
+                  <span className={`text-xs sm:text-sm font-black ${c.pendingDues > 0 ? "text-rose-600" : c.pendingDues < 0 ? "text-emerald-600" : "text-slate-500"}`}>
+                    {c.pendingDues > 0 ? `₹${c.pendingDues} (Udhaar)` : c.pendingDues < 0 ? `₹${Math.abs(c.pendingDues)} (Adv)` : "₹0 (Clear)"}
                   </span>
                 </div>
               </div>
 
               {/* 2 Primary Action Buttons: Udhaar (-) & Jama (+) */}
-              <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <button
                   onClick={() => {
                     setActiveTxCustomer(c);
                     setTxType("Udhaar");
                   }}
-                  className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-black py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-transform cursor-pointer"
+                  className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-bold py-2 px-2.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs flex items-center justify-center gap-1 active:scale-95 transition-transform cursor-pointer"
                 >
-                  <ArrowUpRight className="h-4 w-4" />
-                  Gave Udhaar (-)
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                  Udhaar (-)
                 </button>
 
                 <button
@@ -255,19 +272,19 @@ export const Customers: React.FC = () => {
                     setActiveTxCustomer(c);
                     setTxType("Jama");
                   }}
-                  className="bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-black py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-transform cursor-pointer"
+                  className="bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold py-2 px-2.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs flex items-center justify-center gap-1 active:scale-95 transition-transform cursor-pointer"
                 >
-                  <ArrowDownLeft className="h-4 w-4" />
-                  Received Jama (+)
+                  <ArrowDownLeft className="h-3.5 w-3.5" />
+                  Jama (+)
                 </button>
               </div>
 
               {/* View Profile & History Button */}
               <button
                 onClick={() => setActiveProfileCustomer(c)}
-                className="w-full mt-2 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="w-full py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-bold rounded-lg sm:rounded-xl text-[11px] sm:text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-slate-100 dark:border-slate-700/60"
               >
-                <User className="h-4 w-4 text-emerald-600" />
+                <User className="h-3.5 w-3.5 text-brand-orange" />
                 View Profile & History
               </button>
             </div>
@@ -275,14 +292,14 @@ export const Customers: React.FC = () => {
         )}
       </div>
 
-      {/* Sticky Bottom Floating Action Button */}
-      <div className="fixed bottom-20 lg:bottom-6 left-4 right-4 max-w-4xl mx-auto z-30">
+      {/* Floating Action Button on mobile */}
+      <div className="fixed bottom-[72px] right-4 z-30 sm:hidden">
         <button
           onClick={() => setIsAddOpen(true)}
-          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4 rounded-2xl text-sm shadow-xl flex items-center justify-center gap-2 active:scale-98 transition-transform cursor-pointer"
+          className="h-12 w-12 rounded-2xl bg-brand-orange hover:bg-brand-orange-hover text-white shadow-xl flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
+          title="Add Customer"
         >
           <UserPlus className="h-5 w-5" />
-          Add New Customer
         </button>
       </div>
 
