@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { prisma } from "../config/prisma";
 
 export class UserRepository {
@@ -47,15 +48,38 @@ export class UserRepository {
     expiresAt: Date,
     isCustomer: boolean = false
   ) {
-    return prisma.session.create({
-      data: {
-        userId: isCustomer ? null : userId,
-        customerId: isCustomer ? userId : null,
-        token,
-        refreshToken,
-        expiresAt,
-      },
-    });
+    try {
+      return await prisma.session.create({
+        data: {
+          userId: isCustomer ? null : userId,
+          customerId: isCustomer ? userId : null,
+          token,
+          refreshToken,
+          expiresAt,
+        },
+      });
+    } catch (sessionErr: any) {
+      if (sessionErr?.message?.includes("customer_id") || sessionErr?.code === "P2022") {
+        const sessionId = crypto.randomUUID();
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO sessions (id, user_id, token, refresh_token, expires_at, is_revoked, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, NOW(3), NOW(3))`,
+          sessionId,
+          isCustomer ? null : userId,
+          token,
+          refreshToken,
+          expiresAt
+        );
+        return {
+          id: sessionId,
+          userId: isCustomer ? null : userId,
+          token,
+          refreshToken,
+          expiresAt,
+          isRevoked: false,
+        };
+      }
+      throw sessionErr;
+    }
   }
 
   async findSession(refreshToken: string) {

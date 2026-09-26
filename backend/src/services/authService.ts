@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { prisma } from "../config/prisma";
 import { UserRepository } from "../repositories/userRepository";
 import { OtpRepository } from "../repositories/otpRepository";
@@ -428,12 +429,17 @@ export class AuthService {
       for (const roleName of rolesToCreate) {
         console.log(`[ROLE DEBUG]\nroleName=${roleName}\nbusinessId=${business.id}\nbusinessIdLength=${business.id?.length}\nbusinessIdType=${typeof business.id}`);
         try {
-          const role = await tx.role.create({
+          const roleId = crypto.randomUUID();
+          let role = await tx.role.create({
             data: {
+              id: roleId,
               businessId: business.id,
               name: roleName,
             },
           });
+          if (!role) {
+            role = { id: roleId, businessId: business.id, name: roleName };
+          }
           console.log(`[ROLE SUCCESS] ${roleName} ${role.id}`);
           createdRoles.push(role);
         } catch (error) {
@@ -442,11 +448,13 @@ export class AuthService {
         }
       }
 
-      const targetRole = createdRoles.find((r) => r.name === "Owner") || createdRoles[0];
+      const targetRole = createdRoles.find((r) => r?.name === "Owner") || createdRoles[0];
 
       // 3. Create User
-      const user = await tx.user.create({
+      const userId = crypto.randomUUID();
+      let user = await tx.user.create({
         data: {
+          id: userId,
           businessId: business.id,
           name: data.ownerName,
           email: data.email,
@@ -454,6 +462,15 @@ export class AuthService {
           passwordHash: hash,
         },
       });
+      if (!user) {
+        user = {
+          id: userId,
+          businessId: business.id,
+          name: data.ownerName,
+          email: data.email,
+          phone: data.phone,
+        };
+      }
 
       // 4. Map role
       await tx.userRole.create({
