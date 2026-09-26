@@ -363,25 +363,70 @@ export class AuthService {
         },
       });
 
-      console.log(`[AUTH_DIAG] Created business.id: ${business.id}, name: ${business.name}`);
-      const verifyOnTx = await tx.business.findUnique({ where: { id: business.id } });
-      console.log(`[AUTH_DIAG] Immediate tx.business.findUnique:`, verifyOnTx ? `EXISTS (id=${verifyOnTx.id})` : "NOT_FOUND");
+      // PART 3 — INSTRUMENT THE SAME TRANSACTION
+      const createdBusinessId = business.id;
+      const sameTxBusiness = await tx.business.findUnique({
+        where: { id: createdBusinessId },
+      });
+      const txDatabase: any = await tx.$queryRaw`
+        SELECT DATABASE() AS db,
+               CONNECTION_ID() AS connection_id,
+               @@autocommit AS autocommit
+      `;
 
-      try {
-        const dbName: any = await tx.$queryRawUnsafe(`SELECT DATABASE() as db`);
-        const txIso: any = await tx.$queryRawUnsafe(`SELECT @@transaction_isolation as iso`);
-        const autoCommit: any = await tx.$queryRawUnsafe(`SELECT @@autocommit as ac`);
-        const safe = (v: any) => JSON.stringify(v, (_, val) => (typeof val === "bigint" ? val.toString() : val));
-        console.log(`[AUTH_DIAG] Connection context: DB=${safe(dbName)}, Isolation=${safe(txIso)}, Autocommit=${safe(autoCommit)}`);
-      } catch (diagErr: any) {
-        console.warn(`[AUTH_DIAG] Could not retrieve DB context:`, diagErr.message);
-      }
+      const safe = (v: any) => JSON.stringify(v, (_, val) => (typeof val === "bigint" ? val.toString() : val));
 
-      // 2. Seed default roles sequentially
+      console.log("[REGISTRATION DEBUG]");
+      console.log(`business.id = ${createdBusinessId}`);
+      console.log(`sameTxBusiness.id = ${sameTxBusiness ? sameTxBusiness.id : "null"}`);
+      console.log(`sameTxBusiness exists = ${!!sameTxBusiness}`);
+      console.log(`tx database = ${safe(txDatabase?.[0]?.db)}`);
+      console.log(`tx connection_id = ${safe(txDatabase?.[0]?.connection_id)}`);
+      console.log(`tx autocommit = ${safe(txDatabase?.[0]?.autocommit)}`);
+
+      // PART 4 — VERIFY THE PARENT ROW DIRECTLY
+      const parentCheck: any = await tx.$queryRaw`
+        SELECT id, name
+        FROM businesses
+        WHERE id = ${business.id}
+      `;
+      console.log(`[PARENT CHECK] rows returned = ${parentCheck.length}, exactly one = ${parentCheck.length === 1}`);
+
+      const fkCheck: any = await tx.$queryRaw`
+        SELECT
+          CONSTRAINT_NAME,
+          TABLE_NAME,
+          COLUMN_NAME,
+          REFERENCED_TABLE_NAME,
+          REFERENCED_COLUMN_NAME
+        FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'roles'
+          AND CONSTRAINT_NAME = 'roles_business_id_fkey'
+      `;
+      console.log(`[FK CHECK]`, safe(fkCheck));
+
+      // PART 7 — VERIFY DATABASE FROM THE SAME TRANSACTION
+      const dbNameQuery: any = await tx.$queryRaw`SELECT DATABASE() AS database_name`;
+      const countBusiness: any = await tx.$queryRaw`
+        SELECT COUNT(*) AS matching_business
+        FROM businesses
+        WHERE id = ${business.id}
+      `;
+      const existingRoles: any = await tx.$queryRaw`
+        SELECT id, business_id, name
+        FROM roles
+        WHERE business_id = ${business.id}
+      `;
+      console.log(`[PART 7 DIAG] database_name =`, safe(dbNameQuery));
+      console.log(`[PART 7 DIAG] matching_business count =`, safe(countBusiness));
+      console.log(`[PART 7 DIAG] existing_roles before role creation (should be 0) =`, safe(existingRoles));
+
+      // PART 2, 5, 6 — SEED DEFAULT ROLES SEQUENTIALLY WITH PER-ROLE CATCH
       const rolesToCreate = ["Owner", "Cashier", "Accountant", "Warehouse", "SuperAdmin"];
       const createdRoles = [];
       for (const roleName of rolesToCreate) {
-        console.log(`[AUTH_DIAG] Creating role "${roleName}" for businessId: ${business.id}`);
+        console.log(`[ROLE DEBUG]\nroleName=${roleName}\nbusinessId=${business.id}\nbusinessIdLength=${business.id?.length}\nbusinessIdType=${typeof business.id}`);
         try {
           const role = await tx.role.create({
             data: {
@@ -389,15 +434,11 @@ export class AuthService {
               name: roleName,
             },
           });
-          console.log(`[AUTH_DIAG] Successfully created role "${roleName}" (id: ${role.id})`);
+          console.log(`[ROLE SUCCESS] ${roleName} ${role.id}`);
           createdRoles.push(role);
-        } catch (roleErr: any) {
-          console.error(`[AUTH_DIAG] Failed creating role "${roleName}" for businessId ${business.id}:`, {
-            message: roleErr.message,
-            code: roleErr.code,
-            meta: roleErr.meta,
-          });
-          throw roleErr;
+        } catch (error) {
+          console.error(`[ROLE FAILURE] ${roleName}`, error);
+          throw error;
         }
       }
 
