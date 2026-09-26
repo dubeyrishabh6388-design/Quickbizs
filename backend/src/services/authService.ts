@@ -352,83 +352,23 @@ export class AuthService {
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(data.passwordHash, salt);
 
-    const result = await prisma.$transaction(async (tx: any) => {
-      // 1. Create Business
-      const business = await tx.business.create({
-        data: {
-          name: data.businessName,
-          phone: data.phone,
-          email: data.email,
-          ownerName: data.ownerName,
-          address: data.address,
-        },
-      });
+    const result = await prisma.$transaction(
+      async (tx: any) => {
+        // 1. Create Business
+        const business = await tx.business.create({
+          data: {
+            name: data.businessName,
+            phone: data.phone,
+            email: data.email,
+            ownerName: data.ownerName,
+            address: data.address,
+          },
+        });
 
-      // PART 3 — INSTRUMENT THE SAME TRANSACTION
-      const createdBusinessId = business.id;
-      const sameTxBusiness = await tx.business.findUnique({
-        where: { id: createdBusinessId },
-      });
-      const txDatabase: any = await tx.$queryRaw`
-        SELECT DATABASE() AS db,
-               CONNECTION_ID() AS connection_id,
-               @@autocommit AS autocommit
-      `;
-
-      const safe = (v: any) => JSON.stringify(v, (_, val) => (typeof val === "bigint" ? val.toString() : val));
-
-      console.log("[REGISTRATION DEBUG]");
-      console.log(`business.id = ${createdBusinessId}`);
-      console.log(`sameTxBusiness.id = ${sameTxBusiness ? sameTxBusiness.id : "null"}`);
-      console.log(`sameTxBusiness exists = ${!!sameTxBusiness}`);
-      console.log(`tx database = ${safe(txDatabase?.[0]?.db)}`);
-      console.log(`tx connection_id = ${safe(txDatabase?.[0]?.connection_id)}`);
-      console.log(`tx autocommit = ${safe(txDatabase?.[0]?.autocommit)}`);
-
-      // PART 4 — VERIFY THE PARENT ROW DIRECTLY
-      const parentCheck: any = await tx.$queryRaw`
-        SELECT id, name
-        FROM businesses
-        WHERE id = ${business.id}
-      `;
-      console.log(`[PARENT CHECK] rows returned = ${parentCheck.length}, exactly one = ${parentCheck.length === 1}`);
-
-      const fkCheck: any = await tx.$queryRaw`
-        SELECT
-          CONSTRAINT_NAME,
-          TABLE_NAME,
-          COLUMN_NAME,
-          REFERENCED_TABLE_NAME,
-          REFERENCED_COLUMN_NAME
-        FROM information_schema.KEY_COLUMN_USAGE
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = 'roles'
-          AND CONSTRAINT_NAME = 'roles_business_id_fkey'
-      `;
-      console.log(`[FK CHECK]`, safe(fkCheck));
-
-      // PART 7 — VERIFY DATABASE FROM THE SAME TRANSACTION
-      const dbNameQuery: any = await tx.$queryRaw`SELECT DATABASE() AS database_name`;
-      const countBusiness: any = await tx.$queryRaw`
-        SELECT COUNT(*) AS matching_business
-        FROM businesses
-        WHERE id = ${business.id}
-      `;
-      const existingRoles: any = await tx.$queryRaw`
-        SELECT id, business_id, name
-        FROM roles
-        WHERE business_id = ${business.id}
-      `;
-      console.log(`[PART 7 DIAG] database_name =`, safe(dbNameQuery));
-      console.log(`[PART 7 DIAG] matching_business count =`, safe(countBusiness));
-      console.log(`[PART 7 DIAG] existing_roles before role creation (should be 0) =`, safe(existingRoles));
-
-      // PART 2, 5, 6 — SEED DEFAULT ROLES SEQUENTIALLY WITH PER-ROLE CATCH
-      const rolesToCreate = ["Owner", "Cashier", "Accountant", "Warehouse", "SuperAdmin"];
-      const createdRoles = [];
-      for (const roleName of rolesToCreate) {
-        console.log(`[ROLE DEBUG]\nroleName=${roleName}\nbusinessId=${business.id}\nbusinessIdLength=${business.id?.length}\nbusinessIdType=${typeof business.id}`);
-        try {
+        // 2. Seed default roles sequentially
+        const rolesToCreate = ["Owner", "Cashier", "Accountant", "Warehouse", "SuperAdmin"];
+        const createdRoles = [];
+        for (const roleName of rolesToCreate) {
           const roleId = crypto.randomUUID();
           let role = await tx.role.create({
             data: {
@@ -440,48 +380,48 @@ export class AuthService {
           if (!role) {
             role = { id: roleId, businessId: business.id, name: roleName };
           }
-          console.log(`[ROLE SUCCESS] ${roleName} ${role.id}`);
           createdRoles.push(role);
-        } catch (error) {
-          console.error(`[ROLE FAILURE] ${roleName}`, error);
-          throw error;
         }
+
+        const targetRole = createdRoles.find((r) => r?.name === "Owner") || createdRoles[0];
+
+        // 3. Create User
+        const userId = crypto.randomUUID();
+        let user = await tx.user.create({
+          data: {
+            id: userId,
+            businessId: business.id,
+            name: data.ownerName,
+            email: data.email,
+            phone: data.phone,
+            passwordHash: hash,
+          },
+        });
+        if (!user) {
+          user = {
+            id: userId,
+            businessId: business.id,
+            name: data.ownerName,
+            email: data.email,
+            phone: data.phone,
+          };
+        }
+
+        // 4. Map role
+        await tx.userRole.create({
+          data: {
+            userId: user.id,
+            roleId: targetRole.id,
+          },
+        });
+
+        return { user, business, role: targetRole };
+      },
+      {
+        maxWait: 10000,
+        timeout: 20000,
       }
-
-      const targetRole = createdRoles.find((r) => r?.name === "Owner") || createdRoles[0];
-
-      // 3. Create User
-      const userId = crypto.randomUUID();
-      let user = await tx.user.create({
-        data: {
-          id: userId,
-          businessId: business.id,
-          name: data.ownerName,
-          email: data.email,
-          phone: data.phone,
-          passwordHash: hash,
-        },
-      });
-      if (!user) {
-        user = {
-          id: userId,
-          businessId: business.id,
-          name: data.ownerName,
-          email: data.email,
-          phone: data.phone,
-        };
-      }
-
-      // 4. Map role
-      await tx.userRole.create({
-        data: {
-          userId: user.id,
-          roleId: targetRole.id,
-        },
-      });
-
-      return { user, business, role: targetRole };
-    });
+    );
 
     const accessToken = generateAccessToken(result.user.id, result.business.id, result.role.name);
     const refreshToken = generateRefreshToken(result.user.id);
