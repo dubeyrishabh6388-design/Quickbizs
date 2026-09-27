@@ -11,7 +11,8 @@ import {
   RefreshCw,
   Lock,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  ArrowLeft
 } from "lucide-react";
 import { api } from "../config/api";
 
@@ -248,7 +249,7 @@ export const IncomingOrders: React.FC = () => {
       <div className="flex-1 flex overflow-hidden min-h-0">
         
         {/* Left Side: Order Feed */}
-        <div className="w-1/2 flex flex-col border-r border-slate-200 dark:border-slate-900 overflow-hidden bg-white dark:bg-slate-950">
+        <div className={`w-full md:w-1/2 flex flex-col border-r border-slate-200 dark:border-slate-900 overflow-hidden bg-white dark:bg-slate-950 ${activeOrder ? 'hidden md:flex' : 'flex'}`}>
           
           {/* Filters Bar */}
           <div className="p-4 border-b border-slate-200 dark:border-slate-900 space-y-3 shrink-0">
@@ -341,16 +342,25 @@ export const IncomingOrders: React.FC = () => {
         </div>
 
         {/* Right Side: Order Detail Viewer */}
-        <div className="w-1/2 flex flex-col overflow-hidden bg-slate-100/30 dark:bg-slate-955/20">
+        <div className={`w-full md:w-1/2 flex flex-col overflow-hidden bg-slate-100/30 dark:bg-slate-955/20 ${!activeOrder ? 'hidden md:flex' : 'flex'}`}>
           {activeOrder ? (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               
               {/* Top Summary */}
-              <div className="p-6 border-b border-slate-200 dark:border-slate-900 space-y-4 shrink-0 bg-white dark:bg-slate-950">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-md font-black text-slate-900 dark:text-white">Order #{activeOrder.orderNumber}</h3>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Placed at {new Date(activeOrder.createdAt).toLocaleString("en-IN")}</p>
+              <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-900 space-y-3 sm:space-y-4 shrink-0 bg-white dark:bg-slate-950">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      onClick={() => setActiveOrder(null)}
+                      className="md:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+                      title="Back to Orders List"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </button>
+                    <div>
+                      <h3 className="text-sm sm:text-md font-black text-slate-900 dark:text-white">Order #{activeOrder.orderNumber}</h3>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Placed at {new Date(activeOrder.createdAt).toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
                   </div>
                   <span className="px-3 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-black text-slate-900 dark:text-white">
                     ₹{activeOrder.totalAmount}

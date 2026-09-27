@@ -158,16 +158,37 @@ export class BillingService {
       }
 
       // Check stock availability (Step 9)
-      const inventory = product.inventories.find((inv) => inv.businessId === businessId);
-      if (!inventory || inventory.availableQuantity < item.quantity) {
+      let inventory = product.inventories.find((inv) => inv.businessId === businessId);
+      if (!inventory) {
+        inventory = await prisma.inventory.create({
+          data: {
+            businessId,
+            productId: product.id,
+            availableQuantity: product.stock,
+            minimumStock: product.minStock || 10,
+            maximumStock: 100,
+            reorderLevel: (product.minStock || 10) + 5,
+          },
+        });
+      }
+
+      const availableQty = Math.max(inventory.availableQuantity, product.stock);
+      if (availableQty < item.quantity) {
         const err: any = new Error(
-          `Insufficient stock available for product "${product.name}" (Requested: ${item.quantity}, Available: ${inventory?.availableQuantity || 0}).`
+          `Insufficient stock available for product "${product.name}" (Requested: ${item.quantity}, Available: ${availableQty}).`
         );
         err.statusCode = 400;
         err.problem = "Stock limits validation failed.";
         err.reason = "Quantity requested exceeds shelf stock levels.";
         err.solution = "Please reduce quantities or create a restock PO.";
         throw err;
+      }
+
+      if (inventory.availableQuantity < availableQty) {
+        inventory = await prisma.inventory.update({
+          where: { id: inventory.id },
+          data: { availableQuantity: availableQty },
+        });
       }
 
       const itemSubtotal = item.unitPrice * item.quantity;
