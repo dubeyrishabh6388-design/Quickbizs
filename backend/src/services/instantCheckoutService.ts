@@ -101,16 +101,19 @@ export class InstantCheckoutService {
     });
 
     for (const item of items) {
+      const qtyInt = Math.max(1, Math.round(item.quantity || 1));
+      const lineTotal = parseFloat(((item.price || 0) * (item.quantity || 1)).toFixed(2));
+
       await prisma.orderItem.create({
         data: {
           orderId: order.id,
           productId: item.productId,
           productName: item.name,
-          quantity: item.quantity,
+          quantity: qtyInt,
           unitPrice: item.price,
           discount: 0,
           gst: 18,
-          total: item.price * item.quantity,
+          total: lineTotal,
         },
       });
 
@@ -122,18 +125,29 @@ export class InstantCheckoutService {
           where: { id: item.productId, businessId },
           data: {
             stock: {
-              decrement: item.quantity,
+              decrement: qtyInt,
             },
           },
         });
 
         // Sync with Inventory availableQuantity
-        const inventory = await prisma.inventory.findFirst({
+        let inventory = await prisma.inventory.findFirst({
           where: { businessId, productId: item.productId, deletedAt: null },
         });
 
-        if (inventory) {
-          const newQty = Math.max(0, inventory.availableQuantity - item.quantity);
+        if (!inventory) {
+          inventory = await prisma.inventory.create({
+            data: {
+              businessId,
+              productId: item.productId,
+              availableQuantity: Math.max(0, prod.stock - qtyInt),
+              minimumStock: prod.minStock || 10,
+              maximumStock: 100,
+              reorderLevel: (prod.minStock || 10) + 5,
+            },
+          });
+        } else {
+          const newQty = Math.max(0, inventory.availableQuantity - qtyInt);
           await prisma.inventory.update({
             where: { id: inventory.id },
             data: {
@@ -151,7 +165,7 @@ export class InstantCheckoutService {
               referenceType: "Sale",
               referenceId: order.id,
               movementType: "OUT",
-              quantity: item.quantity,
+              quantity: qtyInt,
               openingStock: inventory.availableQuantity,
               closingStock: newQty,
               reason: "Instant Checkout sale decrement",

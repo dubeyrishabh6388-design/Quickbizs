@@ -58,7 +58,7 @@ export class QueueService {
             queueSessionId: queue.id,
             productId: item.productId,
             productName: item.productName,
-            quantity: item.quantity,
+            quantity: Math.max(1, Math.round(item.quantity || 1)),
             price: item.price,
           },
         });
@@ -223,7 +223,7 @@ export class QueueService {
           queueSessionId: id,
           productId: item.productId,
           productName: item.productName,
-          quantity: item.quantity,
+          quantity: Math.max(1, Math.round(item.quantity || 1)),
           price: item.price,
         },
       });

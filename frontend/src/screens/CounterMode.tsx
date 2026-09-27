@@ -164,6 +164,7 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [editingPriceProductId, setEditingPriceProductId] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<'catalog' | 'cart'>('catalog');
+  const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
 
   // Quick Product Add Dialog states
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
@@ -701,20 +702,37 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
   };
 
   const handleInstantCheckout = async (method: "Cash" | "UPI" | "Card", cashPaid?: number) => {
-    if (cart.length === 0) return;
+    if (cart.length === 0) {
+      showToast("Cart is empty! Add products first.");
+      return;
+    }
+
+    if (totalAmount <= 0) {
+      showToast("Cannot checkout an empty total.");
+      return;
+    }
 
     if (cashPaid !== undefined && cashPaid < totalAmount) {
       alert(`Error: Paid amount (₹${cashPaid}) cannot be less than Grand Total (₹${totalAmount}).`);
       return;
     }
 
-    const paid = cashPaid || totalAmount;
+    const paid = cashPaid !== undefined ? cashPaid : totalAmount;
     const change = Math.max(0, paid - totalAmount);
+    setIsProcessingCheckout(true);
 
-    if (activeQueueId) {
-      const token = localStorage.getItem("qb_token");
-      if (!token) return;
+    const token = localStorage.getItem("qb_token");
+    const itemsPayload = cart.map((i) => ({
+      productId: i.productId,
+      name: i.name,
+      quantity: i.quantity,
+      price: i.unitPrice || i.price,
+    }));
 
+    let saleRecordedOnline = false;
+
+    // 1. If an active queue exists, attempt clearing it via Queue API
+    if (activeQueueId && token) {
       try {
         const response = await fetch(`${env.apiUrl}/api/v1/queue/${activeQueueId}/complete`, {
           method: "POST",
@@ -726,37 +744,80 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
         });
         const json = await response.json();
         if (json.success) {
-          playSound("complete");
-          setCheckoutResult({
-            total: totalAmount,
-            cashPaid: paid,
-            change,
-            paymentMethod: method,
-          });
-          setCart([]);
-          setActiveQueueId(null);
-          fetchQueues();
-          fetchHomeData();
+          saleRecordedOnline = true;
+        } else {
+          console.warn("Queue completion failed, falling back to direct checkout:", json.message);
         }
       } catch (err) {
-        console.error(err);
+        console.warn("Queue completion network error, attempting direct checkout:", err);
       }
-    } else {
+    }
+
+    // 2. Direct Instant Checkout API (used when not in queue or as resilient fallback)
+    if (!saleRecordedOnline && token) {
+      try {
+        const response = await fetch(`${env.apiUrl}/api/v1/checkout/complete`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            paymentMethod: method,
+            totalAmount,
+            items: itemsPayload,
+          }),
+        });
+        const json = await response.json();
+        if (json.success) {
+          saleRecordedOnline = true;
+        } else {
+          console.warn("Direct checkout returned error:", json.message);
+        }
+      } catch (err) {
+        console.warn("Direct checkout network call failed:", err);
+      }
+    }
+
+    // 3. Resilient Offline Storage fallback if server was unreachable
+    if (!saleRecordedOnline) {
       const payload = {
         paymentMethod: method,
         totalAmount,
         items: cart,
         offlineId: `offline-${Date.now()}`,
       };
+      setIsProcessingCheckout(false);
       queueOffline(payload);
+      showToast(`Saved locally offline via ${method}`);
+      return;
     }
+
+    // 4. Update UI with checkout success
+    setIsProcessingCheckout(false);
+    playSound("complete");
+    setCheckoutResult({
+      total: totalAmount,
+      cashPaid: paid,
+      change,
+      paymentMethod: method,
+    });
+    setCart([]);
+    setActiveQueueId(null);
+    fetchQueues();
+    fetchHomeData();
+    showToast(`Order cleared via ${method}!`);
   };
 
   const queueOffline = (payload: any) => {
-    const queueStr = localStorage.getItem("qb_offline_sales") || "[]";
-    const queue = JSON.parse(queueStr);
-    queue.push(payload);
-    localStorage.setItem("qb_offline_sales", JSON.stringify(queue));
+    try {
+      const queueStr = localStorage.getItem("qb_offline_sales") || "[]";
+      const queue = JSON.parse(queueStr);
+      queue.push(payload);
+      localStorage.setItem("qb_offline_sales", JSON.stringify(queue));
+    } catch (e) {
+      console.error(e);
+    }
     playSound("complete");
     setCheckoutResult({
       total: totalAmount,
@@ -1582,12 +1643,22 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
           {/* Cart Header */}
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/80 pb-3">
-              <h4 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <span className="p-1.5 bg-brand-orange/10 rounded-lg text-brand-orange">
-                  <ShoppingCart className="h-4 w-4" />
-                </span>
-                Active Cart ({cart.reduce((acc, i) => acc + (i.unit === "pcs" ? i.quantity : 1), 0)} items)
-              </h4>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setMobileTab('catalog')}
+                  className="lg:hidden p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 text-xs font-black flex items-center gap-1 cursor-pointer mr-1"
+                  title="Back to Products"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Items</span>
+                </button>
+                <h4 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="p-1.5 bg-brand-orange/10 rounded-lg text-brand-orange">
+                    <ShoppingCart className="h-4 w-4" />
+                  </span>
+                  Active Cart ({cart.reduce((acc, i) => acc + (i.unit === "pcs" ? i.quantity : 1), 0)} items)
+                </h4>
+              </div>
               <button 
                 onClick={clearCart}
                 className="text-xs font-bold text-slate-400 hover:text-rose-500 cursor-pointer transition-colors"
@@ -1680,21 +1751,40 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
               </span>
             </div>
 
-            {/* Total balance summary */}
-            <div className="flex justify-between items-center bg-brand-orange text-white px-5 py-4 rounded-2xl shadow-md">
-              <span className="text-xs font-black uppercase tracking-wider text-white/90">Grand Total</span>
-              <span className="text-2xl font-black">₹{totalAmount.toLocaleString()}</span>
+            {/* Total balance summary & Primary Pay Button */}
+            <div className="bg-brand-orange text-white p-4.5 rounded-2xl shadow-md space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-black uppercase tracking-wider text-white/90">Grand Total</span>
+                <span className="text-2xl font-black">₹{totalAmount.toLocaleString()}</span>
+              </div>
+              
+              <button
+                onClick={() => handleInstantCheckout("Cash")}
+                disabled={cart.length === 0 || isProcessingCheckout}
+                className="w-full py-3.5 bg-slate-950 hover:bg-slate-900 disabled:opacity-50 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-[0.98] cursor-pointer"
+              >
+                {isProcessingCheckout ? (
+                  <>
+                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Processing Payment...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>⚡ PAY NOW (₹{totalAmount.toLocaleString()})</span>
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Giant One-Hand Buttons deck (Min 64px height) */}
             <div className="space-y-2">
-              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">One-Hand Instant Checkout (Min 64px)</span>
+              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">One-Hand Instant Method</span>
               
               <div className="grid grid-cols-3 gap-2">
                 {/* Cash */}
                 <button
                   onClick={() => handleInstantCheckout("Cash")}
-                  disabled={cart.length === 0}
+                  disabled={cart.length === 0 || isProcessingCheckout}
                   className="h-16 bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-50 text-white text-xs font-black rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer flex flex-col items-center justify-center border border-slate-700"
                 >
                   <span className="block text-[9px] font-bold text-slate-300 mb-0.5">Exact Amount</span>
@@ -1704,7 +1794,7 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
                 {/* UPI */}
                 <button
                   onClick={() => handleInstantCheckout("UPI")}
-                  disabled={cart.length === 0}
+                  disabled={cart.length === 0 || isProcessingCheckout}
                   className="h-16 bg-brand-orange hover:bg-brand-orange-hover disabled:opacity-50 text-white text-xs font-black rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer flex flex-col items-center justify-center border border-brand-orange/30"
                 >
                   <span className="block text-[9px] font-bold text-orange-100 mb-0.5">Quick QR</span>
@@ -1714,7 +1804,7 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
                 {/* Card */}
                 <button
                   onClick={() => handleInstantCheckout("Card")}
-                  disabled={cart.length === 0}
+                  disabled={cart.length === 0 || isProcessingCheckout}
                   className="h-16 bg-slate-800 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-50 text-white text-xs font-black rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer flex flex-col items-center justify-center border border-slate-700/50"
                 >
                   <span className="block text-[9px] font-bold text-slate-300 mb-0.5">Swipe Card</span>

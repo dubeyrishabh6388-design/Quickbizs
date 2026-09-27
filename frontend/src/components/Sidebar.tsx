@@ -117,6 +117,9 @@ const roleConfigs: RoleConfig[] = [
   },
 ];
 
+// Set to true or add "?showCustomers=true" to the URL when ready to re-display the Customers & Khata navigation item
+export const SHOW_CUSTOMERS_NAV = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("showCustomers") === "true";
+
 export const Sidebar: React.FC<SidebarProps> = ({ 
   activeScreen, 
   setActiveScreen, 
@@ -219,7 +222,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Dynamic modules permitted for the current department
   const allowedModules = getRoleAllowedModules(currentRole);
-  const menuItems = allMenuItems.filter(item => allowedModules.includes(item.id));
+  const menuItems = allMenuItems
+    .filter(item => allowedModules.includes(item.id))
+    .filter(item => SHOW_CUSTOMERS_NAV || item.id !== "customers");
 
   const activeRoleConfig = roleConfigs.find(r => r.id === currentRole) || roleConfigs[0];
   const ActiveRoleIcon = activeRoleConfig.icon;

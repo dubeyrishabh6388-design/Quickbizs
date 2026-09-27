@@ -67,12 +67,15 @@ const merchantRegisterSchema = z.object({
   path: ["confirmPassword"]
 });
 
+// Set to true or add "?customer=true" to the URL when ready to re-enable Customer login & onboarding
+export const SHOW_CUSTOMER_PORTAL = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("customer") === "true";
+
 interface LoginProps {
   onAuthSuccess: (userData: any) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
-  const [role, setRole] = useState<"CUSTOMER" | "MERCHANT" | null>(null);
+  const [role, setRole] = useState<"CUSTOMER" | "MERCHANT" | null>(() => SHOW_CUSTOMER_PORTAL ? null : "MERCHANT");
   const [mode, setMode] = useState<"LOGIN" | "REGISTER">("LOGIN");
   const [isLoading, setIsLoading] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
@@ -99,7 +102,9 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
   };
 
   const handleBackToRole = () => {
-    setRole(null);
+    if (SHOW_CUSTOMER_PORTAL) {
+      setRole(null);
+    }
     resetForms();
   };
 
@@ -264,99 +269,101 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
             </motion.div>
 
             {/* Selection Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl w-full mx-auto items-stretch">
+            <div className={`grid grid-cols-1 ${SHOW_CUSTOMER_PORTAL ? "lg:grid-cols-2" : "max-w-xl"} gap-8 max-w-6xl w-full mx-auto items-stretch`}>
               
-              {/* Customer App Card */}
-              <motion.div 
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-                whileHover={{ y: -6, scale: 1.01, borderColor: "rgba(249,115,22,0.4)" }}
-                className="relative flex flex-col justify-between p-6 sm:p-10 rounded-3xl border border-brand-orange/15 bg-slate-900/20 backdrop-blur-md overflow-hidden group shadow-2xl hover:shadow-[0_0_50px_-12px_rgba(249,115,22,0.25)] transition-all duration-300 min-h-[460px] cursor-pointer"
-              >
-                {/* Image Mask background */}
-                <div 
-                  className="absolute left-0 bottom-0 top-0 w-2/5 h-full opacity-35 mix-blend-lighten pointer-events-none bg-cover bg-left-top"
-                  style={{ 
-                    backgroundImage: `url(${customerImg})`,
-                    maskImage: 'linear-gradient(to right, black 30%, transparent 100%)',
-                    WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 100%)'
-                  }}
-                />
-                
-                {/* Dotted path animation stylesheet */}
-                <style>{`
-                  @keyframes dash {
-                    to {
-                      stroke-dashoffset: -20;
+              {/* Customer App Card (Hidden by default, preserved for future activation) */}
+              {SHOW_CUSTOMER_PORTAL && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.2 }}
+                  whileHover={{ y: -6, scale: 1.01, borderColor: "rgba(249,115,22,0.4)" }}
+                  className="relative flex flex-col justify-between p-6 sm:p-10 rounded-3xl border border-brand-orange/15 bg-slate-900/20 backdrop-blur-md overflow-hidden group shadow-2xl hover:shadow-[0_0_50px_-12px_rgba(249,115,22,0.25)] transition-all duration-300 min-h-[460px] cursor-pointer"
+                >
+                  {/* Image Mask background */}
+                  <div 
+                    className="absolute left-0 bottom-0 top-0 w-2/5 h-full opacity-35 mix-blend-lighten pointer-events-none bg-cover bg-left-top"
+                    style={{ 
+                      backgroundImage: `url(${customerImg})`,
+                      maskImage: 'linear-gradient(to right, black 30%, transparent 100%)',
+                      WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 100%)'
+                    }}
+                  />
+                  
+                  {/* Dotted path animation stylesheet */}
+                  <style>{`
+                    @keyframes dash {
+                      to {
+                        stroke-dashoffset: -20;
+                      }
                     }
-                  }
-                  .animate-dash {
-                    animation: dash 1.5s linear infinite;
-                  }
-                `}</style>
+                    .animate-dash {
+                      animation: dash 1.5s linear infinite;
+                    }
+                  `}</style>
 
-                {/* Curving SVG Dotted line with floating indicators */}
-                <svg className="absolute left-[35%] top-[10%] w-[100px] h-[180px] pointer-events-none hidden sm:block opacity-50" viewBox="0 0 100 180" fill="none">
-                  <path d="M10,170 Q70,120 20,60 T80,10" stroke="#f97316" strokeWidth="2" strokeDasharray="5 5" className="animate-dash" strokeLinecap="round" />
-                  <circle cx="80" cy="10" r="4" fill="#f97316" className="animate-pulse" />
-                  <circle cx="10" cy="170" r="4" fill="#f97316" className="animate-pulse" />
-                </svg>
+                  {/* Curving SVG Dotted line with floating indicators */}
+                  <svg className="absolute left-[35%] top-[10%] w-[100px] h-[180px] pointer-events-none hidden sm:block opacity-50" viewBox="0 0 100 180" fill="none">
+                    <path d="M10,170 Q70,120 20,60 T80,10" stroke="#f97316" strokeWidth="2" strokeDasharray="5 5" className="animate-dash" strokeLinecap="round" />
+                    <circle cx="80" cy="10" r="4" fill="#f97316" className="animate-pulse" />
+                    <circle cx="10" cy="170" r="4" fill="#f97316" className="animate-pulse" />
+                  </svg>
 
-                <motion.div 
-                  animate={{ y: [0, -8, 0] }}
-                  transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                  className="absolute left-[30%] top-[40%] bg-brand-orange/10 border border-brand-orange/20 p-1.5 rounded-full text-brand-orange hidden sm:block shadow-md"
-                >
-                  <MapPin className="h-4.5 w-4.5 animate-pulse" />
-                </motion.div>
-                
-                <motion.div 
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 0.5 }}
-                  className="absolute left-[24%] top-[15%] bg-brand-orange/10 border border-brand-orange/20 p-1.5 rounded-full text-brand-orange hidden sm:block shadow-md"
-                >
-                  <Users className="h-4.5 w-4.5" />
-                </motion.div>
-
-                <div className="relative z-10 w-full md:w-3/5 ml-auto flex flex-col justify-between h-full space-y-6">
-                  <div className="space-y-4">
-                    <div className="h-12 w-12 bg-brand-orange/10 text-brand-orange border border-brand-orange/25 rounded-2xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform">
-                      <Users className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-black text-white leading-tight">Customer App</h3>
-                      <p className="text-[11px] text-slate-400 mt-1 font-semibold leading-relaxed">
-                        Order from your favorite local stores and pickup instantly.
-                      </p>
-                    </div>
-
-                    <ul className="space-y-2 pt-2">
-                      {[
-                        "Browse local stores",
-                        "Order products easily",
-                        "Fast pickup",
-                        "Secure & simple"
-                      ].map((benefit, i) => (
-                        <li key={i} className="flex items-center gap-2 text-[11px] font-bold text-slate-300">
-                          <span className="h-4.5 w-4.5 rounded-full bg-brand-orange/10 text-brand-orange flex items-center justify-center border border-brand-orange/20">
-                            <Check className="h-2.5 w-2.5 stroke-[3]" />
-                          </span>
-                          <span>{benefit}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <button 
-                    onClick={() => handleRoleSelect("CUSTOMER")}
-                    className="w-full py-3.5 bg-brand-orange hover:bg-brand-orange-hover text-white text-xs font-black rounded-2xl flex items-center justify-center gap-1.5 cursor-pointer shadow-lg active:scale-98 transition-all hover:shadow-brand-orange/20"
+                  <motion.div 
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                    className="absolute left-[30%] top-[40%] bg-brand-orange/10 border border-brand-orange/20 p-1.5 rounded-full text-brand-orange hidden sm:block shadow-md"
                   >
-                    <span>Continue as Customer</span>
-                    <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </div>
-              </motion.div>
+                    <MapPin className="h-4.5 w-4.5 animate-pulse" />
+                  </motion.div>
+                  
+                  <motion.div 
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 0.5 }}
+                    className="absolute left-[24%] top-[15%] bg-brand-orange/10 border border-brand-orange/20 p-1.5 rounded-full text-brand-orange hidden sm:block shadow-md"
+                  >
+                    <Users className="h-4.5 w-4.5" />
+                  </motion.div>
+
+                  <div className="relative z-10 w-full md:w-3/5 ml-auto flex flex-col justify-between h-full space-y-6">
+                    <div className="space-y-4">
+                      <div className="h-12 w-12 bg-brand-orange/10 text-brand-orange border border-brand-orange/25 rounded-2xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+                        <Users className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-black text-white leading-tight">Customer App</h3>
+                        <p className="text-[11px] text-slate-400 mt-1 font-semibold leading-relaxed">
+                          Order from your favorite local stores and pickup instantly.
+                        </p>
+                      </div>
+
+                      <ul className="space-y-2 pt-2">
+                        {[
+                          "Browse local stores",
+                          "Order products easily",
+                          "Fast pickup",
+                          "Secure & simple"
+                        ].map((benefit, i) => (
+                          <li key={i} className="flex items-center gap-2 text-[11px] font-bold text-slate-300">
+                            <span className="h-4.5 w-4.5 rounded-full bg-brand-orange/10 text-brand-orange flex items-center justify-center border border-brand-orange/20">
+                              <Check className="h-2.5 w-2.5 stroke-[3]" />
+                            </span>
+                            <span>{benefit}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <button 
+                      onClick={() => handleRoleSelect("CUSTOMER")}
+                      className="w-full py-3.5 bg-brand-orange hover:bg-brand-orange-hover text-white text-xs font-black rounded-2xl flex items-center justify-center gap-1.5 cursor-pointer shadow-lg active:scale-98 transition-all hover:shadow-brand-orange/20"
+                    >
+                      <span>Continue as Customer</span>
+                      <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Merchant Dashboard Card */}
               <motion.div 

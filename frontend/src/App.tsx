@@ -28,8 +28,8 @@ import {
   LayoutDashboard, 
   Receipt, 
   Package, 
-  Users, 
-  BarChart3
+  BarChart3,
+  Zap
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -351,7 +351,7 @@ function AppContent() {
             { id: "dashboard", label: "Home", icon: LayoutDashboard },
             { id: "inventory", label: "Stock", icon: Package },
             { id: "billing", label: "Quick POS", icon: Receipt, isCenter: true },
-            { id: "customers", label: "Khata", icon: Users },
+            { id: "counter", label: "Counter", icon: Zap },
             { id: "reports", label: "Analytics", icon: BarChart3 },
           ].map(item => {
             const Icon = item.icon;
