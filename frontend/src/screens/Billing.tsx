@@ -908,7 +908,11 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
     });
 
     if (res?.success) {
-      showToast(`Added product "${prodName}" to store catalog!`);
+      if (res.isMerged) {
+        showToast(res.message || `✓ Product "${prodName}" stock increased by +${stock}!`);
+      } else {
+        showToast(`✓ Added product "${prodName}" to store catalog!`);
+      }
       setIsAddingProduct(false);
       setProdName("");
       setProdPrice("");

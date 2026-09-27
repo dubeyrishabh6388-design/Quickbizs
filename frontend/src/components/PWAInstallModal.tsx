@@ -8,9 +8,7 @@ import {
   ShieldCheck, 
   Share, 
   PlusSquare,
-  CheckCircle2,
-  MoreVertical,
-  Laptop
+  CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePWAInstall } from "../hooks/usePWAInstall";
@@ -36,6 +34,8 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
 
   const [isOpen, setIsOpen] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState("Preparing download...");
   const [justInstalled, setJustInstalled] = useState(false);
   const [showManualGuide, setShowManualGuide] = useState(false);
 
@@ -44,6 +44,8 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
     if (forceOpen) {
       setIsOpen(true);
       setShowManualGuide(false);
+      setInstalling(false);
+      setJustInstalled(false);
       return;
     }
 
@@ -73,28 +75,35 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
     localStorage.setItem("qb_pwa_dismissed_at", Date.now().toString());
     setIsOpen(false);
     setShowManualGuide(false);
+    setInstalling(false);
     if (onClose) onClose();
   };
 
   const handleInstallClick = async () => {
     if (isIOS) {
-      // iOS has manual Safari share sheet
+      // iOS strictly enforces Safari's share menu
       setShowManualGuide(true);
       return;
     }
 
     setInstalling(true);
+    setDownloadProgress(25);
+    setStatusMessage("Initializing application package...");
 
     if (hasNativePrompt) {
       try {
+        setDownloadProgress(60);
+        setStatusMessage("Opening native install prompt...");
         const installed = await promptInstall();
         if (installed) {
+          setDownloadProgress(100);
+          setStatusMessage("Installation complete!");
+          setInstalling(false);
           setJustInstalled(true);
           setTimeout(() => {
             setIsOpen(false);
             if (onClose) onClose();
           }, 2000);
-          setInstalling(false);
           return;
         }
       } catch (err) {
@@ -102,17 +111,26 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
       }
     }
 
-    // If native prompt wasn't triggered or declined:
-    setInstalling(false);
+    // Direct 1-Click Application Launcher Download
+    setDownloadProgress(50);
+    setStatusMessage("Downloading QuickBizs Application...");
+    downloadDesktopLauncher();
 
-    if (platformType === "desktop") {
-      // Download 1-click desktop launcher shortcut directly to user's computer!
-      downloadDesktopLauncher();
-      setShowManualGuide(true);
-    } else {
-      // On mobile, show step-by-step menu install guide
-      setShowManualGuide(true);
-    }
+    setTimeout(() => {
+      setDownloadProgress(85);
+      setStatusMessage("Finalizing shortcut on device...");
+    }, 350);
+
+    setTimeout(() => {
+      setDownloadProgress(100);
+      setStatusMessage("Download complete!");
+      setInstalling(false);
+      setJustInstalled(true);
+      setTimeout(() => {
+        setIsOpen(false);
+        if (onClose) onClose();
+      }, 2500);
+    }, 850);
   };
 
   if (!isOpen || (isInstalled && !forceOpen && !justInstalled)) {
@@ -153,7 +171,6 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
                 alt="QuickBizs Icon" 
                 className="w-full h-full rounded-xl object-contain shadow-inner"
                 onError={(e) => {
-                  // Fallback if image fails
                   e.currentTarget.style.display = "none";
                 }}
               />
@@ -161,7 +178,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
 
             <h3 className="text-xl font-black tracking-tight">
               {justInstalled 
-                ? "App Installed Successfully!" 
+                ? "App Ready On Your Device!" 
                 : isDesktop 
                   ? "Download QuickBizs Desktop App" 
                   : "Download QuickBizs Mobile App"}
@@ -185,58 +202,29 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
                   You can now launch QuickBizs directly from your home screen or desktop application menu.
                 </p>
               </div>
-            ) : showManualGuide ? (
-              /* Fallback Instructions when browser requires menu click */
-              <div className="space-y-3 bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/50 p-4 rounded-2xl text-xs text-slate-700 dark:text-slate-200">
-                <p className="font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5 text-sm">
-                  {isDesktop ? <Laptop className="w-4 h-4 text-brand-orange" /> : <Smartphone className="w-4 h-4 text-brand-orange" />}
-                  {isDesktop ? "Desktop Launcher Ready!" : "Complete Mobile Installation:"}
+            ) : installing ? (
+              /* Animated direct download progress */
+              <div className="space-y-3 py-4">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200">
+                  <span className="flex items-center gap-1.5">
+                    <Download className="w-4 h-4 text-brand-orange animate-bounce" />
+                    {statusMessage}
+                  </span>
+                  <span className="text-brand-orange font-extrabold">{downloadProgress}%</span>
+                </div>
+                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                  <motion.div 
+                    className="bg-gradient-to-r from-brand-orange to-amber-500 h-2.5 rounded-full"
+                    initial={{ width: "0%" }}
+                    animate={{ width: `${downloadProgress}%` }}
+                    transition={{ duration: 0.2 }}
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 text-center">
+                  Downloading and configuring QuickBizs application package...
                 </p>
-
-                {isDesktop ? (
-                  <div className="space-y-2.5">
-                    <p className="text-xs text-slate-600 dark:text-slate-300">
-                      ✓ A direct 1-click launcher <strong>QuickBizs-App.url</strong> has been downloaded to your computer!
-                    </p>
-                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] space-y-1">
-                      <p className="font-bold text-slate-800 dark:text-slate-200">To install into Chrome / Edge:</p>
-                      <p>1. Look at the right side of your URL address bar at the top.</p>
-                      <p>2. Click the <strong>Install QuickBizs (💻 ⬇)</strong> icon.</p>
-                    </div>
-                  </div>
-                ) : isIOS ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold text-[10px] shrink-0">1</span>
-                      <span>Tap the <strong>Share</strong> button <Share className="inline w-3.5 h-3.5 text-blue-500 mx-0.5" /> in Safari's bottom toolbar.</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold text-[10px] shrink-0">2</span>
-                      <span>Scroll down and tap <strong>Add to Home Screen</strong> <PlusSquare className="inline w-3.5 h-3.5 text-slate-600 dark:text-slate-300 mx-0.5" />.</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold text-[10px] shrink-0">3</span>
-                      <span>Tap <strong>Add</strong> at top right to complete.</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold text-[10px] shrink-0">1</span>
-                      <span>Tap the <strong>3 dots (⋮)</strong> menu <MoreVertical className="inline w-3.5 h-3.5 text-brand-orange mx-0.5" /> at top right of Chrome.</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold text-[10px] shrink-0">2</span>
-                      <span>Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold text-[10px] shrink-0">3</span>
-                      <span>Tap <strong>Install</strong> to add QuickBizs to your phone!</span>
-                    </div>
-                  </div>
-                )}
               </div>
-            ) : isIOS ? (
+            ) : isIOS && showManualGuide ? (
               /* iOS Safari Instructions */
               <div className="space-y-3 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 p-4 rounded-2xl text-xs text-slate-700 dark:text-slate-200">
                 <p className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -246,15 +234,11 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
                 <div className="space-y-2">
                   <div className="flex items-center gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold text-[10px] shrink-0">1</span>
-                    <span>Tap the <strong>Share</strong> button <Share className="inline w-3.5 h-3.5 text-blue-500 mx-0.5" /> in Safari's bottom toolbar.</span>
+                    <span>Tap the <strong>Share</strong> button <Share className="inline w-3.5 h-3.5 text-blue-500 mx-0.5" /> in Safari toolbar.</span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold text-[10px] shrink-0">2</span>
-                    <span>Scroll down and tap <strong>Add to Home Screen</strong> <PlusSquare className="inline w-3.5 h-3.5 text-slate-600 dark:text-slate-300 mx-0.5" />.</span>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-5 h-5 rounded-full bg-brand-orange text-white flex items-center justify-center font-bold text-[10px] shrink-0">3</span>
-                    <span>Tap <strong>Add</strong> at top right to complete installation.</span>
+                    <span>Tap <strong>Add to Home Screen</strong> <PlusSquare className="inline w-3.5 h-3.5 text-slate-600 dark:text-slate-300 mx-0.5" />.</span>
                   </div>
                 </div>
               </div>
@@ -298,32 +282,28 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-center cursor-pointer"
+                disabled={installing}
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-center cursor-pointer disabled:opacity-50"
               >
-                {showManualGuide || justInstalled ? "Close" : "Maybe Later"}
+                {justInstalled ? "Done" : "Maybe Later"}
               </button>
 
-              {!isIOS && !justInstalled && !showManualGuide && (
-                <button
-                  type="button"
-                  disabled={installing}
-                  onClick={handleInstallClick}
-                  className="flex-[1.5] py-2.5 px-4 rounded-xl text-xs font-black bg-gradient-to-r from-brand-orange to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-brand-orange/30 hover:shadow-brand-orange/50 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-60"
-                >
-                  <Download className="w-4 h-4 animate-bounce" />
-                  <span>{installing ? "Starting..." : isDesktop ? "Download for Desktop" : "Install Mobile App"}</span>
-                </button>
-              )}
-
-              {isDesktop && showManualGuide && !justInstalled && (
-                <button
-                  type="button"
-                  onClick={() => downloadDesktopLauncher()}
-                  className="flex-[1.5] py-2.5 px-4 rounded-xl text-xs font-black bg-brand-orange text-white shadow-lg shadow-brand-orange/30 hover:bg-orange-600 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Re-download Launcher</span>
-                </button>
+              {!isIOS && !justInstalled && (
+                installing ? (
+                  <div className="flex-[1.5] py-2.5 px-4 rounded-xl text-xs font-black bg-brand-orange/20 text-brand-orange border border-brand-orange/40 text-center flex items-center justify-center gap-2">
+                    <Download className="w-4 h-4 animate-bounce" />
+                    <span>Downloading...</span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleInstallClick}
+                    className="flex-[1.5] py-2.5 px-4 rounded-xl text-xs font-black bg-gradient-to-r from-brand-orange to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-brand-orange/30 hover:shadow-brand-orange/50 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>{isDesktop ? "Download for Desktop" : "Install Mobile App"}</span>
+                  </button>
+                )
               )}
 
               {isIOS && (

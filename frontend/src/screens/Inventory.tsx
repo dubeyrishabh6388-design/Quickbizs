@@ -87,7 +87,11 @@ export const Inventory: React.FC = () => {
       setPrice("");
       setStock("");
       setIsAddOpen(false);
-      showToast("✓ Product Added Successfully");
+      if (res.isMerged) {
+        showToast(res.message || `✓ Product "${name}" stock updated!`);
+      } else {
+        showToast("✓ Product Added Successfully");
+      }
     } else {
       showToast(res?.message || "Failed to add product");
     }

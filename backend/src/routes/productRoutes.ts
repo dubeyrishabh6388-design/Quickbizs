@@ -36,6 +36,12 @@ router.post(
   (req: any, res: any, next: any) => controller.bulkUpdate(req, res, next)
 );
 router.post(
+  "/consolidate-duplicates",
+  requireAuth,
+  requireRoles(["Owner", "Warehouse"]),
+  (req: any, res: any, next: any) => controller.consolidateDuplicates(req, res, next)
+);
+router.post(
   "/restore/:id",
   requireAuth,
   requireRoles(["Owner", "Warehouse"]),

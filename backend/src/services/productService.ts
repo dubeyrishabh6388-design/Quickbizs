@@ -135,6 +135,8 @@ export class ProductService {
 
     const cleanData = {
       ...data,
+      name: data.name.trim(),
+      category: data.category.trim(),
       barcode: data.barcode && data.barcode.trim() !== "" ? data.barcode.trim() : undefined,
       sku: data.sku && data.sku.trim() !== "" ? data.sku.trim() : undefined,
       categoryId: data.categoryId && data.categoryId.trim() !== "" ? data.categoryId.trim() : undefined,
@@ -144,6 +146,10 @@ export class ProductService {
     if (cleanData.barcode) {
       const existing = await productRepository.findByBarcode(businessId, cleanData.barcode);
       if (existing) {
+        // If matching barcode belongs to the same product name/category, treat as restock
+        if (existing.name.trim().toLowerCase() === cleanData.name.toLowerCase() && existing.category.trim().toLowerCase() === cleanData.category.toLowerCase()) {
+          return this.mergeExistingProductStock(businessId, existing, cleanData);
+        }
         const err: any = new Error("Product barcode already exists.");
         err.statusCode = 400;
         err.problem = "Duplicate barcode registration.";
@@ -155,11 +161,32 @@ export class ProductService {
     if (cleanData.sku) {
       const existing = await productRepository.findBySku(businessId, cleanData.sku);
       if (existing) {
+        if (existing.name.trim().toLowerCase() === cleanData.name.toLowerCase() && existing.category.trim().toLowerCase() === cleanData.category.toLowerCase()) {
+          return this.mergeExistingProductStock(businessId, existing, cleanData);
+        }
         const err: any = new Error("Product SKU already exists.");
         err.statusCode = 400;
         err.problem = "Duplicate SKU registration.";
         throw err;
       }
+    }
+
+    // Check if a product with the same Name and Category already exists for this store
+    const candidateProducts = await prisma.product.findMany({
+      where: {
+        businessId,
+        isDeleted: false,
+        category: cleanData.category,
+      },
+      include: { categoryRef: true },
+    });
+
+    const existingSameName = candidateProducts.find(
+      (p) => p.name.trim().toLowerCase() === cleanData.name.toLowerCase()
+    );
+
+    if (existingSameName) {
+      return this.mergeExistingProductStock(businessId, existingSameName, cleanData);
     }
 
     // Validate images payload format (Step 5: Product Images)
@@ -229,6 +256,154 @@ export class ProductService {
     });
 
     return product;
+  }
+
+  // Merge new stock into existing product instead of creating duplicate card
+  private async mergeExistingProductStock(
+    businessId: string,
+    existingProduct: any,
+    cleanData: any
+  ) {
+    const previousStock = existingProduct.stock;
+    const newStock = previousStock + cleanData.stock;
+
+    const updatedProduct = await prisma.product.update({
+      where: { id: existingProduct.id },
+      data: {
+        stock: newStock,
+        price: cleanData.price !== undefined ? cleanData.price : existingProduct.price,
+        costPrice: cleanData.costPrice !== undefined ? cleanData.costPrice : existingProduct.costPrice,
+        supplierName: cleanData.supplierName || existingProduct.supplierName,
+        barcode: cleanData.barcode || existingProduct.barcode,
+        sku: cleanData.sku || existingProduct.sku,
+        minStock: cleanData.minStock !== undefined ? cleanData.minStock : existingProduct.minStock,
+      },
+      include: { categoryRef: true },
+    });
+
+    // Update or create corresponding Inventory record
+    let inventory = await prisma.inventory.findFirst({
+      where: { businessId, productId: existingProduct.id },
+    });
+
+    if (inventory) {
+      inventory = await prisma.inventory.update({
+        where: { id: inventory.id },
+        data: {
+          availableQuantity: inventory.availableQuantity + cleanData.stock,
+          minimumStock: cleanData.minStock !== undefined ? cleanData.minStock : inventory.minimumStock,
+        },
+      });
+    } else {
+      inventory = await prisma.inventory.create({
+        data: {
+          businessId,
+          productId: existingProduct.id,
+          availableQuantity: newStock,
+          minimumStock: cleanData.minStock,
+          maximumStock: 100,
+          reorderLevel: cleanData.minStock + 5,
+        },
+      });
+    }
+
+    // Record Stock Movement for the replenishment
+    await prisma.stockMovement.create({
+      data: {
+        businessId,
+        productId: existingProduct.id,
+        inventoryId: inventory.id,
+        referenceType: "Restock / Merge",
+        movementType: "IN",
+        quantity: cleanData.stock,
+        openingStock: previousStock,
+        closingStock: newStock,
+        reason: `Auto-merged stock for restock/addition of "${existingProduct.name}"`,
+        createdBy: "owner@quickbizs.com",
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        businessId,
+        action: "PRODUCT_STOCK_MERGED",
+        module: "Inventory",
+        status: "Success",
+        reason: `Added +${cleanData.stock} units to existing product "${existingProduct.name}" (${existingProduct.category}). Total stock is now ${newStock}.`,
+      },
+    });
+
+    return {
+      ...updatedProduct,
+      isMerged: true,
+      previousStock,
+      addedStock: cleanData.stock,
+      newStock,
+    };
+  }
+
+  // Consolidate any duplicate products with identical name and category in store catalog
+  async consolidateDuplicates(businessId: string) {
+    const products = await prisma.product.findMany({
+      where: { businessId, isDeleted: false },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const groups = new Map<string, typeof products>();
+    for (const prod of products) {
+      const key = `${prod.name.trim().toLowerCase()}:::${prod.category.trim().toLowerCase()}`;
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(prod);
+    }
+
+    let duplicatesRemoved = 0;
+    for (const [, group] of groups.entries()) {
+      if (group.length > 1) {
+        const primary = group[0];
+        const duplicates = group.slice(1);
+        const totalStock = group.reduce((sum, p) => sum + p.stock, 0);
+
+        await prisma.product.update({
+          where: { id: primary.id },
+          data: {
+            name: primary.name.trim(),
+            stock: totalStock,
+          },
+        });
+
+        const inventory = await prisma.inventory.findFirst({
+          where: { businessId, productId: primary.id },
+        });
+        if (inventory) {
+          await prisma.inventory.update({
+            where: { id: inventory.id },
+            data: { availableQuantity: totalStock },
+          });
+        }
+
+        const duplicateIds = duplicates.map((d) => d.id);
+        await prisma.product.updateMany({
+          where: { id: { in: duplicateIds } },
+          data: {
+            isDeleted: true,
+            deletedAt: new Date(),
+          },
+        });
+
+        await prisma.inventory.deleteMany({
+          where: {
+            businessId,
+            productId: { in: duplicateIds },
+          },
+        });
+
+        duplicatesRemoved += duplicates.length;
+      }
+    }
+
+    return { consolidatedGroups: groups.size, duplicatesRemoved };
   }
 
   async updateProduct(

@@ -164,7 +164,7 @@ interface BusinessContextType {
     splitDetails?: { cash: number; upi: number }
   ) => any;
   updateProductStock: (id: string, amount: number, reason: string) => void;
-  addProduct: (product: Omit<Product, "id">) => Promise<{ success: boolean; message?: string }>;
+  addProduct: (product: Omit<Product, "id">) => Promise<{ success: boolean; isMerged?: boolean; message?: string }>;
   addCustomer: (name: string, phone: string, email?: string) => void;
   settleCustomerDues: (id: string, amount: number) => void;
   addSupplier: (name: string, phone: string, contactPerson: string) => void;
@@ -1002,18 +1002,33 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // Add Product via backend API
-  const addProduct = async (newProdData: Omit<Product, "id">): Promise<{ success: boolean; message?: string }> => {
+  // Add Product via backend API (with automatic stock merge for identical items)
+  const addProduct = async (newProdData: Omit<Product, "id">): Promise<{ success: boolean; isMerged?: boolean; message?: string }> => {
     try {
       const response = await api.post("/products", newProdData);
       if (response.data?.success) {
         const createdProd = response.data.data?.product || response.data.data;
+        const isMerged = !!response.data.data?.isMerged;
+        const msg = response.data?.message;
+
         if (createdProd && createdProd.id) {
-          setProducts(prev => [createdProd, ...prev.filter(p => p.id !== createdProd.id)]);
+          setProducts(prev => {
+            const exists = prev.some(p => p.id === createdProd.id);
+            if (exists) {
+              return prev.map(p => p.id === createdProd.id ? { ...p, ...createdProd } : p);
+            }
+            return [createdProd, ...prev];
+          });
         }
         await fetchProducts();
-        logAutomation("Product Added", "Expand Product Catalog Ledger", `Added new product "${newProdData.name}" to inventory shelf catalog`, "Success", "3ms");
-        return { success: true };
+        logAutomation(
+          isMerged ? "Stock Merged" : "Product Added",
+          "Expand Product Catalog Ledger",
+          isMerged ? `Consolidated +${newProdData.stock} units into existing "${newProdData.name}"` : `Added new product "${newProdData.name}" to inventory catalog`,
+          "Success",
+          "3ms"
+        );
+        return { success: true, isMerged, message: msg };
       }
       return { success: false, message: response.data?.message || "Failed to add product" };
     } catch (err: any) {

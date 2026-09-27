@@ -21,7 +21,12 @@ export interface PWAInstallState {
 }
 
 export function usePWAInstall(): PWAInstallState {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(() => {
+    if (typeof window !== "undefined" && (window as any).__deferredPWAInstallPrompt) {
+      return (window as any).__deferredPWAInstallPrompt;
+    }
+    return null;
+  });
   const [isInstalled, setIsInstalled] = useState(false);
 
   // Check if running in standalone mode (already installed as PWA)
@@ -50,26 +55,40 @@ export function usePWAInstall(): PWAInstallState {
       return;
     }
 
+    if ((window as any).__deferredPWAInstallPrompt && !deferredPrompt) {
+      setDeferredPrompt((window as any).__deferredPWAInstallPrompt);
+    }
+
     const handleBeforeInstallPrompt = (e: Event) => {
       // Prevent browser default mini-infobar so our custom modal controls it
       e.preventDefault();
+      (window as any).__deferredPWAInstallPrompt = e;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    const handlePromptAvailable = () => {
+      if ((window as any).__deferredPWAInstallPrompt) {
+        setDeferredPrompt((window as any).__deferredPWAInstallPrompt);
+      }
     };
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
+      (window as any).__deferredPWAInstallPrompt = null;
       localStorage.setItem("qb_pwa_installed", "true");
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("pwa-prompt-available", handlePromptAvailable);
     window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("pwa-prompt-available", handlePromptAvailable);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, [isStandalone]);
+  }, [isStandalone, deferredPrompt]);
 
   const promptInstall = useCallback(async (): Promise<boolean> => {
     if (!deferredPrompt) {

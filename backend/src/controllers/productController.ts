@@ -141,10 +141,33 @@ export class ProductController {
         images: images || undefined,
       });
 
-      res.status(201).json({
+      const isMerged = (result as any)?.isMerged;
+      const message = isMerged
+        ? `Product "${result.name}" already exists in "${result.category}". Stock increased by +${(result as any).addedStock} (Total: ${result.stock}).`
+        : "Product card created successfully.";
+
+      res.status(isMerged ? 200 : 201).json({
         success: true,
-        message: "Product card created successfully.",
+        message,
         data: result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async consolidateDuplicates(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      let businessId = req.user!.tenantId as string;
+      if (!businessId && req.query.businessId) {
+        businessId = String(req.query.businessId);
+      }
+      const summary = await productService.consolidateDuplicates(businessId);
+      res.json({
+        success: true,
+        message: `Catalog duplicates consolidated. Removed ${summary.duplicatesRemoved} duplicate cards.`,
+        data: summary,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
