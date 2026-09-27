@@ -118,12 +118,12 @@ export const Header: React.FC<HeaderProps> = ({
   const isDark = theme === "dark";
 
   return (
-    <header className="sticky top-0 z-30 transition-all duration-200 shrink-0 bg-brand-navy border-b border-slate-800 text-slate-300 shadow-md">
+    <header className="sticky top-0 z-50 transition-all duration-200 shrink-0 bg-brand-navy border-b border-slate-800 text-slate-300 shadow-md">
       {/* Brand Glowing Top Accent Bar */}
       <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-brand-orange to-transparent shadow-[0_0_12px_rgba(249,115,22,0.6)]" />
 
       {/* ─── MOBILE NATIVE APP BAR (Visible on < lg screens) ─── */}
-      <div className="flex lg:hidden items-center justify-between gap-2 w-full px-3 py-2 bg-brand-navy/98 backdrop-blur-xl">
+      <div className="flex lg:hidden items-center justify-between gap-1.5 sm:gap-2 w-full px-2.5 sm:px-3 py-2 bg-brand-navy/98 backdrop-blur-xl">
         {/* Left: Drawer toggle + Brand & Store Name */}
         <div className="flex items-center gap-2 min-w-0">
           <button
@@ -139,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
             <img src={logo} alt="Logo" className="h-7 w-7 rounded-lg object-cover ring-1 ring-brand-orange/40 shrink-0" />
             <div className="flex flex-col min-w-0 leading-none">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black text-white truncate max-w-[120px] sm:max-w-[200px]">
+                <span className="text-xs font-black text-white truncate max-w-[100px] sm:max-w-[180px]">
                   {currentUser?.businessName || "QuickBizs"}
                 </span>
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Store Live" />
@@ -151,8 +151,21 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Right: Quick Actions */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        {/* Right: Quick Actions + Mobile Logout */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* Install App Quick Action on Mobile */}
+          {!isInstalled && (
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("open-pwa-install"))}
+              className="flex items-center gap-1 px-2 py-1 rounded-xl text-[10px] font-black bg-brand-orange/20 hover:bg-brand-orange/30 text-brand-orange border border-brand-orange/40 active:scale-95 transition-all shadow-xs shrink-0 cursor-pointer"
+              title="Install QuickBizs App"
+            >
+              <Download className="h-3 w-3 animate-bounce" />
+              <span>App</span>
+            </button>
+          )}
+
           {/* Quick Search */}
           <button
             onClick={onOpenSearch}
@@ -180,7 +193,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Notification Bell */}
           <NotificationBell />
 
-          {/* User Avatar */}
+          {/* User Initials Avatar */}
           <div 
             onClick={onToggleSidebar}
             className="h-7 w-7 rounded-xl bg-brand-orange text-white flex items-center justify-center font-black text-[10px] shrink-0 select-none shadow-sm cursor-pointer active:scale-95 ring-1 ring-brand-orange/40"
@@ -188,6 +201,17 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {initials}
           </div>
+
+          {/* Direct Mobile Logout Button */}
+          <button
+            type="button"
+            onClick={onLogout}
+            className="p-1.5 rounded-xl transition-all cursor-pointer flex items-center justify-center bg-rose-500/15 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 active:scale-95 shadow-xs shrink-0 ml-0.5"
+            aria-label="Log Out"
+            title="Sign Out"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
 

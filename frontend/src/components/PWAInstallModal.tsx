@@ -141,16 +141,16 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md">
         <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 30, scale: 0.95 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          className="relative w-full max-w-md max-h-[90dvh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto"
         >
           {/* Header gradient banner */}
-          <div className="relative bg-gradient-to-br from-brand-orange via-orange-600 to-amber-600 p-5 sm:p-6 text-white text-center overflow-hidden">
+          <div className="relative bg-gradient-to-br from-brand-orange via-orange-600 to-amber-600 p-4 sm:p-5 text-white text-center overflow-hidden shrink-0">
             {/* Background glowing circles */}
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
             <div className="absolute -bottom-8 -left-8 w-28 h-28 bg-black/10 rounded-full blur-lg pointer-events-none" />
@@ -158,14 +158,14 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
             {/* Close button */}
             <button
               onClick={handleClose}
-              className="absolute top-4 right-4 p-1.5 rounded-full bg-black/20 hover:bg-black/35 text-white/90 hover:text-white transition-colors cursor-pointer"
+              className="absolute top-3.5 right-3.5 p-1.5 rounded-full bg-black/20 hover:bg-black/35 text-white/90 hover:text-white transition-colors cursor-pointer"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
             </button>
 
             {/* App Icon preview */}
-            <div className="mx-auto w-16 h-16 rounded-2xl bg-white shadow-xl flex items-center justify-center p-1.5 mb-3 ring-4 ring-white/30">
+            <div className="mx-auto w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-white shadow-xl flex items-center justify-center p-1.5 mb-2.5 ring-4 ring-white/30">
               <img 
                 src="/pwa-192.png" 
                 alt="QuickBizs Icon" 
@@ -176,14 +176,14 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
               />
             </div>
 
-            <h3 className="text-xl font-black tracking-tight">
+            <h3 className="text-lg sm:text-xl font-black tracking-tight">
               {justInstalled 
                 ? "App Ready On Your Device!" 
                 : isDesktop 
                   ? "Download QuickBizs Desktop App" 
                   : "Download QuickBizs Mobile App"}
             </h3>
-            <p className="text-xs text-orange-100 font-medium mt-1 max-w-xs mx-auto">
+            <p className="text-[11px] sm:text-xs text-orange-100 font-medium mt-0.5 max-w-xs mx-auto">
               {isDesktop 
                 ? "Install on Windows / Mac for high-speed counter billing and offline access" 
                 : "Add QuickBizs to your home screen for lightning-fast 1-tap POS billing"}
@@ -191,7 +191,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
           </div>
 
           {/* Body Features or Instructions */}
-          <div className="p-5 sm:p-6 space-y-4">
+          <div className="p-4 sm:p-5 space-y-3.5 overflow-y-auto">
             {justInstalled ? (
               <div className="py-6 text-center space-y-3">
                 <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto animate-bounce" />

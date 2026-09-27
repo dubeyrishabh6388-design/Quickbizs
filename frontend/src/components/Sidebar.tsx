@@ -20,7 +20,8 @@ import {
   Search,
   X,
   Lock,
-  Download
+  Download,
+  LogOut
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusiness } from "../context/BusinessContext";
@@ -35,6 +36,7 @@ interface SidebarProps {
   activeScreen: ScreenType;
   setActiveScreen: (screen: ScreenType) => void;
   onClose?: () => void;
+  onLogout?: () => void;
   lowStockCount: number;
   pendingDuesCount: number;
 }
@@ -119,6 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeScreen, 
   setActiveScreen, 
   onClose,
+  onLogout,
   lowStockCount,
   pendingDuesCount
 }) => {
@@ -127,7 +130,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [pinModalOpen, setPinModalOpen] = useState(false);
   const [pendingTargetRole, setPendingTargetRole] = useState<RoleConfig | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem("qb_user");
+      if (u) setCurrentUser(JSON.parse(u));
+    } catch {}
+  }, []);
+
+  const displayName = currentUser?.name || currentUser?.businessName || (currentRole === "Owner" ? "Store Owner" : currentRole);
+  const initials = displayName
+    .split(" ")
+    .map((w: string) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "QB";
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -449,10 +468,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Download / Install App Section in Mobile & Desktop Sidebar */}
       {!isInstalled && (
-        <div className="p-3 mx-3 mb-3 rounded-2xl bg-gradient-to-br from-brand-orange/20 via-orange-950/40 to-slate-900 border border-brand-orange/40 shadow-lg shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-brand-orange to-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-brand-orange/30">
-              <Download className="h-4.5 w-4.5 animate-bounce" />
+        <div className="p-2.5 mx-3 mb-2 rounded-2xl bg-gradient-to-br from-brand-orange/15 via-orange-950/30 to-slate-900 border border-brand-orange/30 shadow-md shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-brand-orange to-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-brand-orange/30">
+              <Download className="h-4 w-4 animate-bounce" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-black text-white truncate">
@@ -471,13 +490,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }
               window.dispatchEvent(new Event("open-pwa-install"));
             }}
-            className="w-full mt-2.5 py-2 px-3 rounded-xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 text-white font-extrabold text-xs shadow-md shadow-brand-orange/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            className="w-full mt-2 py-1.5 px-3 rounded-xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 text-white font-extrabold text-[11px] shadow-sm shadow-brand-orange/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <Download className="h-3.5 w-3.5" />
+            <Download className="h-3 w-3" />
             <span>Download / Install App</span>
           </button>
         </div>
       )}
+
+      {/* User Profile & Logout Footer */}
+      <div className="p-2.5 mx-3 mb-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="h-8 w-8 rounded-xl bg-brand-orange text-white flex items-center justify-center font-black text-xs shrink-0 ring-1 ring-brand-orange/40 shadow-xs">
+            {initials}
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-white truncate max-w-[105px]">{displayName}</p>
+            <p className="text-[9px] font-bold text-brand-orange uppercase tracking-wider truncate">{currentRole}</p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (onClose && window.innerWidth < 1024) {
+              onClose();
+            }
+            if (onLogout) {
+              onLogout();
+            } else {
+              localStorage.removeItem("qb_token");
+              localStorage.removeItem("qb_user");
+              window.location.reload();
+            }
+          }}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 text-xs font-bold cursor-pointer transition-all active:scale-95 shrink-0"
+          title="Sign Out from QuickBizs"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span>Logout</span>
+        </button>
+      </div>
 
       {/* Owner PIN Security Modal for Indian Counter Protection */}
       <OwnerPinModal

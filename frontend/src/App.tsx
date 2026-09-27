@@ -318,6 +318,7 @@ function AppContent() {
             }
           }}
           onClose={() => setIsSidebarOpen(false)}
+          onLogout={handleLogout}
           lowStockCount={lowStockCount}
           pendingDuesCount={pendingDuesCount}
         />
