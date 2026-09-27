@@ -207,11 +207,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const allMenuItems: { id: ScreenType; label: string; icon: React.ElementType; badge?: number; highlight?: boolean }[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: lowStockCount + pendingDuesCount },
     { id: "incoming-orders", label: "Incoming Orders", icon: ShoppingCart },
-    { id: "recovery", label: "Recovery Center", icon: HandCoins },
+    { id: "recovery", label: "Udhaar & Recovery", icon: HandCoins, badge: pendingDuesCount },
     { id: "billing", label: "Billing / POS", icon: Receipt },
     { id: "counter", label: "Counter Mode", icon: Zap },
     { id: "inventory", label: "Inventory", icon: Package, badge: lowStockCount },
-    { id: "customers", label: "Customers & Khata", icon: Users, badge: pendingDuesCount },
+    { id: "customers", label: "Customers & Khata", icon: Users },
     { id: "suppliers", label: "Suppliers", icon: Truck },
     { id: "staff", label: "Staff Attendance", icon: UserCheck },
     { id: "reports", label: "Business Reports", icon: BarChart3 },
@@ -224,7 +224,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const allowedModules = getRoleAllowedModules(currentRole);
   const menuItems = allMenuItems
     .filter(item => allowedModules.includes(item.id))
-    .filter(item => SHOW_INCOMING_ORDERS || item.id !== "incoming-orders");
+    .filter(item => SHOW_INCOMING_ORDERS || item.id !== "incoming-orders")
+    .filter(item => item.id !== "customers");
 
   const activeRoleConfig = roleConfigs.find(r => r.id === currentRole) || roleConfigs[0];
   const ActiveRoleIcon = activeRoleConfig.icon;

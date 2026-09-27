@@ -29,7 +29,7 @@ import {
   Receipt, 
   Package, 
   BarChart3,
-  Users
+  HandCoins
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -351,7 +351,7 @@ function AppContent() {
             { id: "dashboard", label: "Home", icon: LayoutDashboard },
             { id: "inventory", label: "Stock", icon: Package },
             { id: "billing", label: "Quick POS", icon: Receipt, isCenter: true },
-            { id: "customers", label: "Khata", icon: Users },
+            { id: "recovery", label: "Recovery", icon: HandCoins },
             { id: "reports", label: "Analytics", icon: BarChart3 },
           ].map(item => {
             const Icon = item.icon;
