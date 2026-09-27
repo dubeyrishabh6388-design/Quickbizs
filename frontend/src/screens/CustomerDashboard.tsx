@@ -50,8 +50,8 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ handleLogo
   const [errorMsg, setErrorMsg] = useState("");
   const [activeTab, setActiveTab] = useState<"explore" | "orders">("explore");
 
-  // Geolocation tracking
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  // Geolocation tracking - default to Delhi coords so data loads instantly without waiting for GPS prompt
+  const [location, setLocation] = useState<{ lat: number; lng: number }>({ lat: 28.6139, lng: 77.2090 });
 
   // Shop Catalog & Cart Drawer states
   const [selectedShop, setSelectedShop] = useState<any | null>(null);
@@ -87,8 +87,8 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ handleLogo
   }, [selectedShop]);
 
   useEffect(() => {
-    // 1. Get browser geolocation coords
-    if (navigator.geolocation) {
+    // 1. Get browser geolocation coords with strict timeout so it never hangs
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setLocation({
@@ -97,9 +97,10 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ handleLogo
           });
         },
         () => {
-          // Default fallback to Delhi coordinates
+          // Default fallback
           setLocation({ lat: 28.6139, lng: 77.2090 });
-        }
+        },
+        { timeout: 3500, maximumAge: 60000, enableHighAccuracy: false }
       );
     } else {
       setLocation({ lat: 28.6139, lng: 77.2090 });
@@ -108,14 +109,14 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ handleLogo
 
   // Fetch dashboard data function
   const fetchDashboardData = async () => {
-    if (!location) return;
+    const coords = location || { lat: 28.6139, lng: 77.2090 };
     try {
       setErrorMsg("");
 
       // Run concurrent requests
       const [profileRes, nearbyRes, favRes, orderRes, trustRes] = await Promise.all([
         api.get("/pwa-customer/profile").catch(() => null),
-        api.get(`/business/nearby?lat=${location.lat}&lng=${location.lng}&radius=10000`).catch(() => null),
+        api.get(`/business/nearby?lat=${coords.lat}&lng=${coords.lng}&radius=10000`).catch(() => null),
         api.get("/pwa-customer/favourites").catch(() => null),
         api.get("/pwa-customer/orders?page=1&limit=20").catch(() => null),
         api.get("/pwa-customer/trust-score").catch(() => null),

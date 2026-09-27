@@ -127,22 +127,30 @@ function AppContent() {
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+
         fetch(`${env.apiUrl}/api/v1/auth/session`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         })
           .then((res) => res.json())
           .then((json) => {
+            clearTimeout(timeoutId);
             if (json.success) {
               setCurrentRole(user.role as UserRole);
               setIsAuthenticated(true);
             } else {
               handleLogout();
             }
-            setIsAuthLoading(false);
           })
           .catch(() => {
+            clearTimeout(timeoutId);
+            // Fallback to cached user credentials if network times out
             setCurrentRole(user.role as UserRole);
             setIsAuthenticated(true);
+          })
+          .finally(() => {
             setIsAuthLoading(false);
           });
       } catch (err) {

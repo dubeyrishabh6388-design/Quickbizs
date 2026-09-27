@@ -43,7 +43,10 @@ export const Tasks: React.FC = () => {
 
   const fetchTasks = async () => {
     const token = localStorage.getItem("qb_token");
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch(`${env.apiUrl}/api/v1/tasks`, {
         headers: { Authorization: `Bearer ${token}` },

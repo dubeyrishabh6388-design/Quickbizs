@@ -58,7 +58,10 @@ export const AutomationConsole: React.FC = () => {
 
   const fetchRulesAndLogs = async () => {
     const token = localStorage.getItem("qb_token");
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const [rulesRes, logsRes] = await Promise.all([
