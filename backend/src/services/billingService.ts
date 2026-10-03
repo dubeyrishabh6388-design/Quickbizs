@@ -1,5 +1,6 @@
 import { BillingRepository } from "../repositories/billingRepository";
 import { prisma } from "../config/prisma";
+import { verticalRegistry } from "../registry";
 
 const billingRepository = new BillingRepository();
 
@@ -95,14 +96,16 @@ export class BillingService {
     data: {
       customerId?: string;
       customerName: string;
-      customerType: "Retail" | "Member" | "Wholesale";
+      customerType?: "Retail" | "Member" | "Wholesale" | "Mechanic" | "Workshop" | "Dealer" | "Contractor" | "Electrician" | string;
+      priceLevel?: "Retail" | "Wholesale" | "Mechanic" | "Contractor" | "Electrician" | "Custom";
+      vehicleDetails?: string;
       employeeId?: string;
       items: {
         productId: string;
         quantity: number;
-        unitPrice: number;
-        discount: number;
-        gst: number;
+        unitPrice?: number;
+        discount?: number;
+        gst?: number;
       }[];
       paymentMethod: "Cash" | "UPI" | "Card" | "Wallet" | "Credit" | "Split";
       splitDetails?: { cash: number; upi: number };
@@ -137,6 +140,10 @@ export class BillingService {
         throw err;
       }
     }
+
+    // Determine requested pricing level
+    const customerCategory = customerObj?.membershipLevel || data.customerType || "Retail";
+    const requestedLevel = (data.priceLevel || customerCategory).toLowerCase();
 
     // 2. Pricing totals compiling
     let subtotal = 0;
@@ -191,12 +198,32 @@ export class BillingService {
         });
       }
 
-      const itemSubtotal = item.unitPrice * item.quantity;
-      const itemGst = itemSubtotal * (item.gst / 100);
-      const itemTotal = itemSubtotal - item.discount + itemGst;
+      let customObj: any = {};
+      if (product.customFields) {
+        try {
+          customObj = typeof product.customFields === "string" ? JSON.parse(product.customFields) : product.customFields;
+        } catch (e) {}
+      }
+
+      const tierPrice = verticalRegistry.resolveTierPrice(requestedLevel, customObj);
+
+      let effectiveUnitPrice: number;
+      if (tierPrice > 0) {
+        effectiveUnitPrice = tierPrice;
+      } else if (item.unitPrice && item.unitPrice > 0) {
+        effectiveUnitPrice = item.unitPrice;
+      } else {
+        effectiveUnitPrice = product.price;
+      }
+
+      const itemDiscount = item.discount || 0;
+      const itemGstPct = item.gst || 0;
+      const itemSubtotal = effectiveUnitPrice * item.quantity;
+      const itemGst = itemSubtotal * (itemGstPct / 100);
+      const itemTotal = itemSubtotal - itemDiscount + itemGst;
 
       subtotal += itemSubtotal;
-      discount += item.discount;
+      discount += itemDiscount;
       gstAmount += itemGst;
 
       compiledItems.push({
@@ -204,9 +231,9 @@ export class BillingService {
         productName: product.name,
         barcode: product.barcode,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        discount: item.discount,
-        gst: item.gst,
+        unitPrice: effectiveUnitPrice,
+        discount: itemDiscount,
+        gst: itemGstPct,
         total: itemTotal,
       });
 
@@ -297,7 +324,11 @@ export class BillingService {
         paymentStatus: data.paymentMethod === "Credit" ? "Pending" : "Paid",
         paymentMethod: data.paymentMethod,
         orderStatus: "Completed",
-        notes: data.notes || null,
+        notes: [
+          data.vehicleDetails ? `Vehicle: ${data.vehicleDetails}` : null,
+          data.priceLevel ? `Price Level: ${data.priceLevel}` : null,
+          data.notes || null,
+        ].filter(Boolean).join(" | ") || null,
       },
       items: compiledItems,
       payments: paymentsToSeed,

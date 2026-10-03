@@ -13,6 +13,16 @@ export interface DynamicProductSchema {
   units?: string[];
   fields: ProductFieldSpec[];
   sections?: { name: string; fields: ProductFieldSpec[] }[];
+  verticalId?: string;
+  displayName?: string;
+  depthLevel?: string;
+  priceTiers?: any[];
+  customerTypes?: any[];
+  creditRules?: any;
+  searchableFields?: string[];
+  inventoryBehavior?: any;
+  labels?: Record<string, string>;
+  helpText?: Record<string, string>;
 }
 
 export const PRODUCT_SCHEMAS: Record<string, DynamicProductSchema> = {
@@ -111,18 +121,149 @@ export const PRODUCT_SCHEMAS: Record<string, DynamicProductSchema> = {
   },
   "Hardware Store": {
     businessType: "Hardware Store",
-    categories: ["Tools", "Fasteners", "Paints", "Electricals"],
+    categories: ["Hand Tools", "Power Tools", "Fasteners & Screws", "Paints & Solvents", "Plumbing & Pipes", "Sanitaryware"],
+    units: ["Piece", "Kg", "Box", "Packet", "Meter", "Set"],
     fields: [
-      { name: "brand", label: "Brand Partner", type: "text", required: true, placeholder: "e.g. Bosch" },
-      { name: "weight", label: "Unit Weight", type: "text", required: false, placeholder: "e.g. 2.4 Kg" },
-      { name: "size", label: "Spec Size / Width", type: "text", required: true, placeholder: "e.g. M12 / 10mm" },
-      { name: "material", label: "Steel Material Grade", type: "text", required: false, placeholder: "e.g. Stainless Steel 304" },
-      { name: "sku", label: "SKU Serial", type: "text", required: false, placeholder: "e.g. HW-M12-10" }
+      { name: "brand", label: "Brand", type: "text", required: true, placeholder: "e.g. Bosch, Stanley, Godrej" },
+      { name: "material", label: "Material", type: "text", required: false, placeholder: "e.g. Stainless Steel 304, Brass, Mild Steel" },
+      { name: "size", label: "Size", type: "text", required: true, placeholder: "e.g. 10mm, 2 inch, M12" },
+      { name: "diameter", label: "Diameter", type: "text", required: false, placeholder: "e.g. 8mm, 1/2 inch" },
+      { name: "specification", label: "Specification", type: "text", required: false, placeholder: "e.g. Grade 8.8, Fully Threaded" },
+      { name: "weight", label: "Weight", type: "text", required: false, placeholder: "e.g. 250g, 1.2 Kg" },
+      { name: "unit", label: "Unit", type: "select", required: false, options: ["Piece", "Kg", "Box", "Packet", "Meter", "Set"] },
+      { name: "packSize", label: "Pack Size", type: "number", required: false, placeholder: "e.g. 50, 100" },
+      { name: "rack", label: "Rack Location", type: "text", required: false, placeholder: "e.g. Rack H-05, Shelf 2" },
+      { name: "wholesalePrice", label: "Wholesale Price (₹)", type: "number", required: false, placeholder: "e.g. 45" },
+      { name: "contractorPrice", label: "Contractor Price (₹)", type: "number", required: false, placeholder: "e.g. 48" },
+      { name: "sku", label: "SKU Identifier", type: "text", required: false, placeholder: "e.g. HW-BOLT-M12" }
+    ]
+  },
+  "Automobile Shop": {
+    businessType: "Automobile Shop",
+    categories: ["Engine Parts", "Brake & Clutch", "Suspension & Steering", "Electrical & Lighting", "Filters & Lubricants", "Body & Accessories"],
+    units: ["Piece", "Set", "Pair", "Litre", "Kit", "Box"],
+    fields: [
+      { name: "partNumber", label: "Part Number", type: "text", required: true, placeholder: "e.g. 48820-0K030" },
+      { name: "oemNumber", label: "OEM Number", type: "text", required: false, placeholder: "e.g. OEM-TY-8921" },
+      { name: "brand", label: "Brand", type: "text", required: true, placeholder: "e.g. Bosch, Denso, Minda, Lucas TVS" },
+      { name: "vehicleMake", label: "Vehicle Make", type: "text", required: true, placeholder: "e.g. Maruti Suzuki, Toyota, Hyundai, Tata" },
+      { name: "vehicleModel", label: "Vehicle Model", type: "text", required: true, placeholder: "e.g. Swift, Innova Crysta, City, Scorpio" },
+      { name: "variant", label: "Variant", type: "text", required: false, placeholder: "e.g. Petrol, Diesel, 2.4 VX, ZXi" },
+      { name: "compatibility", label: "Cross Compatibility", type: "text", required: false, placeholder: "e.g. Also fits Fortuner 2016-2022" },
+      { name: "rack", label: "Rack", type: "text", required: false, placeholder: "e.g. Rack A-12" },
+      { name: "bin", label: "Bin", type: "text", required: false, placeholder: "e.g. Bin 4" },
+      { name: "wholesalePrice", label: "Wholesale Price (₹)", type: "number", required: false, placeholder: "e.g. 1100" },
+      { name: "mechanicPrice", label: "Mechanic Price (₹)", type: "number", required: false, placeholder: "e.g. 1150" },
+      { name: "warranty", label: "Warranty Period", type: "text", required: false, placeholder: "e.g. 6 Months / 10,000 KM" }
+    ]
+  },
+  "Electrical Store": {
+    businessType: "Electrical Store",
+    categories: ["Lighting & Bulbs", "Cables & Wires", "Switches & Sockets", "Circuit Breakers & MCBs", "Fans & Appliances", "Pipes & Fittings"],
+    units: ["Piece", "Meter", "Roll", "Coil", "Box", "Set"],
+    fields: [
+      { name: "brand", label: "Brand", type: "text", required: true, placeholder: "e.g. Havells, Polycab, Philips, Anchor, Legrand" },
+      { name: "productType", label: "Product Type", type: "text", required: false, placeholder: "e.g. LED Batten, Modular Switch, 3-Pin Plug, MCB" },
+      { name: "wattage", label: "Wattage (W)", type: "text", required: false, placeholder: "e.g. 9W, 12W, 18W, 20W, 1000W" },
+      { name: "voltage", label: "Voltage (V)", type: "text", required: false, placeholder: "e.g. 220V-240V AC, 12V DC" },
+      { name: "wireGauge", label: "Wire Gauge", type: "text", required: false, placeholder: "e.g. 1.0 sq mm, 1.5 sq mm, 2.5 sq mm, 4.0 sq mm" },
+      { name: "colour", label: "Colour", type: "text", required: false, placeholder: "e.g. Warm White, Cool Daylight, Red, Black, White" },
+      { name: "capType", label: "Cap Type", type: "text", required: false, placeholder: "e.g. B22, E27, E14" },
+      { name: "size", label: "Size", type: "text", required: false, placeholder: "e.g. 1 Meter, 2 Module, 4 Module" },
+      { name: "packSize", label: "Pack Size", type: "number", required: false, placeholder: "e.g. 10, 20" },
+      { name: "warranty", label: "Warranty", type: "text", required: false, placeholder: "e.g. 1 Year, 2 Years Replacement" },
+      { name: "rack", label: "Rack Location", type: "text", required: false, placeholder: "e.g. Rack E-03" },
+      { name: "wholesalePrice", label: "Wholesale Price (₹)", type: "number", required: false, placeholder: "e.g. 260" },
+      { name: "contractorPrice", label: "Contractor Price (₹)", type: "number", required: false, placeholder: "e.g. 280" },
+      { name: "electricianPrice", label: "Electrician Price (₹)", type: "number", required: false, placeholder: "e.g. 290" }
+    ]
+  },
+  "Auto Parts": {
+    businessType: "Auto Parts",
+    categories: ["Engine Parts", "Brake & Clutch", "Suspension & Steering", "Electrical & Lighting", "Filters & Lubricants", "Body & Accessories"],
+    units: ["Piece", "Set", "Pair", "Litre", "Kit", "Box"],
+    fields: [
+      { name: "partNumber", label: "Part Number", type: "text", required: true, placeholder: "e.g. 48820-0K030" },
+      { name: "oemNumber", label: "OEM Number", type: "text", required: false, placeholder: "e.g. OEM-TY-8921" },
+      { name: "brand", label: "Brand", type: "text", required: true, placeholder: "e.g. Bosch, Denso, Minda, Lucas TVS" },
+      { name: "vehicleMake", label: "Vehicle Make", type: "text", required: true, placeholder: "e.g. Maruti Suzuki, Toyota, Hyundai, Tata" },
+      { name: "vehicleModel", label: "Vehicle Model", type: "text", required: true, placeholder: "e.g. Swift, Innova Crysta, City, Scorpio" },
+      { name: "variant", label: "Variant", type: "text", required: false, placeholder: "e.g. Petrol, Diesel, 2.4 VX, ZXi" },
+      { name: "compatibility", label: "Cross Compatibility", type: "text", required: false, placeholder: "e.g. Also fits Fortuner 2016-2022" },
+      { name: "rack", label: "Rack", type: "text", required: false, placeholder: "e.g. Rack A-12" },
+      { name: "bin", label: "Bin", type: "text", required: false, placeholder: "e.g. Bin 4" },
+      { name: "wholesalePrice", label: "Wholesale Price (₹)", type: "number", required: false, placeholder: "e.g. 1100" },
+      { name: "mechanicPrice", label: "Mechanic Price (₹)", type: "number", required: false, placeholder: "e.g. 1150" },
+      { name: "warranty", label: "Warranty Period", type: "text", required: false, placeholder: "e.g. 6 Months / 10,000 KM" }
+    ]
+  },
+  "Electrical": {
+    businessType: "Electrical",
+    categories: ["Lighting & Bulbs", "Cables & Wires", "Switches & Sockets", "Circuit Breakers & MCBs", "Fans & Appliances", "Pipes & Fittings"],
+    units: ["Piece", "Meter", "Roll", "Coil", "Box", "Set"],
+    fields: [
+      { name: "brand", label: "Brand", type: "text", required: true, placeholder: "e.g. Havells, Polycab, Philips, Anchor, Legrand" },
+      { name: "productType", label: "Product Type", type: "text", required: false, placeholder: "e.g. LED Batten, Modular Switch, 3-Pin Plug, MCB" },
+      { name: "wattage", label: "Wattage (W)", type: "text", required: false, placeholder: "e.g. 9W, 12W, 18W, 20W, 1000W" },
+      { name: "voltage", label: "Voltage (V)", type: "text", required: false, placeholder: "e.g. 220V-240V AC, 12V DC" },
+      { name: "wireGauge", label: "Wire Gauge", type: "text", required: false, placeholder: "e.g. 1.0 sq mm, 1.5 sq mm, 2.5 sq mm, 4.0 sq mm" },
+      { name: "colour", label: "Colour", type: "text", required: false, placeholder: "e.g. Cool Daylight, Warm White, Red, Black, White" },
+      { name: "capType", label: "Cap Type", type: "text", required: false, placeholder: "e.g. B22, E27, E14" },
+      { name: "size", label: "Size", type: "text", required: false, placeholder: "e.g. 1 Meter, 2 Module, 4 Module" },
+      { name: "packSize", label: "Pack Size", type: "number", required: false, placeholder: "e.g. 10, 20" },
+      { name: "warranty", label: "Warranty", type: "text", required: false, placeholder: "e.g. 1 Year, 2 Years Replacement" },
+      { name: "rack", label: "Rack Location", type: "text", required: false, placeholder: "e.g. Rack E-03" },
+      { name: "wholesalePrice", label: "Wholesale Price (₹)", type: "number", required: false, placeholder: "e.g. 260" },
+      { name: "contractorPrice", label: "Contractor Price (₹)", type: "number", required: false, placeholder: "e.g. 280" },
+      { name: "electricianPrice", label: "Electrician Price (₹)", type: "number", required: false, placeholder: "e.g. 290" }
+    ]
+  },
+  "Hardware": {
+    businessType: "Hardware",
+    categories: ["Hand Tools", "Power Tools", "Fasteners & Screws", "Paints & Solvents", "Plumbing & Pipes", "Sanitaryware"],
+    units: ["Piece", "Kg", "Box", "Packet", "Meter", "Set"],
+    fields: [
+      { name: "brand", label: "Brand", type: "text", required: true, placeholder: "e.g. Bosch, Stanley, Godrej" },
+      { name: "material", label: "Material", type: "text", required: false, placeholder: "e.g. Stainless Steel 304, Brass, Mild Steel" },
+      { name: "size", label: "Size", type: "text", required: true, placeholder: "e.g. 10mm, 2 inch, M12" },
+      { name: "diameter", label: "Diameter", type: "text", required: false, placeholder: "e.g. 8mm, 1/2 inch" },
+      { name: "specification", label: "Specification", type: "text", required: false, placeholder: "e.g. Grade 8.8, Fully Threaded" },
+      { name: "weight", label: "Weight", type: "text", required: false, placeholder: "e.g. 250g, 1.2 Kg" },
+      { name: "unit", label: "Unit", type: "select", required: false, options: ["Piece", "Kg", "Box", "Packet", "Meter", "Set"] },
+      { name: "packSize", label: "Pack Size", type: "number", required: false, placeholder: "e.g. 50, 100" },
+      { name: "rack", label: "Rack Location", type: "text", required: false, placeholder: "e.g. Rack H-05, Shelf 2" },
+      { name: "wholesalePrice", label: "Wholesale Price (₹)", type: "number", required: false, placeholder: "e.g. 45" },
+      { name: "contractorPrice", label: "Contractor Price (₹)", type: "number", required: false, placeholder: "e.g. 48" },
+      { name: "sku", label: "SKU Identifier", type: "text", required: false, placeholder: "e.g. HW-BOLT-M12" }
+    ]
+  },
+  "Wholesale Business": {
+    businessType: "Wholesale Business",
+    categories: ["Bulk Commodities", "FMCG Cartons", "Master Packs", "Industrial Supplies", "Raw Materials"],
+    units: ["Box", "Carton", "Bag", "Quintal", "Barrel", "Case", "Piece"],
+    fields: [
+      { name: "brand", label: "Brand / Manufacturer", type: "text", required: false, placeholder: "e.g. ITC, Tata, Generic" },
+      { name: "moq", label: "Min Order Quantity (MOQ)", type: "number", required: true, placeholder: "e.g. 10" },
+      { name: "packSize", label: "Units Per Carton/Pack", type: "number", required: true, placeholder: "e.g. 24" },
+      { name: "wholesalePrice", label: "Wholesale Rate (Bulk)", type: "number", required: false, placeholder: "e.g. 850" },
+      { name: "hsnCode", label: "HSN / SAC Code", type: "text", required: false, placeholder: "e.g. 8481.80" }
+    ]
+  },
+  "Footwear Shop": {
+    businessType: "Footwear Shop",
+    categories: ["Sports Shoes", "Formal Shoes", "Casual Shoes", "Sandals & Slippers", "Kids Footwear"],
+    units: ["Pair", "Box", "Piece"],
+    fields: [
+      { name: "brand", label: "Brand", type: "text", required: true, placeholder: "e.g. Nike, Bata, Sparx" },
+      { name: "size", label: "Size (UK/IND)", type: "select", required: true, options: ["6", "7", "8", "9", "10", "11", "12", "Kids 2", "Kids 3", "Kids 4"] },
+      { name: "color", label: "Color", type: "select", required: true, options: ["Black", "Brown", "White", "Navy Blue", "Grey", "Red"] },
+      { name: "gender", label: "Target Gender", type: "select", required: true, options: ["Men", "Women", "Unisex", "Kids"] }
     ]
   },
   "Cosmetics Shop": {
     businessType: "Cosmetics Shop",
     categories: ["Makeup", "Skin Care", "Hair Care", "Fragrances"],
+    units: ["Piece", "Bottle", "Box", "Set"],
     fields: [
       { name: "brand", label: "Brand", type: "text", required: true, placeholder: "e.g. L'Oreal" },
       { name: "shade", label: "Shade Code / Name", type: "text", required: false, placeholder: "e.g. Ruby Red 04" },
@@ -132,7 +273,8 @@ export const PRODUCT_SCHEMAS: Record<string, DynamicProductSchema> = {
   },
   "Custom Business": {
     businessType: "Custom Business",
-    categories: ["General Items", "Misc Goods"],
+    categories: ["General Items", "Fast Moving", "Misc Goods"],
+    units: ["Piece", "Box", "Packet", "Kg", "Litre", "Set"],
     fields: [
       { name: "brand", label: "Brand Name", type: "text", required: false, placeholder: "e.g. Generic" }
     ]

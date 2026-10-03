@@ -25,6 +25,7 @@ import counterRoutes from "./counterRoutes";
 import instantCheckoutRoutes from "./instantCheckoutRoutes";
 import queueRoutes from "./queueRoutes";
 import businessTemplateRoutes from "./businessTemplateRoutes";
+import verticalRoutes from "./verticalRoutes";
 import quantityRoutes from "./quantityRoutes";
 import businessRoutes from "./businessRoutes";
 import pwaCustomerRoutes from "./pwaCustomerRoutes";
@@ -65,6 +66,7 @@ router.use("/checkout", instantCheckoutRoutes);
 router.use("/queue", queueRoutes);
 router.use("/products", quantityRoutes);
 router.use("/templates", businessTemplateRoutes);
+router.use("/verticals", verticalRoutes);
 
 // 1. Health Diagnostic Route (Verifies DB connection on-the-fly)
 router.get("/health", async (req, res, next) => {

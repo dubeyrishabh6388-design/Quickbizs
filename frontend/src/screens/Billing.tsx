@@ -27,13 +27,14 @@ import { useBusiness } from "../context/BusinessContext";
 import type { Product } from "../context/BusinessContext";
 import { useProductSearch } from "../hooks/useProductSearch";
 import { motion, AnimatePresence } from "framer-motion";
+import { DynamicProductForm } from "../components/dynamic";
 
 interface BillingProps {
   setActiveScreen?: (screen: any) => void;
 }
 
 export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
-  const { products, customers, addOrder, addCustomer, addProduct, productSchema } = useBusiness();
+  const { products, customers, addOrder, addCustomer, addProduct, productSchema, businessPreferences } = useBusiness();
   const [protectionCustomer, setProtectionCustomer] = useState<any | null>(null);
 
   const renderCustomBadges = (prod: Product) => {
@@ -119,13 +120,58 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
     filteredProducts
   } = useProductSearch(products);
 
-  // Customer Selection
+  // Customer Selection & Category-Aware Pricing Tiers
+  const bType = businessPreferences?.businessType || productSchema?.businessType || "";
+  const isAuto = bType.toLowerCase().includes("auto");
+  const isElect = bType.toLowerCase().includes("electr");
+  const isHardware = bType.toLowerCase().includes("hardw");
+
+  const availableGroups = React.useMemo(() => {
+    const custTypes = (productSchema as any)?.customerTypes;
+    if (custTypes && Array.isArray(custTypes) && custTypes.length > 0) {
+      return custTypes.map((ct: any) => ct.key || ct.label);
+    }
+    if (isAuto) return ["Retail", "Wholesale", "Mechanic"];
+    if (isElect) return ["Retail", "Wholesale", "Contractor", "Electrician"];
+    if (isHardware) return ["Retail", "Wholesale", "Contractor"];
+    return ["Retail", "Member", "Wholesale"];
+  }, [productSchema, isAuto, isElect, isHardware]);
+
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("walkin");
-  const [customerGroup, setCustomerGroup] = useState<"Retail" | "Member" | "Wholesale">("Retail");
+  const [customerGroup, setCustomerGroup] = useState<string>("Retail");
+  const [vehicleDetails, setVehicleDetails] = useState("");
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [newCustName, setNewCustName] = useState("");
   const [newCustPhone, setNewCustPhone] = useState("");
   const [duplicatePhoneWarning, setDuplicatePhoneWarning] = useState<string | null>(null);
+
+  const getItemPrice = (prod: Product, group: string) => {
+    if (prod.customFields) {
+      try {
+        const c = typeof prod.customFields === "string" ? JSON.parse(prod.customFields) : prod.customFields;
+        // Check priceTiers from registry schema
+        const tiers = (productSchema as any)?.priceTiers;
+        if (tiers && Array.isArray(tiers)) {
+          const grpLower = (group || "").toLowerCase();
+          for (const tier of tiers) {
+            const matchesTier =
+              tier.key.toLowerCase().includes(grpLower) ||
+              tier.label.toLowerCase().includes(grpLower) ||
+              (tier.tierAliases && tier.tierAliases.some((a: string) => grpLower.includes(a.toLowerCase())));
+            if (matchesTier && c[tier.key] !== undefined && c[tier.key] !== "") {
+              return Number(c[tier.key]);
+            }
+          }
+        }
+        if (group === "Mechanic" && c.mechanicPrice) return Number(c.mechanicPrice);
+        if (group === "Contractor" && c.contractorPrice) return Number(c.contractorPrice);
+        if (group === "Electrician" && c.electricianPrice) return Number(c.electricianPrice);
+        if (group === "Wholesale" && c.wholesalePrice) return Number(c.wholesalePrice);
+        if (group === "Dealer" && c.dealerPrice) return Number(c.dealerPrice);
+      } catch (e) {}
+    }
+    return prod.price;
+  };
 
   // Toast notification
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -156,6 +202,90 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
   const [paymentMethod, setPaymentMethod] = useState<string>("Cash");
   const [splitCashAmount, setSplitCashAmount] = useState("");
   const [splitUpiAmount, setSplitUpiAmount] = useState("");
+
+  // Desktop POS Keyboard Shortcuts & Continuous Barcode Scanning
+  const searchInputRef = React.useRef<HTMLInputElement | null>(null);
+  const customerSelectRef = React.useRef<HTMLSelectElement | null>(null);
+  const barcodeBuffer = React.useRef<string>("");
+  const lastKeyTime = React.useRef<number>(0);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // F2 -> Focus Product Search
+      if (e.key === "F2") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        showToast("🔍 Product Search Active (F2)");
+        return;
+      }
+
+      // F4 -> Focus Customer Selector
+      if (e.key === "F4") {
+        e.preventDefault();
+        customerSelectRef.current?.focus();
+        showToast("👤 Customer Selector Active (F4)");
+        return;
+      }
+
+      // F8 -> Focus Payment & Checkout
+      if (e.key === "F8") {
+        e.preventDefault();
+        if (cart.length === 0) {
+          showToast("Cart is empty! Add products first.");
+        } else {
+          showToast("💳 Payment Ready (F8)");
+          const checkoutBtn = document.getElementById("pos-checkout-btn");
+          checkoutBtn?.focus();
+          checkoutBtn?.click();
+        }
+        return;
+      }
+
+      // Continuous Barcode Reader Detection & Enter Key Match
+      const now = performance.now();
+      const interval = now - lastKeyTime.current;
+      lastKeyTime.current = now;
+
+      if (e.key === "Enter") {
+        const potentialBarcode = barcodeBuffer.current.trim();
+        barcodeBuffer.current = "";
+
+        const queryToMatch = (potentialBarcode || searchQuery || "").trim().toLowerCase();
+        if (queryToMatch) {
+          const matchedProd = products.find(
+            (p) =>
+              (p.barcode && p.barcode.toLowerCase() === queryToMatch) ||
+              p.name.toLowerCase() === queryToMatch
+          );
+
+          if (matchedProd) {
+            e.preventDefault();
+            addToCart(matchedProd);
+            setSearchQuery("");
+            showToast(`⚡ Added "${matchedProd.name}" via Barcode/Enter`);
+            return;
+          } else if (filteredProducts.length === 1 && document.activeElement === searchInputRef.current) {
+            e.preventDefault();
+            addToCart(filteredProducts[0]);
+            setSearchQuery("");
+            showToast(`✓ Added "${filteredProducts[0].name}"`);
+            return;
+          }
+        }
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Keystroke stream from barcode scanner
+        if (interval < 50) {
+          barcodeBuffer.current += e.key;
+        } else {
+          barcodeBuffer.current = e.key;
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [cart, products, searchQuery, filteredProducts]);
 
   const [invoiceReceipt, setInvoiceReceipt] = useState<{
     id: string;
@@ -211,720 +341,6 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
 
   // Add Product Modal States
   const [isAddingProduct, setIsAddingProduct] = useState(false);
-  const [prodName, setProdName] = useState("");
-  const [prodCategory, setProdCategory] = useState("Grocery");
-  const [prodSupplier, setProdSupplier] = useState("Kirana Wholesale");
-  const [prodPrice, setProdPrice] = useState("");
-  const [prodCost, setProdCost] = useState("");
-  const [prodStock, setProdStock] = useState("");
-  const [prodMinStock, setProdMinStock] = useState("5");
-
-  const [customAttributeValues, setCustomAttributeValues] = useState<Record<string, string>>({});
-
-  const getFieldValue = (name: string): string => {
-    if (name === "name") return prodName;
-    if (name === "price") return prodPrice;
-    if (name === "costPrice") return prodCost;
-    if (name === "stock") return prodStock;
-    if (name === "minStock") return prodMinStock;
-    if (name === "category") return prodCategory;
-    if (name === "supplierName") return prodSupplier;
-    return customAttributeValues[name] || "";
-  };
-
-  const setFieldValue = (name: string, value: string) => {
-    if (name === "name") setProdName(value);
-    else if (name === "price") setProdPrice(value);
-    else if (name === "costPrice") setProdCost(value);
-    else if (name === "stock") setProdStock(value);
-    else if (name === "minStock") setProdMinStock(value);
-    else if (name === "category") setProdCategory(value);
-    else if (name === "supplierName") setProdSupplier(value);
-    else setCustomAttributeValues(prev => ({ ...prev, [name]: value }));
-  };
-
-  const renderDynamicFormBody = () => {
-    const bizType = productSchema?.businessType || "Grocery Store";
-
-    if (bizType === "Clothing Store") {
-      return (
-        <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
-          {/* SECTION 1: Basic Product */}
-          <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 space-y-3">
-            <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-1.5 mb-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-orange" />
-              SECTION 1: Basic Product
-            </h4>
-            <div className="space-y-3">
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Product Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={prodName}
-                  onChange={(e) => setProdName(e.target.value)}
-                  placeholder="e.g. Classic Denim Jacket"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 focus:outline-none focus:border-brand-orange"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Brand Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={customAttributeValues["brand"] || ""}
-                    onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, brand: e.target.value }))}
-                    placeholder="e.g. Levi's"
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Collection Name</label>
-                  <input
-                    type="text"
-                    value={customAttributeValues["collectionName"] || ""}
-                    onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, collectionName: e.target.value }))}
-                    placeholder="e.g. Summer 2026"
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Category *</label>
-                <div className="flex gap-2">
-                  {["Men", "Women", "Kids", "Accessories"].map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setProdCategory(cat)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
-                        prodCategory === cat 
-                          ? "bg-brand-navy border-brand-navy text-white shadow-sm"
-                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 2: Variants */}
-          <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 space-y-3">
-            <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-1.5 mb-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-orange" />
-              SECTION 2: Variants
-            </h4>
-            <div className="space-y-3.5">
-              {/* Sizes Selector */}
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Select Sizes *</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {["XS", "S", "M", "L", "XL", "XXL"].map((sz) => {
-                    const isSelected = customAttributeValues["sizes"] === sz;
-                    return (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => setCustomAttributeValues(prev => ({ ...prev, sizes: sz }))}
-                        className={`h-9 w-9 rounded-xl border text-xs font-black flex items-center justify-center transition-all ${
-                          isSelected 
-                            ? "bg-brand-orange border-brand-orange text-white shadow-sm"
-                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                        }`}
-                      >
-                        {sz}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Colors Selector */}
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Select Color *</label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { name: "Black", colorClass: "bg-black border-black" },
-                    { name: "White", colorClass: "bg-white border-slate-400" },
-                    { name: "Blue", colorClass: "bg-blue-650 border-blue-650" },
-                    { name: "Red", colorClass: "bg-rose-650 border-rose-650" },
-                    { name: "Green", colorClass: "bg-emerald-650 border-emerald-650" }
-                  ].map((col) => {
-                    const isSelected = customAttributeValues["colors"] === col.name;
-                    return (
-                      <button
-                        key={col.name}
-                        type="button"
-                        onClick={() => setCustomAttributeValues(prev => ({ ...prev, colors: col.name }))}
-                        className={`px-3 py-1.5 rounded-full border text-[10px] font-extrabold flex items-center gap-1.5 transition-all ${
-                          isSelected 
-                            ? "bg-slate-800 border-slate-800 text-white shadow-sm"
-                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                        }`}
-                      >
-                        <span className={`h-2.5 w-2.5 rounded-full ${col.colorClass}`} />
-                        {col.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Fabric Selector */}
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Fabric Material *</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {["Cotton", "Denim", "Silk", "Polyester"].map((fb) => {
-                    const isSelected = customAttributeValues["fabric"] === fb;
-                    return (
-                      <button
-                        key={fb}
-                        type="button"
-                        onClick={() => setCustomAttributeValues(prev => ({ ...prev, fabric: fb }))}
-                        className={`py-1.5 rounded-lg border text-[10px] font-bold transition-all ${
-                          isSelected 
-                            ? "bg-brand-orange text-white border-brand-orange font-extrabold"
-                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        {fb}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 3: Pricing */}
-          <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 space-y-3">
-            <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-1.5 mb-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-orange" />
-              SECTION 3: Pricing & Taxes
-            </h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Cost Price (₹) *</label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  step="0.01"
-                  value={prodCost}
-                  onChange={(e) => setProdCost(e.target.value)}
-                  placeholder="e.g. 800"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-700 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Selling Price (₹) *</label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  step="0.01"
-                  value={prodPrice}
-                  onChange={(e) => setProdPrice(e.target.value)}
-                  placeholder="e.g. 1499"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-700 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Discount (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={customAttributeValues["discount"] || ""}
-                  onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, discount: e.target.value }))}
-                  placeholder="e.g. 10"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tax rate (GST %)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={customAttributeValues["gst"] || ""}
-                  onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, gst: e.target.value }))}
-                  placeholder="e.g. 12"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 4: Inventory */}
-          <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 space-y-3">
-            <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-1.5 mb-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-orange" />
-              SECTION 4: Inventory
-            </h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Available Quantity *</label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  value={prodStock}
-                  onChange={(e) => setProdStock(e.target.value)}
-                  placeholder="e.g. 50"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">SKU code *</label>
-                <input
-                  type="text"
-                  required
-                  value={customAttributeValues["sku"] || ""}
-                  onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, sku: e.target.value }))}
-                  placeholder="e.g. AP-TSH-01"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Barcode EAN</label>
-                <input
-                  type="text"
-                  value={customAttributeValues["barcode"] || ""}
-                  onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, barcode: e.target.value }))}
-                  placeholder="e.g. 890127..."
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 5: Media */}
-          <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 space-y-3">
-            <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-1.5 mb-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-orange" />
-              SECTION 5: Media Assets
-            </h4>
-            <div className="space-y-3.5">
-              <div className="h-32 border border-dashed border-slate-200 hover:border-slate-400 rounded-2xl flex flex-col items-center justify-center bg-white cursor-pointer group transition-colors">
-                <div className="text-xs font-extrabold text-slate-600 group-hover:text-brand-orange transition-colors">Drag & Drop Product Images</div>
-                <div className="text-[9px] text-slate-400 mt-1 font-semibold">Supports JPEG, PNG up to 5MB size</div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Product Images Link</label>
-                  <input
-                    type="text"
-                    value={customAttributeValues["images"] || ""}
-                    onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, images: e.target.value }))}
-                    placeholder="https://..."
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Thumbnail Image Link</label>
-                  <input
-                    type="text"
-                    value={customAttributeValues["thumbnail"] || ""}
-                    onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, thumbnail: e.target.value }))}
-                    placeholder="https://..."
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 6: Seasonal */}
-          <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 space-y-3">
-            <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-1.5 mb-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-orange" />
-              SECTION 6: Seasonal & Trends
-            </h4>
-            <div>
-              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Season Category</label>
-              <div className="grid grid-cols-3 gap-2">
-                {["Summer", "Winter", "Festival Collection"].map((ss) => {
-                  const isSelected = customAttributeValues["season"] === ss;
-                  return (
-                    <button
-                      key={ss}
-                      type="button"
-                      onClick={() => setCustomAttributeValues(prev => ({ ...prev, season: ss }))}
-                      className={`py-1.5 rounded-lg border text-[10px] font-bold transition-all ${
-                        isSelected 
-                          ? "bg-brand-orange text-white border-brand-orange font-extrabold"
-                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      {ss}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (bizType === "Pharmacy") {
-      return (
-        <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
-          {/* SECTION 1: Medicine Info */}
-          <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 space-y-3">
-            <h4 className="text-[10px] font-black text-emerald-750 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-1.5 mb-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              SECTION 1: Medicine Info
-            </h4>
-            <div className="space-y-3">
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Medicine Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={prodName}
-                  onChange={(e) => setProdName(e.target.value)}
-                  placeholder="e.g. Crocin Active"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 focus:outline-none focus:border-brand-orange"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Generic Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={customAttributeValues["genericName"] || ""}
-                    onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, genericName: e.target.value }))}
-                    placeholder="e.g. Paracetamol 650mg"
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Company Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={customAttributeValues["company"] || ""}
-                    onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, company: e.target.value }))}
-                    placeholder="e.g. GSK Pharma"
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Prescription Check *</label>
-                  <div className="flex gap-2">
-                    {["Required", "Not Required"].map((req) => {
-                      const isSelected = (customAttributeValues["prescriptionRequired"] === "true" && req === "Required") ||
-                                         (customAttributeValues["prescriptionRequired"] === "false" && req === "Not Required");
-                      return (
-                        <button
-                          key={req}
-                          type="button"
-                          onClick={() => setCustomAttributeValues(prev => ({ ...prev, prescriptionRequired: String(req === "Required") }))}
-                          className={`flex-1 py-1.5 rounded-lg border text-[10px] font-extrabold transition-all ${
-                            isSelected 
-                              ? "bg-rose-50 border-rose-450 text-rose-700"
-                              : "bg-white border-slate-200 text-slate-500"
-                          }`}
-                        >
-                          {req}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Category Form *</label>
-                  <select
-                    required
-                    value={prodCategory}
-                    onChange={(e) => setProdCategory(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none cursor-pointer"
-                  >
-                    {["Tablet", "Syrup", "Injection", "Cream", "Capsule"].map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 2: Batch & Dates */}
-          <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 space-y-3">
-            <h4 className="text-[10px] font-black text-emerald-755 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-1.5 mb-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              SECTION 2: Batch & Expiry Settings
-            </h4>
-            <div className="space-y-3">
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Batch Number *</label>
-                <input
-                  type="text"
-                  required
-                  value={customAttributeValues["batchNumber"] || ""}
-                  onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, batchNumber: e.target.value }))}
-                  placeholder="e.g. B-CR90"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none font-mono font-bold"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Manufacturing Date</label>
-                  <input
-                    type="date"
-                    value={customAttributeValues["mfgDate"] || ""}
-                    onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, mfgDate: e.target.value }))}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Expiry Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={customAttributeValues["expiryDate"] || ""}
-                    onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, expiryDate: e.target.value }))}
-                    className="w-full bg-white border border-rose-350 ring-2 ring-rose-50 rounded-xl px-3 py-2 text-xs focus:outline-none text-rose-600 font-bold"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 3: Dosage & Storage */}
-          <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 space-y-3">
-            <h4 className="text-[10px] font-black text-emerald-755 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-1.5 mb-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              SECTION 3: Dosage & Storage Type
-            </h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Dosage instructions *</label>
-                <input
-                  type="text"
-                  required
-                  value={customAttributeValues["dosage"] || ""}
-                  onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, dosage: e.target.value }))}
-                  placeholder="e.g. Once daily after meals"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Storage Condition *</label>
-                <select
-                  required
-                  value={customAttributeValues["storageType"] || ""}
-                  onChange={(e) => setCustomAttributeValues(prev => ({ ...prev, storageType: e.target.value }))}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none cursor-pointer"
-                >
-                  <option value="">Select storage temp</option>
-                  {["Cold Storage (2-8 C)", "Room Temp (15-25 C)", "Dry Protected Area"].map(st => (
-                    <option key={st} value={st}>{st}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 4: Pricing */}
-          <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 space-y-3">
-            <h4 className="text-[10px] font-black text-emerald-755 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-1.5 mb-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              SECTION 4: Pricing (MRP)
-            </h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Purchase Cost (₹) *</label>
-                <input
-                  type="number"
-                  required
-                  value={prodCost}
-                  onChange={(e) => setProdCost(e.target.value)}
-                  placeholder="e.g. 15"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Selling MRP (₹) *</label>
-                <input
-                  type="number"
-                  required
-                  value={prodPrice}
-                  onChange={(e) => setProdPrice(e.target.value)}
-                  placeholder="e.g. 29.5"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 5: Inventory */}
-          <div className="bg-slate-50/60 border border-slate-100 rounded-2xl p-4 space-y-3">
-            <h4 className="text-[10px] font-black text-emerald-755 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-1.5 mb-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              SECTION 5: Stock Levels
-            </h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Available Stock (Qty) *</label>
-                <input
-                  type="number"
-                  required
-                  value={prodStock}
-                  onChange={(e) => setProdStock(e.target.value)}
-                  placeholder="e.g. 100"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Reorder Trigger Level *</label>
-                <input
-                  type="number"
-                  required
-                  value={prodMinStock}
-                  onChange={(e) => setProdMinStock(e.target.value)}
-                  placeholder="e.g. 20"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
-        {(productSchema?.sections || []).map((section: any) => (
-          <div key={section.name} className="space-y-3 border border-slate-100 bg-slate-50/50 p-4 rounded-2xl">
-            <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-1 mb-2">
-              {section.name}
-            </h4>
-            <div className="grid grid-cols-2 gap-3">
-              {section.fields.map((field: any) => {
-                const val = getFieldValue(field.name);
-                const onChange = (newVal: string) => setFieldValue(field.name, newVal);
-
-                return (
-                  <div key={field.name} className={field.type === "boolean" ? "col-span-2 flex items-center gap-2 py-1" : "col-span-2 sm:col-span-1"}>
-                    {field.type === "boolean" ? (
-                      <>
-                        <input
-                          type="checkbox"
-                          id={`field-${field.name}`}
-                          checked={val === "true"}
-                          onChange={(e) => onChange(String(e.target.checked))}
-                          className="h-4 w-4 text-brand-orange border-slate-400 rounded cursor-pointer"
-                        />
-                        <label htmlFor={`field-${field.name}`} className="text-xs font-bold text-slate-700 cursor-pointer">
-                          {field.label} {field.required && "*"}
-                        </label>
-                      </>
-                    ) : field.type === "select" ? (
-                      <>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                          {field.label} {field.required && "*"}
-                        </label>
-                        <select
-                          required={field.required}
-                          value={val}
-                          onChange={(e) => onChange(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none"
-                        >
-                          <option value="">Select option</option>
-                          {field.options?.map((opt: string) => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      </>
-                    ) : (
-                      <>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                          {field.label} {field.required && "*"}
-                        </label>
-                        <input
-                          type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
-                          required={field.required}
-                          value={val}
-                          onChange={(e) => onChange(e.target.value)}
-                          placeholder={field.placeholder || `Enter ${field.label}`}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none"
-                        />
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  useEffect(() => {
-    if (productSchema && productSchema.categories && productSchema.categories.length > 0) {
-      setProdCategory(productSchema.categories[0]);
-    }
-  }, [productSchema]);
-
-  const handleAddProductSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prodName.trim()) return;
-
-    const price = parseFloat(prodPrice) || 0;
-    const cost = parseFloat(prodCost) || 0;
-    const stock = parseInt(prodStock) || 0;
-    const minStock = parseInt(prodMinStock) || 0;
-
-    if (price < 0 || cost < 0 || stock < 0 || minStock < 0) {
-      alert("Error: Prices, stock levels, and minimum quantities cannot be negative.");
-      return;
-    }
-    if (!prodCategory || !prodCategory.trim()) {
-      alert("Error: Category name cannot be empty.");
-      return;
-    }
-
-    const res = await addProduct({
-      name: prodName,
-      price,
-      costPrice: cost,
-      stock,
-      minStock,
-      category: prodCategory || "General",
-      supplierName: prodSupplier || "General Supplier",
-      barcode: `890${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-      customFields: JSON.stringify(customAttributeValues)
-    });
-
-    if (res?.success) {
-      if (res.isMerged) {
-        showToast(res.message || `✓ Product "${prodName}" stock increased by +${stock}!`);
-      } else {
-        showToast(`✓ Added product "${prodName}" to store catalog!`);
-      }
-      setIsAddingProduct(false);
-      setProdName("");
-      setProdPrice("");
-      setProdCost("");
-      setProdStock("");
-      setProdMinStock("5");
-      setCustomAttributeValues({});
-    } else {
-      showToast(res?.message || "Failed to add product");
-    }
-  };
-
   const handleCreateCustomer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustName.trim() || !newCustPhone.trim()) return;
@@ -944,14 +360,23 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
     setIsAddingCustomer(false);
   };
 
-  // Pricing calculations
-  const cartSubtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+  // Pricing calculations (incorporating category price tiers: wholesale/mechanic/contractor/electrician)
+  const cartSubtotal = cart.reduce((acc, item) => acc + getItemPrice(item.product, customerGroup) * item.quantity, 0);
   
   let cartDiscount = 0;
   if (customerGroup === "Member") {
     cartDiscount = Math.round(cartSubtotal * 0.05);
   } else if (customerGroup === "Wholesale") {
-    cartDiscount = Math.round(cartSubtotal * 0.10);
+    const hasCustomWholesale = cart.some(item => {
+      if (!item.product.customFields) return false;
+      try {
+        const c = JSON.parse(item.product.customFields);
+        return !!c.wholesalePrice;
+      } catch { return false; }
+    });
+    if (!hasCustomWholesale) {
+      cartDiscount = Math.round(cartSubtotal * 0.10);
+    }
   }
 
   const taxableAmount = cartSubtotal - cartDiscount;
@@ -1028,7 +453,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       productId: item.product.id,
       name: item.product.name,
       quantity: item.quantity,
-      price: item.product.price
+      price: getItemPrice(item.product, customerGroup)
     }));
 
     const custName = getSelectedCustomerName();
@@ -1037,7 +462,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
     addOrder(
       custId,
       custName,
-      customerGroup,
+      customerGroup as any,
       orderItems,
       cartSubtotal,
       cartDiscount,
@@ -1045,7 +470,11 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       cartRoundOff,
       cartTotal,
       paymentMethod as any,
-      splitDetailsObj
+      splitDetailsObj,
+      {
+        priceLevel: customerGroup,
+        vehicleDetails: isAuto ? vehicleDetails : undefined,
+      }
     );
 
     setInvoiceReceipt({
@@ -1062,7 +491,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       items: cart.map(item => ({
         name: item.product.name,
         quantity: item.quantity,
-        price: item.product.price
+        price: getItemPrice(item.product, customerGroup)
       })),
       date: new Date().toLocaleDateString("en-IN", {
         hour: "2-digit",
@@ -1266,6 +695,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
           </div>
 
           <select
+            ref={customerSelectRef}
             value={selectedCustomerId}
             onChange={(e) => {
               const val = e.target.value;
@@ -1295,22 +725,38 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
             ))}
           </select>
 
-          {/* Customer Type Segment Toggles */}
-          <div className="grid grid-cols-3 gap-1.5 border-t border-slate-200/50 dark:border-slate-800 pt-2">
-            {["Retail", "Member", "Wholesale"].map((group) => (
+          {/* Category-Aware Price Level Toggles */}
+          <div className="flex flex-wrap gap-1.5 border-t border-slate-200/50 dark:border-slate-800 pt-2">
+            {availableGroups.map((group: string) => (
               <button
                 key={group}
-                onClick={() => setCustomerGroup(group as any)}
-                className={`py-1.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${
+                onClick={() => setCustomerGroup(group)}
+                className={`flex-1 min-w-[70px] py-1.5 px-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border text-center ${
                   customerGroup === group
                     ? "bg-brand-navy dark:bg-brand-orange border-brand-navy dark:border-brand-orange text-white shadow-xs"
                     : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                 }`}
               >
-                {group} {group === "Member" ? "(5%)" : group === "Wholesale" ? "(10%)" : ""}
+                {group} {group === "Member" ? "(5%)" : group === "Wholesale" ? "(Whl)" : ""}
               </button>
             ))}
           </div>
+
+          {/* Vehicle Details Input (Auto Parts) */}
+          {isAuto && (
+            <div className="pt-2 border-t border-slate-200/50 dark:border-slate-800">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
+                Vehicle / Model Details
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Swift 2018 (DL-01-AB-1234) / Diesel"
+                value={vehicleDetails}
+                onChange={(e) => setVehicleDetails(e.target.value)}
+                className="w-full text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-orange"
+              />
+            </div>
+          )}
         </div>
 
         {/* Shopping Cart List */}
@@ -1325,37 +771,46 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
             </div>
           ) : (
             <div className="space-y-2">
-              {cart.map((item) => (
-                <div 
-                  key={item.product.id}
-                  className="flex items-center justify-between p-2 sm:p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
-                >
-                  <div className="flex-1 pr-2 min-w-0">
-                    <h5 className="font-bold text-slate-800 dark:text-slate-100 text-xs truncate">{item.product.name}</h5>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-400 font-semibold mt-0.5">₹{item.product.price} / item</p>
-                  </div>
-                  
-                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                    <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 overflow-hidden shadow-2xs">
-                      <button
-                        onClick={() => updateCartQty(item.product.id, -1)}
-                        className="p-1 sm:p-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700 cursor-pointer"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="px-1.5 sm:px-2 text-xs font-bold text-slate-700 dark:text-slate-200">{item.quantity}</span>
-                      <button
-                        onClick={() => updateCartQty(item.product.id, 1)}
-                        disabled={item.quantity >= item.product.stock}
-                        className="p-1 sm:p-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 border-l border-slate-200 dark:border-slate-700 disabled:opacity-30 cursor-pointer"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
+              {cart.map((item) => {
+                const itemPrice = getItemPrice(item.product, customerGroup);
+                return (
+                  <div 
+                    key={item.product.id}
+                    className="flex items-center justify-between p-2 sm:p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
+                  >
+                    <div className="flex-1 pr-2 min-w-0">
+                      <h5 className="font-bold text-slate-800 dark:text-slate-100 text-xs truncate">{item.product.name}</h5>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-[10px] text-slate-400 dark:text-slate-400 font-semibold">₹{itemPrice} / item</p>
+                        {itemPrice !== item.product.price && (
+                          <span className="text-[8px] font-bold text-brand-orange px-1 py-0.2 bg-brand-orange/10 rounded">
+                            {customerGroup}
+                          </span>
+                        )}
+                      </div>
                     </div>
+                    
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                      <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 overflow-hidden shadow-2xs">
+                        <button
+                          onClick={() => updateCartQty(item.product.id, -1)}
+                          className="p-1 sm:p-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700 cursor-pointer"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="px-1.5 sm:px-2 text-xs font-bold text-slate-700 dark:text-slate-200">{item.quantity}</span>
+                        <button
+                          onClick={() => updateCartQty(item.product.id, 1)}
+                          disabled={item.quantity >= item.product.stock}
+                          className="p-1 sm:p-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 border-l border-slate-200 dark:border-slate-700 disabled:opacity-30 cursor-pointer"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
 
-                    <span className="text-xs font-black text-slate-900 dark:text-white min-w-[50px] text-right">
-                      ₹{item.product.price * item.quantity}
-                    </span>
+                      <span className="text-xs font-black text-slate-900 dark:text-white min-w-[50px] text-right">
+                        ₹{itemPrice * item.quantity}
+                      </span>
 
                     <button
                       onClick={() => removeFromCart(item.product.id)}
@@ -1365,7 +820,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
                     </button>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           )}
         </div>
@@ -1504,6 +960,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
           </div>
 
           <button
+            id="pos-checkout-btn"
             onClick={handleCheckout}
             disabled={cart.length === 0 || rzpLoading}
             className={`w-full py-2.5 sm:py-3.5 rounded-xl text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-all active:scale-[0.99] ${
@@ -1555,10 +1012,31 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
             </p>
           </div>
 
+          {/* Desktop POS Shortcut Ribbon */}
+          <div className="hidden lg:flex items-center gap-2 text-[10px] font-bold text-slate-500 mb-1">
+            <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+              <kbd className="font-mono text-indigo-600 dark:text-indigo-400">F2</kbd> Search
+            </span>
+            <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+              <kbd className="font-mono text-indigo-600 dark:text-indigo-400">F4</kbd> Customer
+            </span>
+            <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+              <kbd className="font-mono text-indigo-600 dark:text-indigo-400">F8</kbd> Payment
+            </span>
+            <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+              <kbd className="font-mono text-indigo-600 dark:text-indigo-400">Enter</kbd> Add Matched
+            </span>
+            <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Barcode Scanner Active
+            </span>
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -1916,41 +1394,39 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className={`bg-white rounded-2xl w-full p-6 border border-slate-100 shadow-2xl relative text-slate-700 font-sans transition-all duration-300 ${
-                productSchema?.businessType === "Clothing Store" ? "max-w-2xl" : "max-w-md"
-              }`}
+              className="bg-white rounded-2xl w-full max-w-2xl p-5 border border-slate-100 shadow-2xl relative text-slate-700 font-sans max-h-[85vh] overflow-y-auto"
             >
               <button
                 onClick={() => setIsAddingProduct(false)}
-                className="absolute top-4 right-4 p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
+                className="absolute top-4 right-4 p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors z-10"
               >
                 <X className="h-5 w-5" />
               </button>
 
-              <h3 className="font-bold text-slate-800 text-base flex items-center gap-1.5 border-b border-slate-100 pb-3 mb-4">
-                <Plus className="h-5 w-5 text-brand-orange" />
-                Add Product to Catalog ({productSchema?.businessType || "Grocery Store"})
-              </h3>
+              <DynamicProductForm
+                vertical={productSchema}
+                onSubmit={async (data) => {
+                  const res = await addProduct({
+                    name: data.name,
+                    price: data.price,
+                    costPrice: data.costPrice,
+                    stock: data.stock,
+                    minStock: data.minStock,
+                    category: data.category || "General",
+                    supplierName: data.supplierName || "Standard Supplier",
+                    barcode: data.barcode,
+                    customFields: Object.keys(data.customFields).length > 0 ? JSON.stringify(data.customFields) : undefined,
+                  });
 
-              <form onSubmit={handleAddProductSubmit} className="space-y-4">
-                {renderDynamicFormBody()}
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingProduct(false)}
-                    className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2.5 bg-brand-navy hover:bg-brand-navy-light text-white text-xs font-bold rounded-xl shadow-md cursor-pointer"
-                  >
-                    Save Product Card
-                  </button>
-                </div>
-              </form>
+                  if (res?.success) {
+                    setIsAddingProduct(false);
+                    showToast(res.isMerged ? (res.message || `✓ Updated "${data.name}"`) : "✓ Product added to catalog");
+                  } else {
+                    showToast(res?.message || "Failed to add product");
+                  }
+                }}
+                onCancel={() => setIsAddingProduct(false)}
+              />
             </motion.div>
           </div>
         )}

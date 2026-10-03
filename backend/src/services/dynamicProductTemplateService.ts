@@ -233,12 +233,128 @@ export const PRESET_TEMPLATES: Record<string, DynamicFormConfig> = {
         ]
       }
     ]
+  },
+  "Automobile Shop": {
+    businessType: "Automobile Shop",
+    sections: [
+      {
+        name: "SECTION 1: Part Specifications",
+        order: 1,
+        fields: [
+          { name: "name", label: "Part Name", type: "text", required: true, placeholder: "e.g. Front Brake Pad Set" },
+          { name: "partNumber", label: "Part Number", type: "text", required: true, placeholder: "e.g. 48820-0K030" },
+          { name: "oemNumber", label: "OEM Number", type: "text", required: false, placeholder: "e.g. OEM-TY-8921" },
+          { name: "brand", label: "Brand", type: "text", required: true, placeholder: "e.g. Bosch, Denso, Minda, Lucas TVS" },
+          { name: "vehicleMake", label: "Vehicle Make", type: "text", required: true, placeholder: "e.g. Toyota, Maruti Suzuki, Hyundai, Tata" },
+          { name: "vehicleModel", label: "Vehicle Model", type: "text", required: true, placeholder: "e.g. Swift, Innova Crysta, City, Scorpio" },
+          { name: "variant", label: "Variant", type: "text", required: false, placeholder: "e.g. Petrol, Diesel, 2.4 VX, ZXi" },
+          { name: "compatibility", label: "Cross Compatibility", type: "text", required: false, placeholder: "e.g. Fits Fortuner 2016-2022" },
+          { name: "category", label: "Component Category", type: "select", required: true, options: ["Engine Parts", "Brake & Clutch", "Suspension & Steering", "Electrical & Lighting", "Filters & Lubricants", "Body & Accessories"] },
+          { name: "rack", label: "Rack", type: "text", required: false, placeholder: "e.g. Rack A-12" },
+          { name: "bin", label: "Bin", type: "text", required: false, placeholder: "e.g. Bin 4" }
+        ]
+      },
+      {
+        name: "SECTION 2: Pricing & Inventory",
+        order: 2,
+        fields: [
+          { name: "costPrice", label: "Purchase Price (₹)", type: "number", required: true, placeholder: "e.g. 850" },
+          { name: "price", label: "Retail Price (₹)", type: "number", required: true, placeholder: "e.g. 1200" },
+          { name: "wholesalePrice", label: "Wholesale Price (₹)", type: "number", required: false, placeholder: "e.g. 1050" },
+          { name: "mechanicPrice", label: "Mechanic Price (₹)", type: "number", required: false, placeholder: "e.g. 1100" },
+          { name: "stock", label: "Available Stock", type: "number", required: true, placeholder: "e.g. 15" },
+          { name: "minStock", label: "Reorder Level", type: "number", required: true, placeholder: "e.g. 3" },
+          { name: "warranty", label: "Warranty Period", type: "text", required: false, placeholder: "e.g. 6 Months / 10,000 KM" }
+        ]
+      }
+    ]
+  },
+  "Electrical Store": {
+    businessType: "Electrical Store",
+    sections: [
+      {
+        name: "SECTION 1: Electrical Specifications",
+        order: 1,
+        fields: [
+          { name: "name", label: "Item Name", type: "text", required: true, placeholder: "e.g. LED Batten 20W White" },
+          { name: "brand", label: "Brand", type: "text", required: true, placeholder: "e.g. Philips, Havells, Polycab, Anchor" },
+          { name: "productType", label: "Product Type", type: "text", required: false, placeholder: "e.g. LED Batten, Modular Switch, Wire, MCB" },
+          { name: "category", label: "Category", type: "select", required: true, options: ["Lighting & Bulbs", "Cables & Wires", "Switches & Sockets", "Circuit Breakers & MCBs", "Fans & Appliances", "Pipes & Fittings"] },
+          { name: "wattage", label: "Wattage (W)", type: "text", required: false, placeholder: "e.g. 20W" },
+          { name: "voltage", label: "Voltage (V)", type: "text", required: false, placeholder: "e.g. 220V AC" },
+          { name: "wireGauge", label: "Wire Gauge", type: "text", required: false, placeholder: "e.g. 2.5 sq mm" },
+          { name: "colour", label: "Colour", type: "text", required: false, placeholder: "e.g. Cool Daylight, Warm White, Red, Black" },
+          { name: "capType", label: "Cap Type", type: "text", required: false, placeholder: "e.g. B22, E27" },
+          { name: "size", label: "Size", type: "text", required: false, placeholder: "e.g. 1 Meter, 2 Module" },
+          { name: "packSize", label: "Pack Size", type: "number", required: false, placeholder: "e.g. 10, 20" },
+          { name: "rack", label: "Rack Location", type: "text", required: false, placeholder: "e.g. Rack E-03" }
+        ]
+      },
+      {
+        name: "SECTION 2: Pricing & Stock",
+        order: 2,
+        fields: [
+          { name: "costPrice", label: "Purchase Price (₹)", type: "number", required: true, placeholder: "e.g. 220" },
+          { name: "price", label: "Retail Price (₹)", type: "number", required: true, placeholder: "e.g. 350" },
+          { name: "wholesalePrice", label: "Wholesale Price (₹)", type: "number", required: false, placeholder: "e.g. 280" },
+          { name: "contractorPrice", label: "Contractor Price (₹)", type: "number", required: false, placeholder: "e.g. 300" },
+          { name: "electricianPrice", label: "Electrician Price (₹)", type: "number", required: false, placeholder: "e.g. 310" },
+          { name: "stock", label: "Available Stock", type: "number", required: true, placeholder: "e.g. 40" },
+          { name: "minStock", label: "Min Stock Level", type: "number", required: true, placeholder: "e.g. 10" },
+          { name: "warranty", label: "Warranty Period", type: "text", required: false, placeholder: "e.g. 2 Years" }
+        ]
+      }
+    ]
+  },
+  "Hardware Store": {
+    businessType: "Hardware Store",
+    sections: [
+      {
+        name: "SECTION 1: Hardware Specifications",
+        order: 1,
+        fields: [
+          { name: "name", label: "Product Name", type: "text", required: true, placeholder: "e.g. Stainless Steel Hex Bolt M12" },
+          { name: "brand", label: "Brand", type: "text", required: true, placeholder: "e.g. Bosch, Stanley, Godrej, Asian Paints" },
+          { name: "category", label: "Category", type: "select", required: true, options: ["Hand Tools", "Power Tools", "Fasteners & Screws", "Paints & Solvents", "Plumbing & Pipes", "Sanitaryware"] },
+          { name: "material", label: "Material", type: "text", required: false, placeholder: "e.g. Stainless Steel 304, Brass, Mild Steel" },
+          { name: "size", label: "Size", type: "text", required: true, placeholder: "e.g. 10mm, 2 inch, M12" },
+          { name: "diameter", label: "Diameter", type: "text", required: false, placeholder: "e.g. 8mm, 1/2 inch" },
+          { name: "specification", label: "Specification", type: "text", required: false, placeholder: "e.g. Grade 8.8, Fully Threaded" },
+          { name: "weight", label: "Weight", type: "text", required: false, placeholder: "e.g. 250g, 1.2 Kg" },
+          { name: "unit", label: "Unit", type: "select", required: false, options: ["Piece", "Kg", "Box", "Packet", "Meter", "Set"] },
+          { name: "packSize", label: "Pack Size", type: "number", required: false, placeholder: "e.g. 50, 100" },
+          { name: "rack", label: "Rack Location", type: "text", required: false, placeholder: "e.g. Rack H-05" }
+        ]
+      },
+      {
+        name: "SECTION 2: Pricing & Stock",
+        order: 2,
+        fields: [
+          { name: "costPrice", label: "Purchase Price (₹)", type: "number", required: true, placeholder: "e.g. 40" },
+          { name: "price", label: "Retail Price (₹)", type: "number", required: true, placeholder: "e.g. 60" },
+          { name: "wholesalePrice", label: "Wholesale Price (₹)", type: "number", required: false, placeholder: "e.g. 48" },
+          { name: "contractorPrice", label: "Contractor Price (₹)", type: "number", required: false, placeholder: "e.g. 52" },
+          { name: "stock", label: "Available Stock", type: "number", required: true, placeholder: "e.g. 200" },
+          { name: "minStock", label: "Min Stock Level", type: "number", required: true, placeholder: "e.g. 20" }
+        ]
+      }
+    ]
   }
 };
 
+import { verticalRegistry } from "../registry";
+
 export class DynamicProductTemplateService {
   async getTemplate(businessType: string): Promise<DynamicFormConfig> {
-    return PRESET_TEMPLATES[businessType] || PRESET_TEMPLATES["Grocery Store"];
+    const raw = (businessType || "").trim();
+    const vertical = verticalRegistry.resolve(raw);
+
+    // If vertical is registered and has fields, construct dynamic sections directly from registry configuration!
+    if (vertical && vertical.id !== "GENERIC_RETAIL" && vertical.fields.length > 0) {
+      return verticalRegistry.toFormConfig(vertical);
+    }
+
+    return PRESET_TEMPLATES[vertical.businessType] || PRESET_TEMPLATES[businessType] || PRESET_TEMPLATES["Custom Business"] || PRESET_TEMPLATES["Grocery Store"];
   }
 }
 export const dynamicProductTemplateService = new DynamicProductTemplateService();

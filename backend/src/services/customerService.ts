@@ -78,6 +78,8 @@ export class CustomerService {
       gstNumber?: string;
       creditLimit?: number;
       pendingAmount?: number;
+      customerType?: string;
+      membershipLevel?: string;
       createdBy?: string;
     }
   ) {
@@ -140,10 +142,14 @@ export class CustomerService {
     }
     const customerCode = `CUST-${String(nextNum).padStart(4, "0")}`;
 
+    const effectiveType = data.customerType || data.membershipLevel || "Retail Customer";
+    const { customerType, ...restData } = data;
+
     const customer = await customerRepository.create(businessId, {
-      ...data,
+      ...restData,
       mobile: cleanMobile,
       customerCode,
+      membershipLevel: effectiveType,
       pendingAmount: data.pendingAmount || 0,
       creditLimit: data.creditLimit || 10000,
     });
@@ -176,6 +182,8 @@ export class CustomerService {
       gstNumber?: string;
       creditLimit?: number;
       pendingAmount?: number;
+      customerType?: string;
+      membershipLevel?: string;
       rewardPoints?: number;
       lastPurchaseAt?: Date;
       updatedBy?: string;
@@ -200,7 +208,13 @@ export class CustomerService {
       data.mobile = cleanMobile;
     }
 
-    await customerRepository.update(businessId, id, data);
+    const updatePayload: any = { ...data };
+    if (data.customerType) {
+      updatePayload.membershipLevel = data.customerType;
+      delete updatePayload.customerType;
+    }
+
+    await customerRepository.update(businessId, id, updatePayload);
     const updated = await customerRepository.findById(businessId, id);
 
     // Create Audit Log
@@ -215,6 +229,33 @@ export class CustomerService {
     });
 
     return updated;
+  }
+
+  async getCustomerDuesByCategory(businessId: string) {
+    const customers = await prisma.customer.findMany({
+      where: { businessId, isDeleted: false, pendingAmount: { gt: 0 } },
+      select: { id: true, name: true, membershipLevel: true, pendingAmount: true, mobile: true },
+    });
+
+    const breakdown: Record<string, { count: number; totalDue: number; customers: any[] }> = {};
+    let grandTotalDue = 0;
+
+    customers.forEach((c) => {
+      const type = c.membershipLevel || "Retail Customer";
+      if (!breakdown[type]) {
+        breakdown[type] = { count: 0, totalDue: 0, customers: [] };
+      }
+      breakdown[type].count += 1;
+      breakdown[type].totalDue += c.pendingAmount;
+      breakdown[type].customers.push(c);
+      grandTotalDue += c.pendingAmount;
+    });
+
+    return {
+      grandTotalDue,
+      breakdown,
+      customersWithDuesCount: customers.length,
+    };
   }
 
   async deleteCustomer(businessId: string, id: string) {

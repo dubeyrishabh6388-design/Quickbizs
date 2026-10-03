@@ -1,15 +1,20 @@
 import { prisma } from "../config/prisma";
+import { verticalRegistry } from "../registry";
 
 export class DashboardService {
   async getDashboardOverview(businessId: string) {
-    const cards = await this.getKPIs(businessId);
-    const health = await this.getBusinessHealth(businessId);
-    const alerts = await this.getAlerts(businessId);
+    const [cards, health, alerts, categoryOverview] = await Promise.all([
+      this.getKPIs(businessId),
+      this.getBusinessHealth(businessId),
+      this.getAlerts(businessId),
+      this.getCategoryOverview(businessId),
+    ]);
 
     return {
       cards,
       health,
       alerts,
+      categoryOverview,
     };
   }
 
@@ -111,6 +116,8 @@ export class DashboardService {
       receivablesSum,
       payablesSum,
       productsCount,
+      purchaseSum,
+      pendingPurchaseAgg,
     ] = await Promise.all([
       prisma.order.count({
         where: { businessId, deletedAt: null, createdAt: { gte: todayStart } },
@@ -134,20 +141,220 @@ export class DashboardService {
       prisma.product.count({
         where: { businessId, isDeleted: false },
       }),
+      prisma.purchaseOrder.aggregate({
+        where: { businessId, createdAt: { gte: todayStart } },
+        _sum: { grandTotal: true },
+      }),
+      prisma.purchaseOrder.aggregate({
+        where: { businessId, status: { in: ["Pending Approval", "Draft", "Approved", "Partially Received"] } },
+        _sum: { grandTotal: true },
+        _count: { id: true },
+      }),
     ]);
 
     const sales = salesSum._sum.grandTotal || 0;
     const expenses = expenseSum._sum.amount || 0;
+    const purchases = purchaseSum._sum.grandTotal || 0;
+    const pendingPurchasesTotal = pendingPurchaseAgg._sum.grandTotal || 0;
+    const pendingPurchasesCount = pendingPurchaseAgg._count.id || 0;
     const cashAvailable = Math.max(0, 5000 + sales - expenses);
 
     return {
       todaySales: sales,
       todayOrdersCount: salesCount,
+      todayPurchases: purchases,
+      pendingPurchasesCount,
+      pendingPurchasesTotal,
       todayExpenses: expenses,
       cashAvailable,
       outstandingReceivables: receivablesSum._sum.pendingAmount || 0,
       outstandingPayables: payablesSum._sum.outstandingAmount || 0,
       totalCatalogProducts: productsCount,
+    };
+  }
+
+  async getCategoryOverview(businessId: string) {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const business = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: { businessType: true },
+    });
+
+    const rawType = (business?.businessType || "Custom Business").trim();
+    const vertical = verticalRegistry.resolve(rawType);
+    const isAuto = vertical.id === "AUTO_PARTS";
+    const isElect = vertical.id === "ELECTRICAL";
+    const isHardware = vertical.id === "HARDWARE";
+    const categoryKey = vertical.displayName;
+
+    const [
+      salesAgg,
+      purchasesAgg,
+      customerDueAgg,
+      supplierDueAgg,
+      pendingPurchasesList,
+      lowStockInventories,
+      topSoldItems,
+      customersWithDues,
+      recentSearchesRaw,
+    ] = await Promise.all([
+      prisma.order.aggregate({
+        where: { businessId, orderStatus: "Completed", deletedAt: null, createdAt: { gte: todayStart } },
+        _sum: { grandTotal: true },
+        _count: { id: true },
+      }),
+      prisma.purchaseOrder.aggregate({
+        where: { businessId, createdAt: { gte: todayStart } },
+        _sum: { grandTotal: true },
+      }),
+      prisma.customer.aggregate({
+        where: { businessId, isDeleted: false },
+        _sum: { pendingAmount: true },
+      }),
+      prisma.supplier.aggregate({
+        where: { businessId, isDeleted: false },
+        _sum: { outstandingAmount: true },
+      }),
+      prisma.purchaseOrder.findMany({
+        where: {
+          businessId,
+          status: { in: ["Pending Approval", "Draft", "Approved", "Partially Received"] },
+        },
+        include: { supplier: true, items: true },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+      prisma.inventory.findMany({
+        where: {
+          businessId,
+          deletedAt: null,
+          availableQuantity: { lte: prisma.inventory.fields.minimumStock },
+        },
+        include: { product: true },
+        take: 8,
+      }),
+      prisma.orderItem.findMany({
+        where: { order: { businessId, deletedAt: null, orderStatus: "Completed" } },
+        take: 20,
+      }),
+      prisma.customer.findMany({
+        where: { businessId, isDeleted: false, pendingAmount: { gt: 0 } },
+        select: { id: true, name: true, membershipLevel: true, pendingAmount: true, mobile: true },
+        take: 10,
+      }),
+      prisma.searchHistory.findMany({
+        where: { businessId },
+        orderBy: { createdAt: "desc" },
+        distinct: ["searchText"],
+        take: 6,
+      }),
+    ]);
+
+    // Format Low Stock with Category-Aware Fields
+    const formattedLowStock = lowStockInventories.map((inv) => {
+      let custom: any = {};
+      if (inv.product.customFields) {
+        try {
+          custom = typeof inv.product.customFields === "string" ? JSON.parse(inv.product.customFields) : inv.product.customFields;
+        } catch (e) {}
+      }
+
+      return {
+        id: inv.productId,
+        name: inv.product.name,
+        available: inv.availableQuantity,
+        minStock: inv.minimumStock,
+        partNumber: custom.partNumber || null,
+        oemNumber: custom.oemNumber || null,
+        vehicleModel: custom.vehicleModel || null,
+        rack: custom.rack || custom.binLocation || null,
+        bin: custom.bin || null,
+        brand: custom.brand || inv.product.brand || null,
+        wattage: custom.wattage || null,
+        voltage: custom.voltage || null,
+        size: custom.size || null,
+        material: custom.material || null,
+        unitPrice: inv.product.price,
+      };
+    });
+
+    // Customer Dues Grouped by Customer Type dynamically from vertical configuration
+    const customerDueBreakdown: Record<string, number> = {};
+    for (const key of vertical.dashboard.customerDueKeys) {
+      customerDueBreakdown[key] = 0;
+    }
+
+    customersWithDues.forEach((c) => {
+      const type = c.membershipLevel || "Retail Customer";
+      customerDueBreakdown[type] = (customerDueBreakdown[type] || 0) + c.pendingAmount;
+    });
+
+    // Fast moving items compilation
+    const itemMap = new Map<string, { id: string; name: string; qty: number; revenue: number }>();
+    topSoldItems.forEach((i) => {
+      const existing = itemMap.get(i.productId) || { id: i.productId, name: i.productName, qty: 0, revenue: 0 };
+      existing.qty += i.quantity;
+      existing.revenue += i.total;
+      itemMap.set(i.productId, existing);
+    });
+    const fastMovingItems = Array.from(itemMap.values()).sort((a, b) => b.qty - a.qty).slice(0, 6);
+
+    // Top brands
+    const allProducts = await prisma.product.findMany({
+      where: { businessId, isDeleted: false },
+      select: { brand: true, customFields: true, price: true, stock: true },
+      take: 100,
+    });
+    const brandMap: Record<string, { count: number; totalValuation: number }> = {};
+    allProducts.forEach((p) => {
+      let b = p.brand;
+      if (!b && p.customFields) {
+        try {
+          const c = JSON.parse(p.customFields);
+          b = c.brand;
+        } catch (e) {}
+      }
+      if (b) {
+        if (!brandMap[b]) brandMap[b] = { count: 0, totalValuation: 0 };
+        brandMap[b].count += 1;
+        brandMap[b].totalValuation += p.price * p.stock;
+      }
+    });
+    const topBrands = Object.entries(brandMap)
+      .map(([brand, data]) => ({ brand, ...data }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return {
+      categoryKey,
+      businessType: rawType,
+      isAutoParts: isAuto,
+      isElectrical: isElect,
+      isHardware: isHardware,
+      todaySales: salesAgg._sum.grandTotal || 0,
+      todayOrdersCount: salesAgg._count.id || 0,
+      todayPurchases: purchasesAgg._sum.grandTotal || 0,
+      customerDue: customerDueAgg._sum.pendingAmount || 0,
+      supplierDue: supplierDueAgg._sum.outstandingAmount || 0,
+      customerDueBreakdown,
+      lowStockParts: formattedLowStock,
+      fastMovingParts: fastMovingItems,
+      pendingPurchases: {
+        count: pendingPurchasesList.length,
+        totalAmount: pendingPurchasesList.reduce((sum, po) => sum + po.grandTotal, 0),
+        orders: pendingPurchasesList.map((po) => ({
+          id: po.id,
+          poNumber: po.poNumber,
+          supplierName: po.supplier.companyName,
+          status: po.status,
+          grandTotal: po.grandTotal,
+          itemCount: po.items.length,
+        })),
+      },
+      recentPartSearches: recentSearchesRaw.map((r) => r.searchText),
+      topBrands,
     };
   }
 

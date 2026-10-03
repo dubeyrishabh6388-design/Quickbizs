@@ -16,22 +16,50 @@ export class ProductRepository {
       isDeleted: false,
     };
 
+    const andConditions: any[] = [];
+
     if (params.search) {
-      where.OR = [
-        { name: { contains: params.search } },
-        { barcode: { contains: params.search } },
-        { sku: { contains: params.search } },
-        { brand: { contains: params.search } },
-        { supplierName: { contains: params.search } },
-        { keywords: { contains: params.search } },
-      ];
+      const terms = params.search.trim().split(/\s+/).filter(Boolean);
+      if (terms.length > 1) {
+        terms.forEach((term) => {
+          andConditions.push({
+            OR: [
+              { name: { contains: term } },
+              { barcode: { contains: term } },
+              { sku: { contains: term } },
+              { brand: { contains: term } },
+              { supplierName: { contains: term } },
+              { keywords: { contains: term } },
+              { customFields: { contains: term } },
+            ],
+          });
+        });
+      } else {
+        andConditions.push({
+          OR: [
+            { name: { contains: params.search } },
+            { barcode: { contains: params.search } },
+            { sku: { contains: params.search } },
+            { brand: { contains: params.search } },
+            { supplierName: { contains: params.search } },
+            { keywords: { contains: params.search } },
+            { customFields: { contains: params.search } },
+          ],
+        });
+      }
     }
 
     if (params.category && params.category !== "All") {
-      where.OR = [
-        { category: params.category },
-        { categoryId: params.category }
-      ];
+      andConditions.push({
+        OR: [
+          { category: params.category },
+          { categoryId: params.category },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     if (params.brand) {
@@ -68,18 +96,48 @@ export class ProductRepository {
       isDeleted: false,
     };
 
+    const andConditions: any[] = [];
+
     if (params.search) {
-      where.OR = [
-        { name: { contains: params.search } },
-        { category: { contains: params.search } },
-        { barcode: { contains: params.search } },
-        { sku: { contains: params.search } },
-        { brand: { contains: params.search } },
-      ];
+      const terms = params.search.trim().split(/\s+/).filter(Boolean);
+      if (terms.length > 1) {
+        terms.forEach((term) => {
+          andConditions.push({
+            OR: [
+              { name: { contains: term } },
+              { barcode: { contains: term } },
+              { sku: { contains: term } },
+              { brand: { contains: term } },
+              { supplierName: { contains: term } },
+              { customFields: { contains: term } },
+            ],
+          });
+        });
+      } else {
+        andConditions.push({
+          OR: [
+            { name: { contains: params.search } },
+            { barcode: { contains: params.search } },
+            { sku: { contains: params.search } },
+            { brand: { contains: params.search } },
+            { supplierName: { contains: params.search } },
+            { customFields: { contains: params.search } },
+          ],
+        });
+      }
     }
 
-    if (params.category) {
-      where.category = params.category;
+    if (params.category && params.category !== "All") {
+      andConditions.push({
+        OR: [
+          { category: params.category },
+          { categoryId: params.category },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     if (params.brand) {

@@ -16,16 +16,30 @@ import type { Customer } from "../context/BusinessContext";
 import { api } from "../config/api";
 
 export const Customers: React.FC = () => {
-  const { customers, addCustomer, settleCustomerDues } = useBusiness();
+  const { customers, addCustomer, settleCustomerDues, businessPreferences, productSchema } = useBusiness();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<"All" | "Pending Udhaar">("All");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const bType = businessPreferences?.businessType || productSchema?.businessType || "";
+  const isAuto = bType.toLowerCase().includes("auto");
+  const isElect = bType.toLowerCase().includes("electr");
+  const isHardware = bType.toLowerCase().includes("hardw");
+
+  const customerTypeOptions = isAuto 
+    ? ["Retail Customer", "Mechanic", "Workshop", "Dealer"]
+    : isElect
+    ? ["Retail Customer", "Contractor", "Electrician", "Wholesale"]
+    : isHardware
+    ? ["Retail Customer", "Contractor", "Fabricator", "Wholesale"]
+    : ["Retail Customer", "Wholesale Customer", "Regular Member"];
 
   // Add Customer Modal
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [custType, setCustType] = useState(customerTypeOptions[0]);
 
   // Transaction Entry Modal (Gave Udhaar or Received Jama)
   const [activeTxCustomer, setActiveTxCustomer] = useState<Customer | null>(null);
@@ -87,11 +101,12 @@ export const Customers: React.FC = () => {
     e.preventDefault();
     if (!name || !phone) return;
 
-    addCustomer(name, phone, address || undefined);
+    addCustomer(name, phone, address || undefined, custType);
 
     setName("");
     setPhone("");
     setAddress("");
+    setCustType(customerTypeOptions[0]);
     setIsAddOpen(false);
     showToast("✓ Customer Added Successfully");
   };
@@ -239,7 +254,14 @@ export const Customers: React.FC = () => {
             >
               <div className="flex items-center justify-between">
                 <div className="min-w-0 pr-2">
-                  <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate">{c.name}</h3>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate">{c.name}</h3>
+                    {c.customerType && (
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-brand-orange/10 text-brand-orange border border-brand-orange/25">
+                        {c.customerType}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                     <Phone className="h-3 w-3 text-slate-400 shrink-0" />
                     <span>{c.phone}</span>
@@ -341,10 +363,25 @@ export const Customers: React.FC = () => {
               </div>
 
               <div>
+                <label className="text-xs font-bold text-slate-500 block mb-1">Customer Category / Type</label>
+                <select
+                  value={custType}
+                  onChange={(e) => setCustType(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-white"
+                >
+                  {customerTypeOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="text-xs font-bold text-slate-500 block mb-1">Address / Note (Optional)</label>
                 <input
                   type="text"
-                  placeholder="e.g. Near Temple"
+                  placeholder="e.g. Near Bus Stand, Shop 4"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold"

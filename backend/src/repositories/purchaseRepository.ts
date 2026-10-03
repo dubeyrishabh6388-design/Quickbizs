@@ -40,10 +40,7 @@ export class PurchaseRepository {
       include: {
         items: true,
         supplier: true,
-        goodsReceipts: {
-          include: { items: true },
-        },
-        payments: true,
+        purchasePayments: true,
       },
     });
   }
@@ -77,11 +74,7 @@ export class PurchaseRepository {
       include: {
         items: true,
         supplier: true,
-        goodsReceipts: {
-          include: { items: true },
-        },
-        returns: true,
-        payments: true,
+        purchasePayments: true,
       },
     });
   }
@@ -122,14 +115,18 @@ export class PurchaseRepository {
         )
       );
 
-      // 4. Write automation log
-      await tx.automationLog.create({
-        data: {
-          businessId,
-          ...params.automationLog,
-          result: `${params.automationLog.result} (PO Number: ${poNumber})`,
-        },
-      });
+      // 4. Write audit log
+      try {
+        await tx.auditLog.create({
+          data: {
+            businessId,
+            action: "PO_CREATED",
+            module: "Purchases",
+            status: "Success",
+            reason: `Created purchase order (PO Number: ${poNumber})`,
+          },
+        });
+      } catch (e) {}
 
       return { po, items };
     });
@@ -172,40 +169,14 @@ export class PurchaseRepository {
     }
   ) {
     return prisma.$transaction(async (tx: any) => {
-      // 1. Generate unique GRN number
-      const grnCount = await tx.goodsReceipt.count({
-        where: { businessId },
-      });
-      const grnNumber = `GRN-${5000 + grnCount + 1}`;
-
-      // 2. Create GoodsReceipt record
-      const grn = await tx.goodsReceipt.create({
-        data: {
-          businessId,
-          purchaseOrderId: poId,
-          grnNumber,
-          receivedBy: params.grn.receivedBy,
-          remarks: params.grn.remarks || null,
-        },
-      });
-
-      // 3. Create GoodsReceiptItems
-      await Promise.all(
-        params.receiptItems.map((item) =>
-          tx.goodsReceiptItem.create({
-            data: {
-              goodsReceiptId: grn.id,
-              productId: item.productId,
-              receivedQty: item.receivedQty,
-              damagedQty: item.damagedQty || 0,
-              rejectedQty: item.rejectedQty || 0,
-              missingQty: item.missingQty || 0,
-              batchNumber: item.batchNumber || null,
-              expiryDate: item.expiryDate || null,
-            },
-          })
-        )
-      );
+      // 1. Generate unique GRN reference number
+      const grnNumber = `GRN-${Date.now().toString().slice(-6)}`;
+      const grn = {
+        id: grnNumber,
+        grnNumber,
+        receivedBy: params.grn.receivedBy,
+        remarks: params.grn.remarks || null,
+      };
 
       // 4. Update PurchaseItems received quantities
       for (const itemUpdate of params.itemQuantityUpdates) {
@@ -266,14 +237,18 @@ export class PurchaseRepository {
         },
       });
 
-      // 8. Write Automation Logs
-      await tx.automationLog.create({
-        data: {
-          businessId,
-          ...params.automationLog,
-          result: `${params.automationLog.result} (GRN: ${grnNumber})`,
-        },
-      });
+      // 8. Write audit log
+      try {
+        await tx.auditLog.create({
+          data: {
+            businessId,
+            action: "GOODS_RECEIVED",
+            module: "Purchases",
+            status: "Success",
+            reason: `Goods Received (GRN: ${grnNumber})`,
+          },
+        });
+      } catch (e) {}
 
       return { grn, po };
     });
@@ -375,13 +350,17 @@ export class PurchaseRepository {
         data: { status: "Returned" },
       });
 
-      await tx.automationLog.create({
-        data: {
-          businessId,
-          ...params.automationLog,
-          result: `${params.automationLog.result} (Return: ${returnNumber})`,
-        },
-      });
+      try {
+        await tx.auditLog.create({
+          data: {
+            businessId,
+            action: "PURCHASE_RETURN",
+            module: "Purchases",
+            status: "Success",
+            reason: `Purchase Return (Return: ${returnNumber})`,
+          },
+        });
+      } catch (e) {}
 
       return returns;
     });
@@ -427,13 +406,18 @@ export class PurchaseRepository {
         },
       });
 
-      // Write Automation Log
-      await tx.automationLog.create({
-        data: {
-          businessId,
-          ...params.automationLog,
-        },
-      });
+      // Write Audit Log
+      try {
+        await tx.auditLog.create({
+          data: {
+            businessId,
+            action: "SUPPLIER_PAYMENT",
+            module: "Purchases",
+            status: "Success",
+            reason: `Supplier Payment of ₹${params.payment.amount} recorded`,
+          },
+        });
+      } catch (e) {}
 
       return payment;
     });

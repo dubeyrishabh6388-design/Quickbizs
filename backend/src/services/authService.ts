@@ -5,6 +5,7 @@ import { UserRepository } from "../repositories/userRepository";
 import { OtpRepository } from "../repositories/otpRepository";
 import { PwaCustomerRepository } from "../repositories/pwaCustomerRepository";
 import { generateAccessToken, generateRefreshToken } from "../utils/token";
+import { BUSINESS_TEMPLATES } from "../config/templates";
 
 const userRepository = new UserRepository();
 const otpRepository = new OtpRepository();
@@ -341,6 +342,8 @@ export class AuthService {
     email: string;
     address?: string;
     passwordHash: string;
+    businessType?: string;
+    sellingMode?: string;
   }) {
     const existingUser = await userRepository.findByEmail(data.email);
     if (existingUser) {
@@ -352,6 +355,14 @@ export class AuthService {
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(data.passwordHash, salt);
 
+    const bType = data.businessType || "Custom Business";
+    const template = BUSINESS_TEMPLATES[bType] || BUSINESS_TEMPLATES["Custom Business"] || {
+      enabledModules: ["dashboard", "billing", "inventory", "customers", "suppliers", "reports", "settings"],
+      dashboardWidgets: ["Today's Sales", "Low Stock", "Top Products"],
+      defaultCategories: ["General Items", "Fast Moving"],
+      customAttributes: []
+    };
+
     const result = await prisma.$transaction(
       async (tx: any) => {
         // 1. Create Business
@@ -362,8 +373,68 @@ export class AuthService {
             email: data.email,
             ownerName: data.ownerName,
             address: data.address,
+            businessType: bType,
           },
         });
+
+        // 1b. Seed Business Preferences & Counter Preferences safely
+        try {
+          await tx.businessPreference.create({
+            data: {
+              businessId: business.id,
+              businessType: bType,
+              businessSize: "Small",
+              sellOnline: false,
+              visibleModules: JSON.stringify(template.enabledModules || ["dashboard", "billing", "inventory", "customers", "suppliers", "reports", "settings"]),
+              dashboardLayout: JSON.stringify(template.dashboardWidgets || ["Today's Sales", "Low Stock", "Top Products"]),
+              productAttributes: JSON.stringify(template.customAttributes || []),
+            }
+          });
+        } catch (prefErr) {
+          console.warn("Could not seed business preferences during registration:", prefErr);
+        }
+
+        try {
+          await tx.counterPreference.create({
+            data: {
+              businessId: business.id,
+              sellingMode: data.sellingMode || "Retail Store",
+              rushMode: false,
+            }
+          });
+        } catch (cntErr) {
+          console.warn("Could not seed counter preferences during registration:", cntErr);
+        }
+
+        try {
+          await tx.invoiceSequence.create({
+            data: {
+              businessId: business.id,
+              prefix: "INV",
+              nextValue: 1001,
+            }
+          });
+        } catch (seqErr) {
+          console.warn("Could not seed invoice sequence:", seqErr);
+        }
+
+        // 1c. Seed default product categories for this business
+        if (template.defaultCategories && template.defaultCategories.length > 0) {
+          try {
+            let orderIdx = 0;
+            for (const catName of template.defaultCategories) {
+              await tx.productCategory.create({
+                data: {
+                  businessId: business.id,
+                  name: catName,
+                  orderIndex: orderIdx++,
+                }
+              });
+            }
+          } catch (catErr) {
+            console.warn("Could not seed default categories:", catErr);
+          }
+        }
 
         // 2. Seed default roles sequentially
         const rolesToCreate = ["Owner", "Cashier", "Accountant", "Warehouse", "SuperAdmin"];

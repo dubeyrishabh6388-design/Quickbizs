@@ -9,20 +9,37 @@ export class CounterService {
     const rushMode = preferences?.rushMode ?? false;
     const sellingMode = preferences?.sellingMode ?? "Counter Speed Business";
 
-    // 1. Smart Frequently Sold by time of day
+    const business = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: { businessType: true },
+    });
+    const bType = (business?.businessType || "").toLowerCase();
+
+    // 1. Smart Frequently Sold by vertical category or time of day
     const hour = new Date().getHours();
-    let timeCategory = "General";
+    let timeCategory = "General Essentials";
     let targetKeywords: string[] = [];
 
-    if (hour >= 6 && hour < 10) {
-      timeCategory = "Morning Essentials";
-      targetKeywords = ["Milk", "Paneer", "Curd", "Bread", "Butter"];
-    } else if (hour >= 12 && hour < 16) {
-      timeCategory = "Afternoon Refreshments";
-      targetKeywords = ["Lassi", "Drink", "Juice", "Cola", "Soda", "Cold"];
-    } else if (hour >= 17 && hour < 22) {
-      timeCategory = "Evening Snacks";
-      targetKeywords = ["Chocolate", "Biscuit", "Snack", "Chips", "Tea", "Coffee"];
+    if (bType.includes("auto")) {
+      timeCategory = "Fast Moving Auto Parts";
+      targetKeywords = ["Brake", "Filter", "Plug", "Oil", "Horn", "Light", "Bulb", "Clutch", "Wiper", "Pad"];
+    } else if (bType.includes("electr")) {
+      timeCategory = "Fast Moving Electrical";
+      targetKeywords = ["Bulb", "LED", "Wire", "Switch", "Socket", "MCB", "Cable", "Tape", "Fan", "Plug"];
+    } else if (bType.includes("hardw")) {
+      timeCategory = "Fast Moving Hardware";
+      targetKeywords = ["Bolt", "Screw", "Nut", "Drill", "Tape", "Nail", "Hinge", "Paint", "Lock", "Pipe"];
+    } else {
+      if (hour >= 6 && hour < 10) {
+        timeCategory = "Morning Essentials";
+        targetKeywords = ["Milk", "Paneer", "Curd", "Bread", "Butter"];
+      } else if (hour >= 12 && hour < 16) {
+        timeCategory = "Afternoon Refreshments";
+        targetKeywords = ["Lassi", "Drink", "Juice", "Cola", "Soda", "Cold"];
+      } else if (hour >= 17 && hour < 22) {
+        timeCategory = "Evening Snacks";
+        targetKeywords = ["Chocolate", "Biscuit", "Snack", "Chips", "Tea", "Coffee"];
+      }
     }
 
     // Load products that match target keywords

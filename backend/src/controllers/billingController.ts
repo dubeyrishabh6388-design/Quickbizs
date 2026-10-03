@@ -91,7 +91,7 @@ export class BillingController {
   async createOrder(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const businessId = req.user!.tenantId;
-      const { customerId, customerName, customerType, items, paymentMethod, splitDetails, notes } = req.body;
+      const { customerId, customerName, customerType, items, paymentMethod, splitDetails, notes, priceLevel, vehicleDetails } = req.body;
 
       if (!customerName || !items || items.length === 0 || !paymentMethod) {
         const err: any = new Error("Required order parameters missing.");
@@ -135,6 +135,8 @@ export class BillingController {
         paymentMethod,
         splitDetails: splitDetails || undefined,
         notes: notes || undefined,
+        priceLevel: priceLevel || undefined,
+        vehicleDetails: vehicleDetails || undefined,
       });
 
       // Trigger "Invoice Created" Notification

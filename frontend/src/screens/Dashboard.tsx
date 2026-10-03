@@ -24,7 +24,11 @@ import {
   Building2,
   Eye,
   Printer,
-  Calendar
+  Calendar,
+  Wrench,
+  Pill,
+  Shirt,
+  Layers
 } from "lucide-react";
 import { useBusiness } from "../context/BusinessContext";
 import type { Alert, Expense, Order } from "../context/BusinessContext";
@@ -48,8 +52,100 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
     expenses, 
     dismissAlert, 
     restockProduct,
-    addExpense 
+    addExpense,
+    businessPreferences,
+    productSchema
   } = useBusiness();
+
+  const bType = businessPreferences?.businessType || productSchema?.businessType || "Retail Store";
+  const [categoryOverview, setCategoryOverview] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchCategoryData = async () => {
+      try {
+        const res = await api.get("/dashboard");
+        if (res.data?.success && res.data?.data?.categoryOverview) {
+          setCategoryOverview(res.data.data.categoryOverview);
+        }
+      } catch {
+        // Fallback to local computations
+      }
+    };
+    fetchCategoryData();
+  }, []);
+
+  const categoryStats = useMemo(() => {
+    const isAuto = bType.toLowerCase().includes("auto");
+    const isPharm = bType.toLowerCase().includes("pharm") || bType.toLowerCase().includes("medic");
+    const isElect = bType.toLowerCase().includes("electr");
+    const isHardware = bType.toLowerCase().includes("hardw");
+    const isClothing = bType.toLowerCase().includes("cloth") || bType.toLowerCase().includes("apparel");
+    const isWholesale = bType.toLowerCase().includes("wholesale");
+
+    let countWithPartNo = 0;
+    let nearExpiryCount = 0;
+    let outOfStockCount = 0;
+    let wholesaleMoqCount = 0;
+
+    const now = new Date();
+    const sixtyDaysLater = new Date();
+    sixtyDaysLater.setDate(now.getDate() + 60);
+
+    products.forEach(p => {
+      if (p.stock <= 0) outOfStockCount++;
+      if (p.customFields) {
+        try {
+          const c = typeof p.customFields === "string" ? JSON.parse(p.customFields) : p.customFields;
+          if (c.partNumber) countWithPartNo++;
+          if (c.moq) wholesaleMoqCount++;
+          if (c.expiryDate) {
+            const exp = new Date(c.expiryDate);
+            if (!isNaN(exp.getTime()) && exp <= sixtyDaysLater) {
+              nearExpiryCount++;
+            }
+          }
+        } catch (e) {}
+      }
+    });
+
+    // Customer dues breakdown
+    const mechanicDue = categoryOverview?.customerDueBreakdown?.["Mechanic"] ?? 
+      customers.filter(c => (c.customerType || c.membershipLevel) === "Mechanic").reduce((s, c) => s + (c.pendingDues || 0), 0);
+    const workshopDue = categoryOverview?.customerDueBreakdown?.["Workshop"] ?? 
+      customers.filter(c => (c.customerType || c.membershipLevel) === "Workshop").reduce((s, c) => s + (c.pendingDues || 0), 0);
+    const contractorDue = categoryOverview?.customerDueBreakdown?.["Contractor"] ?? 
+      customers.filter(c => (c.customerType || c.membershipLevel) === "Contractor").reduce((s, c) => s + (c.pendingDues || 0), 0);
+    const electricianDue = categoryOverview?.customerDueBreakdown?.["Electrician"] ?? 
+      customers.filter(c => (c.customerType || c.membershipLevel) === "Electrician").reduce((s, c) => s + (c.pendingDues || 0), 0);
+    const totalCustomerDue = categoryOverview?.customerDue ?? 
+      customers.reduce((s, c) => s + (c.pendingDues || 0), 0);
+
+    return {
+      bType,
+      isAuto,
+      isPharm,
+      isElect,
+      isHardware,
+      isClothing,
+      isWholesale,
+      countWithPartNo,
+      nearExpiryCount,
+      outOfStockCount,
+      wholesaleMoqCount,
+      todayPurchases: categoryOverview?.todayPurchases ?? 0,
+      supplierDue: categoryOverview?.supplierDue ?? 0,
+      pendingPurchasesCount: categoryOverview?.pendingPurchases?.count ?? 0,
+      mechanicDue,
+      workshopDue,
+      contractorDue,
+      electricianDue,
+      totalCustomerDue,
+      lowStockParts: categoryOverview?.lowStockParts || [],
+      fastMovingParts: categoryOverview?.fastMovingParts || [],
+      recentPartSearches: categoryOverview?.recentPartSearches || [],
+      topBrands: categoryOverview?.topBrands || [],
+    };
+  }, [bType, products, customers, categoryOverview]);
 
   // Active filters
   const [timeHorizon, setTimeHorizon] = useState<TimeHorizon>("today");
@@ -1491,6 +1587,213 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                 );
               })}
             </div>
+          </div>
+
+          {/* Category-Aware Intelligence Card */}
+          <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-800 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm space-y-2.5 text-white">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-brand-orange/20 text-brand-orange">
+                  {categoryStats.isAuto ? <Wrench className="h-4 w-4" /> :
+                   categoryStats.isPharm ? <Pill className="h-4 w-4" /> :
+                   categoryStats.isClothing ? <Shirt className="h-4 w-4" /> :
+                   categoryStats.isWholesale ? <Layers className="h-4 w-4" /> :
+                   <Zap className="h-4 w-4" />}
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-black tracking-tight">{categoryStats.bType}</h4>
+                  <p className="text-[10px] text-slate-400 font-medium">Vertical Intelligence Matrix</p>
+                </div>
+              </div>
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                Active
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+              {categoryStats.isAuto && (
+                <div className="space-y-2 col-span-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Today's Purchases</span>
+                      <span className="text-sm font-black text-amber-400">₹{categoryStats.todayPurchases.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Pending POs</span>
+                      <span className="text-sm font-black text-sky-400">{categoryStats.pendingPurchasesCount} orders</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Mechanic Due</span>
+                      <span className="text-sm font-black text-orange-400">₹{categoryStats.mechanicDue.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Workshop Due</span>
+                      <span className="text-sm font-black text-rose-400">₹{categoryStats.workshopDue.toLocaleString("en-IN")}</span>
+                    </div>
+                  </div>
+                  {categoryStats.recentPartSearches.length > 0 && (
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold mb-1">Recent Part Searches</span>
+                      <div className="flex flex-wrap gap-1">
+                        {categoryStats.recentPartSearches.slice(0, 4).map((s: string, idx: number) => (
+                          <span key={idx} className="text-[9px] font-bold bg-slate-700/80 text-amber-300 px-1.5 py-0.5 rounded">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {categoryStats.lowStockParts.length > 0 && (
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-rose-400 block font-bold mb-1">Low Stock Parts (Rack & Bin)</span>
+                      <div className="space-y-1">
+                        {categoryStats.lowStockParts.slice(0, 2).map((item: any) => (
+                          <div key={item.id} className="flex justify-between items-center text-[10px]">
+                            <span className="text-slate-200 truncate max-w-[140px] font-semibold">{item.name}</span>
+                            <span className="text-amber-400 font-bold shrink-0">{item.rack ? `R:${item.rack}` : ""} {item.bin ? `B:${item.bin}` : ""} ({item.available} left)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {categoryStats.isElect && (
+                <div className="space-y-2 col-span-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Today's Purchases</span>
+                      <span className="text-sm font-black text-amber-400">₹{categoryStats.todayPurchases.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Supplier Due</span>
+                      <span className="text-sm font-black text-rose-400">₹{categoryStats.supplierDue.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Contractor Due</span>
+                      <span className="text-sm font-black text-cyan-400">₹{categoryStats.contractorDue.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Electrician Due</span>
+                      <span className="text-sm font-black text-amber-400">₹{categoryStats.electricianDue.toLocaleString("en-IN")}</span>
+                    </div>
+                  </div>
+                  {categoryStats.topBrands.length > 0 && (
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold mb-1">Top Electrical Brands</span>
+                      <div className="flex flex-wrap gap-1">
+                        {categoryStats.topBrands.slice(0, 4).map((b: any, idx: number) => (
+                          <span key={idx} className="text-[9px] font-bold bg-slate-700/80 text-yellow-300 px-1.5 py-0.5 rounded">
+                            {b.brand} ({b.count})
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {categoryStats.lowStockParts.length > 0 && (
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-rose-400 block font-bold mb-1">Low Stock (Wattage & Brand)</span>
+                      <div className="space-y-1">
+                        {categoryStats.lowStockParts.slice(0, 2).map((item: any) => (
+                          <div key={item.id} className="flex justify-between items-center text-[10px]">
+                            <span className="text-slate-200 truncate max-w-[140px] font-semibold">{item.name}</span>
+                            <span className="text-amber-400 font-bold shrink-0">{item.wattage || item.brand || "Low"} ({item.available} left)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {categoryStats.isHardware && (
+                <div className="space-y-2 col-span-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Today's Purchases</span>
+                      <span className="text-sm font-black text-amber-400">₹{categoryStats.todayPurchases.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Pending POs</span>
+                      <span className="text-sm font-black text-sky-400">{categoryStats.pendingPurchasesCount} orders</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Customer Due</span>
+                      <span className="text-sm font-black text-orange-400">₹{categoryStats.totalCustomerDue.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Supplier Due</span>
+                      <span className="text-sm font-black text-rose-400">₹{categoryStats.supplierDue.toLocaleString("en-IN")}</span>
+                    </div>
+                  </div>
+                  {categoryStats.lowStockParts.length > 0 && (
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-rose-400 block font-bold mb-1">Low Stock (Size, Material & Rack)</span>
+                      <div className="space-y-1">
+                        {categoryStats.lowStockParts.slice(0, 2).map((item: any) => (
+                          <div key={item.id} className="flex justify-between items-center text-[10px]">
+                            <span className="text-slate-200 truncate max-w-[140px] font-semibold">{item.name}</span>
+                            <span className="text-amber-400 font-bold shrink-0">{item.size || item.material ? `${item.size || ""} ${item.material || ""}`.trim() : item.rack ? `R:${item.rack}` : "Low"} ({item.available} left)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {categoryStats.isPharm && (
+                <>
+                  <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                    <span className="text-[10px] text-slate-400 block font-bold">Near Expiry (&le;60d)</span>
+                    <span className={`text-sm font-black ${categoryStats.nearExpiryCount > 0 ? "text-rose-400 animate-pulse" : "text-emerald-400"}`}>
+                      {categoryStats.nearExpiryCount} items
+                    </span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                    <span className="text-[10px] text-slate-400 block font-bold">Total Formulations</span>
+                    <span className="text-sm font-black text-sky-400">{products.length} products</span>
+                  </div>
+                </>
+              )}
+
+              {categoryStats.isWholesale && (
+                <>
+                  <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                    <span className="text-[10px] text-slate-400 block font-bold">Configured MOQs</span>
+                    <span className="text-sm font-black text-indigo-400">{categoryStats.wholesaleMoqCount} items</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                    <span className="text-[10px] text-slate-400 block font-bold">Bulk Cartons</span>
+                    <span className="text-sm font-black text-amber-400">{products.filter(p => p.stock > 10).length} items</span>
+                  </div>
+                </>
+              )}
+
+              {!categoryStats.isAuto && !categoryStats.isElect && !categoryStats.isHardware && !categoryStats.isPharm && !categoryStats.isWholesale && (
+                <>
+                  <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                    <span className="text-[10px] text-slate-400 block font-bold">Active Catalog</span>
+                    <span className="text-sm font-black text-emerald-400">{products.length} Products</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                    <span className="text-[10px] text-slate-400 block font-bold">Inventory Health</span>
+                    <span className="text-sm font-black text-amber-400">
+                      {products.length ? `${Math.round(((products.length - categoryStats.outOfStockCount) / products.length) * 100)}%` : "100%"}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={() => setActiveScreen("inventory")}
+              className="w-full mt-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-[10px] font-black flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            >
+              <span>Manage {categoryStats.bType} Catalog</span>
+              <ArrowRight className="h-3 w-3" />
+            </button>
           </div>
 
           {/* Actionable Alerts & Store Reminders */}

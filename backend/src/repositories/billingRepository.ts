@@ -139,12 +139,18 @@ export class BillingRepository {
     // Execute ACID transaction
     return prisma.$transaction(async (tx: any) => {
       // 1. Get next invoice number and increment sequence
-      const sequence = await tx.invoiceSequence.findFirst({
+      let sequence = await tx.invoiceSequence.findFirst({
         where: { businessId, prefix: "INV" },
       });
 
       if (!sequence) {
-        throw new Error("Billing sequence parameters not configured.");
+        sequence = await tx.invoiceSequence.create({
+          data: {
+            businessId,
+            prefix: "INV",
+            nextValue: 1001,
+          },
+        });
       }
 
       const invoiceNumber = `${sequence.prefix}-${sequence.nextValue}`;
@@ -234,20 +240,29 @@ export class BillingRepository {
         });
       }
 
-      // 9. Write Automation Logs
-      await tx.automationLog.create({
-        data: {
-          businessId,
-          ...params.automationLog,
-          result: `${params.automationLog.result} (Invoice: ${invoiceNumber})`,
-        },
-      });
+      // 9. Write Audit Log
+      try {
+        await tx.auditLog.create({
+          data: {
+            businessId,
+            action: "ORDER_CREATED",
+            module: "Billing",
+            status: "Success",
+            reason: `${params.automationLog.result} (Invoice: ${invoiceNumber})`.slice(0, 255),
+          },
+        });
+      } catch (logErr) {
+        console.warn("Could not write audit log:", logErr);
+      }
 
       return {
         order,
         items,
         payments,
       };
+    }, {
+      maxWait: 15000,
+      timeout: 30000,
     });
   }
 
@@ -327,15 +342,25 @@ export class BillingRepository {
         });
       }
 
-      // Write Automation Log
-      await tx.automationLog.create({
-        data: {
-          businessId,
-          ...params.automationLog,
-        },
-      });
+      // Write Audit Log
+      try {
+        await tx.auditLog.create({
+          data: {
+            businessId,
+            action: "ORDER_CANCELLED",
+            module: "Billing",
+            status: "Success",
+            reason: `Sales Invoice Cancellation: ${order.invoiceNumber}`,
+          },
+        });
+      } catch (logErr) {
+        // Safe fallback
+      }
 
       return updatedOrder;
+    }, {
+      maxWait: 15000,
+      timeout: 30000,
     });
   }
 }

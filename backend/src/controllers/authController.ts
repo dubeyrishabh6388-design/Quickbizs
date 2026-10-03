@@ -197,7 +197,7 @@ export class AuthController {
 
   async registerMerchant(req: Request, res: Response, next: NextFunction) {
     try {
-      const { ownerName, businessName, phone, email, address, password, confirmPassword } = req.body;
+      const { ownerName, businessName, phone, email, address, password, confirmPassword, businessType, sellingMode } = req.body;
 
       if (!ownerName || !businessName || !phone || !email || !password || !confirmPassword) {
         const err: any = new Error("Owner name, business name, phone, email, password, and confirmPassword parameters are required.");
@@ -217,7 +217,9 @@ export class AuthController {
         phone,
         email,
         address,
-        passwordHash: password
+        passwordHash: password,
+        businessType: businessType || "Custom Business",
+        sellingMode: sellingMode || "Retail Store",
       });
 
       res.status(201).json({

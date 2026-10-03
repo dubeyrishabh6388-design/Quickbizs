@@ -19,7 +19,22 @@ import {
   ShieldCheck,
   Zap,
   Check,
-  Sparkles
+  Sparkles,
+  Wrench,
+  ShoppingCart,
+  Pill,
+  Shirt,
+  Package,
+  Layers,
+  Smartphone,
+  Tv,
+  Glasses,
+  Gem,
+  Hammer,
+  Truck,
+  Building,
+  Coffee,
+  BookOpen
 } from "lucide-react";
 import logo from "../assets/logo.jpg";
 import customerImg from "../assets/groceries_customer.jpg";
@@ -70,6 +85,38 @@ const merchantRegisterSchema = z.object({
 // Set to true or add "?customer=true" to the URL when ready to re-enable Customer login & onboarding
 export const SHOW_CUSTOMER_PORTAL = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("customer") === "true";
 
+export const BUSINESS_CATEGORIES = [
+  { id: "Grocery Store", label: "Grocery & Kirana", desc: "FMCG, Food & Provisions", icon: ShoppingCart },
+  { id: "Automobile Shop", label: "Auto Parts & Trade", desc: "Spares, OEM & Lubes", icon: Wrench },
+  { id: "Electrical Store", label: "Electrical & Lighting", desc: "Wires, MCBs, Switches", icon: Zap },
+  { id: "Hardware Store", label: "Hardware & Tools", desc: "Tools, Fasteners, Paints", icon: Package },
+  { id: "Plumbing Supplies", label: "Plumbing & Piping", desc: "CPVC, UPVC, Valves & Taps", icon: Wrench },
+  { id: "Sanitaryware & Bath", label: "Sanitaryware & Bath", desc: "Commodes, Basins & Showers", icon: Store },
+  { id: "Industrial Tools & Machinery", label: "Power & Hand Tools", desc: "Power Tools, Bits & Blades", icon: Hammer },
+  { id: "Building Materials & Cement", label: "Building Materials & Cement", desc: "Cement, TMT Steel & Bricks", icon: Building },
+  { id: "Timber & Plywood", label: "Timber & Plywood", desc: "Plywood, Flush Doors & Sunmica", icon: Layers },
+  { id: "Wholesale Trader", label: "Wholesale & Bulk Trade", desc: "Master Cartons & Pallets", icon: Layers },
+  { id: "Distributor", label: "Authorized Distributor", desc: "Channel Partner & Route Sales", icon: Truck },
+  { id: "FMCG Distributor", label: "FMCG Super Stockist", desc: "Packaged CPG & Kirana Supply", icon: ShoppingCart },
+  { id: "Authorized Dealer", label: "Dealership & Franchise", desc: "OEM Machinery & Equipment", icon: ShieldCheck },
+  { id: "Clothing Store", label: "Clothing & Fashion", desc: "Garments, Sizes & Fabrics", icon: Shirt },
+  { id: "Footwear Store", label: "Footwear & Shoes", desc: "Sizes, Soles & Box Stock", icon: Package },
+  { id: "Mobile Store", label: "Mobile Phones & Gadgets", desc: "IMEI, Handsets & Accessories", icon: Smartphone },
+  { id: "Electronics Store", label: "Electronics & Appliances", desc: "TVs, ACs & Serialized Items", icon: Tv },
+  { id: "Furniture Store", label: "Furniture & Decor", desc: "Wood, Metal & Modular Units", icon: Store },
+  { id: "Optical Store", label: "Optical & Eyewear", desc: "Frames, Power & Sunglasses", icon: Glasses },
+  { id: "Jewellery Store", label: "Jewellery & Gold", desc: "Purity, Hallmarks & Rates", icon: Gem },
+  { id: "Pharmacy", label: "Pharmacy & Medical", desc: "Medicines & Health Supplies", icon: Pill },
+  { id: "Dairy Store", label: "Dairy & Milk Parlour", desc: "Milk, Paneer, Curd & Ghee", icon: Coffee },
+  { id: "Bakery Store", label: "Bakery & Confectionery", desc: "Cakes, Bread, Buns & Cookies", icon: Coffee },
+  { id: "Sweet Shop", label: "Sweet & Mithai Shop", desc: "Mithai, Namkeen & Gift Boxes", icon: Sparkles },
+  { id: "Stationery Store", label: "Stationery & Office", desc: "Paper, Pens, Registers & Office", icon: BookOpen },
+  { id: "Bookstore", label: "Bookstore & Publishing", desc: "ISBN, Titles & Academic Books", icon: BookOpen },
+  { id: "Cosmetics Store", label: "Cosmetics & Beauty", desc: "Skincare, Makeup & Fragrances", icon: Sparkles },
+  { id: "Paan & Convenience", label: "Paan & Convenience", desc: "Paan, Mints, Snacks & Drinks", icon: Store },
+  { id: "Custom Business", label: "General Retail", desc: "Flexible Retail Setup", icon: Store },
+];
+
 interface LoginProps {
   onAuthSuccess: (userData: any) => void;
 }
@@ -80,6 +127,8 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [businessType, setBusinessType] = useState("Grocery Store");
+  const [sellingMode, setSellingMode] = useState("Retail Store");
 
   // Forms setup
   const custLoginForm = useForm({ resolver: zodResolver(customerLoginSchema) });
@@ -186,7 +235,9 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       email: data.email,
       address: data.address,
       password: data.password,
-      confirmPassword: data.confirmPassword
+      confirmPassword: data.confirmPassword,
+      businessType: businessType,
+      sellingMode: sellingMode,
     };
     try {
       const response = await api.post("/auth/register/merchant", payload);
@@ -924,6 +975,69 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                         {merchRegisterForm.formState.errors.address && (
                           <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.address.message)}</p>
                         )}
+                      </div>
+
+                      {/* Category Selection */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                            Business Category
+                          </label>
+                          <span className="text-[10px] font-semibold text-brand-emerald">Configures Dynamic Fields</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                          {BUSINESS_CATEGORIES.map(cat => {
+                            const Icon = cat.icon;
+                            const isSelected = businessType === cat.id;
+                            return (
+                              <button
+                                type="button"
+                                key={cat.id}
+                                onClick={() => setBusinessType(cat.id)}
+                                className={`flex items-start gap-2.5 p-2 rounded-xl border text-left transition-all ${
+                                  isSelected 
+                                    ? "bg-brand-emerald/15 border-brand-emerald text-white shadow-sm ring-1 ring-brand-emerald" 
+                                    : "bg-slate-900/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300"
+                                }`}
+                              >
+                                <div className={`p-1.5 rounded-lg shrink-0 ${isSelected ? "bg-brand-emerald text-white" : "bg-slate-800 text-slate-400"}`}>
+                                  <Icon className="h-3.5 w-3.5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[11px] font-bold leading-tight truncate">{cat.label}</p>
+                                  <p className="text-[9px] text-slate-500 line-clamp-1">{cat.desc}</p>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Selling Mode Selector */}
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                          Operating Mode
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { id: "Retail Store", label: "Retail (B2C)" },
+                            { id: "Wholesale", label: "Wholesale (B2B)" },
+                            { id: "Mixed Mode", label: "Mixed Store" }
+                          ].map(modeOpt => (
+                            <button
+                              type="button"
+                              key={modeOpt.id}
+                              onClick={() => setSellingMode(modeOpt.id)}
+                              className={`py-2 px-1 text-center rounded-xl border text-[11px] font-bold transition-all ${
+                                sellingMode === modeOpt.id
+                                  ? "bg-brand-emerald/15 border-brand-emerald text-brand-emerald shadow-sm ring-1 ring-brand-emerald"
+                                  : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                              }`}
+                            >
+                              {modeOpt.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">

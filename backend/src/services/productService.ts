@@ -39,6 +39,19 @@ export class ProductService {
       }),
     ]);
 
+    if (params.search && params.search.trim().length >= 2) {
+      prisma.searchHistory
+        .create({
+          data: {
+            businessId: params.businessId,
+            userId: "system",
+            searchText: params.search.trim().slice(0, 150),
+            searchModule: "ProductCatalog",
+          },
+        })
+        .catch(() => {});
+    }
+
     return {
       products,
       pagination: {

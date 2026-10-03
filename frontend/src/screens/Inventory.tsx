@@ -5,15 +5,15 @@ import {
   Minus, 
   CheckCircle2,
   Package,
-  X,
   AlertTriangle
 } from "lucide-react";
 import { useBusiness } from "../context/BusinessContext";
 import type { Product } from "../context/BusinessContext";
 import { api } from "../config/api";
+import { DynamicProductForm } from "../components/dynamic";
 
 export const Inventory: React.FC = () => {
-  const { products, updateProductStock, addProduct } = useBusiness();
+  const { products, updateProductStock, addProduct, productSchema } = useBusiness();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -45,20 +45,25 @@ export const Inventory: React.FC = () => {
 
   // Add Product Modal State
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [stock, setStock] = useState("");
-  const [category, setCategory] = useState("General");
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3000);
   };
 
-  const categories = ["All", ...Array.from(new Set(products.map(p => p.category)))];
+  const schemaCategories = productSchema?.categories || [];
+  const categories = ["All", ...Array.from(new Set([...schemaCategories, ...products.map(p => p.category)]))];
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) {
+      return selectedCategory === "All" || p.category === selectedCategory;
+    }
+    const matchesName = p.name.toLowerCase().includes(q);
+    const matchesBarcode = p.barcode ? p.barcode.toLowerCase().includes(q) : false;
+    const matchesCat = p.category ? p.category.toLowerCase().includes(q) : false;
+    const matchesCustom = p.customFields ? p.customFields.toLowerCase().includes(q) : false;
+    const matchesSearch = matchesName || matchesBarcode || matchesCat || matchesCustom;
     const matchesCategory = selectedCategory === "All" || p.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -66,35 +71,6 @@ export const Inventory: React.FC = () => {
   const handleStockChange = (product: Product, delta: number) => {
     updateProductStock(product.id, delta, "Manual Stock Adjustment");
     showToast(`✓ Updated ${product.name} stock`);
-  };
-
-  const handleSaveProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !price || !stock) return;
-
-    const res = await addProduct({
-      name,
-      price: parseFloat(price),
-      costPrice: parseFloat(price) * 0.8,
-      stock: parseInt(stock, 10),
-      minStock: 5,
-      category: category || "General",
-      supplierName: "General Supplier"
-    });
-
-    if (res?.success) {
-      setName("");
-      setPrice("");
-      setStock("");
-      setIsAddOpen(false);
-      if (res.isMerged) {
-        showToast(res.message || `✓ Product "${name}" stock updated!`);
-      } else {
-        showToast("✓ Product Added Successfully");
-      }
-    } else {
-      showToast(res?.message || "Failed to add product");
-    }
   };
 
   return (
@@ -184,6 +160,13 @@ export const Inventory: React.FC = () => {
             const reserved = inv?.reservedQuantity ?? 0;
             const isLowStock = p.stock <= p.minStock;
 
+            let custom: Record<string, any> = {};
+            if (p.customFields) {
+              try {
+                custom = typeof p.customFields === "string" ? JSON.parse(p.customFields) : p.customFields;
+              } catch (e) {}
+            }
+
             return (
               <div 
                 key={p.id}
@@ -205,7 +188,102 @@ export const Inventory: React.FC = () => {
                   <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white line-clamp-2 leading-tight">
                     {p.name}
                   </h3>
-                  <div className="flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400">
+
+                  {/* Category-Aware Attribute Tags */}
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    {custom.partNumber && (
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 truncate max-w-full">
+                        PN: {custom.partNumber}
+                      </span>
+                    )}
+                    {custom.oemNumber && (
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 truncate max-w-full">
+                        OEM: {custom.oemNumber}
+                      </span>
+                    )}
+                    {custom.brand && (
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 truncate max-w-full">
+                        {custom.brand}
+                      </span>
+                    )}
+                    {custom.vehicleModel && (
+                      <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-full">
+                        Fit: {custom.vehicleModel}
+                      </span>
+                    )}
+                    {(custom.rack || custom.bin) && (
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 truncate">
+                        Loc: {custom.rack ? `R:${custom.rack}` : ""}{custom.bin ? ` B:${custom.bin}` : ""}
+                      </span>
+                    )}
+                    {custom.wattage && (
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
+                        {custom.wattage}
+                      </span>
+                    )}
+                    {custom.voltage && (
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
+                        {custom.voltage}
+                      </span>
+                    )}
+                    {custom.wireGauge && (
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
+                        Gauge: {custom.wireGauge}
+                      </span>
+                    )}
+                    {custom.material && (
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                        {custom.material}
+                      </span>
+                    )}
+                    {custom.size && (
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                        Size: {custom.size}
+                      </span>
+                    )}
+                    {custom.specification && (
+                      <span className="text-[8px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 truncate max-w-full">
+                        Spec: {custom.specification}
+                      </span>
+                    )}
+                    {custom.warranty && (
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                        War: {custom.warranty}
+                      </span>
+                    )}
+                    {custom.wholesalePrice && (
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                        Whl: ₹{custom.wholesalePrice}
+                      </span>
+                    )}
+                    {custom.mechanicPrice && (
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-600 dark:text-orange-400">
+                        Mech: ₹{custom.mechanicPrice}
+                      </span>
+                    )}
+                    {custom.contractorPrice && (
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                        Contr: ₹{custom.contractorPrice}
+                      </span>
+                    )}
+                    {custom.electricianPrice && (
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                        Elec: ₹{custom.electricianPrice}
+                      </span>
+                    )}
+                    {custom.expiryDate && (
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                        Exp: {custom.expiryDate}
+                      </span>
+                    )}
+                    {custom.moq && (
+                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                        MOQ: {custom.moq}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400 pt-1">
                     <span>₹{p.price}</span>
                     {reserved > 0 && (
                       <span className="text-[9px] text-brand-orange font-bold">
@@ -255,85 +333,38 @@ export const Inventory: React.FC = () => {
         </button>
       </div>
 
-      {/* Simple Add Product Modal */}
+      {/* Add Product Modal with Dynamic UI Engine */}
       {isAddOpen && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 sm:p-4 z-50">
-          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl space-y-3 sm:space-y-4">
-            
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2.5">
-              <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-white">Add New Product</h3>
-              <button onClick={() => setIsAddOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
-                <X className="h-4 w-4 sm:h-5 sm:w-5" />
-              </button>
-            </div>
+          <div className="bg-white dark:bg-slate-800 w-full max-w-2xl max-h-[90dvh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl space-y-3 sm:space-y-4">
+            <DynamicProductForm
+              vertical={productSchema}
+              onSubmit={async (data) => {
+                const res = await addProduct({
+                  name: data.name,
+                  price: data.price,
+                  costPrice: data.costPrice,
+                  stock: data.stock,
+                  minStock: data.minStock,
+                  category: data.category || "General",
+                  supplierName: data.supplierName || "General Supplier",
+                  barcode: data.barcode,
+                  customFields: Object.keys(data.customFields).length > 0 ? JSON.stringify(data.customFields) : undefined,
+                });
 
-            <form onSubmit={handleSaveProduct} className="space-y-2.5 sm:space-y-3">
-              <div>
-                <label className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">Product Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Milk 1L or Amul Butter"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-orange"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <div>
-                  <label className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">Selling Price (₹)</label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 60"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    required
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-orange"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">Initial Stock</label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 50"
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                    required
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-orange"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 block mb-1">Category</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Dairy, Snacks, Grocery"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-orange"
-                />
-              </div>
-
-              <div className="pt-2 flex gap-2 sm:gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsAddOpen(false)}
-                  className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-2.5 rounded-xl text-xs cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-xl text-xs shadow-md cursor-pointer"
-                >
-                  Save Product
-                </button>
-              </div>
-            </form>
-
+                if (res?.success) {
+                  setIsAddOpen(false);
+                  if (res.isMerged) {
+                    showToast(res.message || `✓ Product "${data.name}" stock updated!`);
+                  } else {
+                    showToast("✓ Product Added Successfully");
+                  }
+                } else {
+                  showToast(res?.message || "Failed to add product");
+                }
+              }}
+              onCancel={() => setIsAddOpen(false)}
+            />
           </div>
         </div>
       )}

@@ -153,18 +153,38 @@ export const BUSINESS_TEMPLATES: Record<string, BusinessTemplateSpec> = {
   "Automobile Shop": {
     name: "Automobile Shop",
     enabledModules: ["dashboard", "billing", "inventory", "suppliers", "reports", "settings"],
-    defaultCategories: ["Spare Parts", "Lubricants", "Accessories", "Tires"],
-    dashboardWidgets: ["Today's Sales", "Supplier Bills", "Top Items"],
+    defaultCategories: ["Engine Parts", "Brake & Clutch", "Suspension & Steering", "Electrical & Lighting", "Filters & Lubricants", "Body & Accessories"],
+    dashboardWidgets: ["Today's Sales", "Low Stock Parts", "Top Moving Fasteners", "Supplier Bills"],
     customAttributes: [
-      { name: "Part Number", type: "string" },
-      { name: "Model Match", type: "string" }
+      { name: "Part Number", type: "string", required: true },
+      { name: "Brand", type: "string", required: true },
+      { name: "Compatible Vehicle", type: "string", required: true },
+      { name: "Bin Location", type: "string" }
+    ]
+  },
+  "Electrical Store": {
+    name: "Electrical Store",
+    enabledModules: ["dashboard", "billing", "inventory", "customers", "suppliers", "reports", "settings"],
+    defaultCategories: ["Lighting & Bulbs", "Cables & Wires", "Switches & Sockets", "Circuit Breakers & MCBs", "Fans & Appliances", "Pipes & Fittings"],
+    dashboardWidgets: ["Today's Sales", "High Wattage Inventory", "Low Stock Cables", "Top Products"],
+    customAttributes: [
+      { name: "Brand", type: "string", required: true },
+      { name: "Wattage", type: "string" },
+      { name: "Voltage", type: "string" },
+      { name: "Wire Gauge", type: "string" }
     ]
   },
   "Wholesale Business": {
     name: "Wholesale Business",
     enabledModules: ["dashboard", "billing", "inventory", "customers", "suppliers", "reports", "settings"],
-    defaultCategories: ["Bulk Goods", "Raw Materials", "Secondary Packets"],
-    dashboardWidgets: ["Bulk Deals Value", "Supplier Dues", "Customer Ledger Balances"]
+    defaultCategories: ["Bulk Commodities", "FMCG Cartons", "Master Packs", "Industrial Supplies", "Raw Materials"],
+    dashboardWidgets: ["Bulk Deals Value", "Supplier Dues", "Customer Ledger Balances", "High Volume Inventory"],
+    customAttributes: [
+      { name: "MOQ", type: "number", required: true },
+      { name: "Pack Size", type: "number", required: true },
+      { name: "Wholesale Rate", type: "number" },
+      { name: "HSN Code", type: "string" }
+    ]
   },
   "Service Business": {
     name: "Service Business",
@@ -175,7 +195,7 @@ export const BUSINESS_TEMPLATES: Record<string, BusinessTemplateSpec> = {
   "Custom Business": {
     name: "Custom Business",
     enabledModules: ["dashboard", "billing", "inventory", "customers", "suppliers", "reports", "settings"],
-    defaultCategories: ["General Items", "Misc Goods"],
+    defaultCategories: ["General Items", "Fast Moving", "Misc Goods"],
     dashboardWidgets: ["Today's Sales", "Low Stock", "Top Products"]
   }
 };

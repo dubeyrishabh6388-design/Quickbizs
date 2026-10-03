@@ -203,13 +203,29 @@ export class ReportsService {
       totalItemsCount,
       lowStockCount: lowStock.length,
       outOfStockCount: outOfStock.length,
-      lowStockList: lowStock.map((inv) => ({
-        id: inv.productId,
-        name: inv.product.name,
-        available: inv.availableQuantity,
-        minimum: inv.minimumStock,
-        supplier: inv.product.supplierName,
-      })),
+      lowStockList: lowStock.map((inv) => {
+        let custom: any = {};
+        if (inv.product.customFields) {
+          try {
+            custom = typeof inv.product.customFields === "string" ? JSON.parse(inv.product.customFields) : inv.product.customFields;
+          } catch (e) {}
+        }
+        return {
+          id: inv.productId,
+          name: inv.product.name,
+          available: inv.availableQuantity,
+          minimum: inv.minimumStock,
+          supplier: inv.product.supplierName,
+          partNumber: custom.partNumber || null,
+          vehicleModel: custom.vehicleModel || null,
+          rack: custom.rack || custom.binLocation || null,
+          bin: custom.bin || null,
+          brand: custom.brand || inv.product.brand || null,
+          wattage: custom.wattage || null,
+          size: custom.size || null,
+          material: custom.material || null,
+        };
+      }),
     };
   }
 
@@ -219,12 +235,18 @@ export class ReportsService {
       include: { orders: true },
     });
 
+    const duesByType: Record<string, number> = {};
+
     const mapped = customers.map((c) => {
       const totalPurchases = c.orders.reduce((sum, o) => sum + o.grandTotal, 0);
+      const customerType = c.membershipLevel || "Retail Customer";
+      duesByType[customerType] = (duesByType[customerType] || 0) + c.pendingAmount;
+
       return {
         id: c.id,
         name: c.name,
         mobile: c.mobile,
+        customerType,
         pendingAmount: c.pendingAmount,
         rewardPoints: c.rewardPoints,
         totalPurchases,
@@ -238,6 +260,7 @@ export class ReportsService {
     return {
       topCustomers,
       outstandingCustomers,
+      duesByType,
     };
   }
 

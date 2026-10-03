@@ -249,19 +249,39 @@ export class PurchaseService {
       });
 
       // Fetch current shelf stock to update inventory counts
-      const inventory = await prisma.inventory.findFirst({
-        where: { productId: recItem.productId, businessId },
-      });
+      const [inventory, product] = await Promise.all([
+        prisma.inventory.findFirst({
+          where: { productId: recItem.productId, businessId },
+        }),
+        prisma.product.findUnique({
+          where: { id: recItem.productId },
+          select: { customFields: true, unit: true },
+        }),
+      ]);
+
+      let conversionFactor = 1;
+      if (product?.customFields) {
+        try {
+          const c = typeof product.customFields === "string" ? JSON.parse(product.customFields) : product.customFields;
+          if (c.packSize && Number(c.packSize) > 1) {
+            // Apply pack conversion if received in Box/Pack or unit is Box
+            if ((recItem as any).unit === "Box" || c.unit === "Box" || c.purchaseUnit === "Box" || (poItem as any).unit === "Box") {
+              conversionFactor = Number(c.packSize);
+            }
+          }
+        } catch (e) {}
+      }
 
       if (inventory) {
         // Exclude damaged/rejected quantities from available quantities count (Step 5)
         const netAddedQty = recItem.receivedQty - (recItem.damagedQty || 0) - (recItem.rejectedQty || 0);
+        const effectiveAddedQty = netAddedQty * conversionFactor;
         inventoryUpdates.push({
           productId: recItem.productId,
           inventoryId: inventory.id,
-          newQty: inventory.availableQuantity + netAddedQty,
+          newQty: inventory.availableQuantity + effectiveAddedQty,
           openingQty: inventory.availableQuantity,
-          addedQty: netAddedQty,
+          addedQty: effectiveAddedQty,
         });
       }
     }

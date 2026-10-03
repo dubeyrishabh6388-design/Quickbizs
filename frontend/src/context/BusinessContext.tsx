@@ -33,6 +33,9 @@ export interface Customer {
   advancedPayment: number;
   email?: string;
   lastActive: string;
+  customerType?: string;
+  membershipLevel?: string;
+  rewardPoints?: number;
 }
 
 export interface Supplier {
@@ -161,11 +164,12 @@ interface BusinessContextType {
     roundOff: number,
     total: number,
     paymentMethod: Order["paymentMethod"],
-    splitDetails?: { cash: number; upi: number }
+    splitDetails?: { cash: number; upi: number },
+    options?: { priceLevel?: string; vehicleDetails?: string }
   ) => any;
   updateProductStock: (id: string, amount: number, reason: string) => void;
   addProduct: (product: Omit<Product, "id">) => Promise<{ success: boolean; isMerged?: boolean; message?: string }>;
-  addCustomer: (name: string, phone: string, email?: string) => void;
+  addCustomer: (name: string, phone: string, email?: string, customerType?: string) => void;
   settleCustomerDues: (id: string, amount: number) => void;
   addSupplier: (name: string, phone: string, contactPerson: string) => void;
   settleSupplierDues: (id: string, amount: number) => void;
@@ -336,6 +340,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           email: c.email || undefined,
           lastActive: c.lastPurchaseAt ? c.lastPurchaseAt.split("T")[0] : c.createdAt.split("T")[0],
           rewardPoints: c.rewardPoints || 0,
+          customerType: c.membershipLevel || "Retail Customer",
         }));
         setCustomers(mapped);
       }
@@ -915,7 +920,8 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     roundOff: number,
     total: number,
     paymentMethod: Order["paymentMethod"],
-    splitDetails?: { cash: number; upi: number }
+    splitDetails?: { cash: number; upi: number },
+    options?: { priceLevel?: string; vehicleDetails?: string }
   ) => {
     const token = localStorage.getItem("qb_token");
     if (!token) return { success: false, message: "No session active." };
@@ -951,6 +957,8 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           items: backendItems,
           paymentMethod,
           splitDetails: splitDetails || null,
+          priceLevel: options?.priceLevel || null,
+          vehicleDetails: options?.vehicleDetails || null,
         }),
       });
 
@@ -1039,7 +1047,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // Add Customer via backend API
-  const addCustomer = async (name: string, phone: string, email?: string) => {
+  const addCustomer = async (name: string, phone: string, email?: string, customerType?: string) => {
     const token = localStorage.getItem("qb_token");
     if (!token) return;
 
@@ -1050,7 +1058,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, mobile: phone, email }),
+        body: JSON.stringify({ name, mobile: phone, email, customerType }),
       });
       const json = await response.json();
       if (json.success) {
