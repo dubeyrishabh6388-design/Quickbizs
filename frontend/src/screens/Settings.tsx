@@ -60,9 +60,9 @@ export const Settings: React.FC = () => {
     window.location.reload();
   };
   
-  const [shopName, setShopName] = useState("QuickBizs Store");
-  const [phone, setPhone] = useState("9876543210");
-  const [address, setAddress] = useState("Main Market");
+  const [shopName, setShopName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [invoicePrefix, setInvoicePrefix] = useState("INV");
   const [invoiceFooter, setInvoiceFooter] = useState("Thank you for shopping with us!");
 

@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { 
   X, 
   TrendingUp, 
@@ -33,7 +33,7 @@ export interface YesterdayMetrics {
     name: string;
     qty: number;
     revenue: number;
-  };
+  } | null;
 }
 
 interface DailyBriefingModalProps {
@@ -228,12 +228,18 @@ export const DailyBriefingModal: React.FC<DailyBriefingModalProps> = ({
                       <Trophy className="h-4.5 w-4.5" />
                     </div>
                     <div className="min-w-0">
-                      <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white block truncate">
-                        {yesterdayData.topItem.name}
-                      </span>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                        {yesterdayData.topItem.qty} units sold • ₹{yesterdayData.topItem.revenue.toLocaleString("en-IN")}
-                      </span>
+                      {yesterdayData.topItem ? (
+                        <>
+                          <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white block truncate">
+                            {yesterdayData.topItem.name}
+                          </span>
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                            {yesterdayData.topItem.qty} units sold • ₹{yesterdayData.topItem.revenue.toLocaleString("en-IN")}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">No sales recorded yesterday</span>
+                      )}
                     </div>
                   </div>
                 </div>

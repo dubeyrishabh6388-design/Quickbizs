@@ -2,6 +2,7 @@ import { env } from "../config/env";
 import { api } from "../config/api";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { io } from "socket.io-client";
+import type { VerticalDefinition } from "../types/verticalRegistry";
 
 const decodeToken = (token: string) => {
   try {
@@ -209,17 +210,14 @@ interface BusinessContextType {
     multiBranch: boolean;
   } | null;
   fetchBusinessFeatures: () => Promise<void>;
-  productSchema: {
-    businessType: string;
+  productSchema: (VerticalDefinition & {
     categories?: string[];
-    units?: string[];
-    fields?: { name: string; label: string; type: string; required: boolean; options?: string[]; placeholder?: string }[];
     sections?: {
       name: string;
-      order: number;
+      order?: number;
       fields: { name: string; label: string; type: string; required: boolean; options?: string[]; placeholder?: string }[];
     }[];
-  } | null;
+  }) | any | null;
   fetchProductSchema: () => Promise<void>;
   operatingMode: "solo" | "multi-staff";
   setOperatingMode: (mode: "solo" | "multi-staff") => void;
@@ -500,11 +498,11 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Shop Readiness Morning Checklist (Chapter 3 Step 2)
   const [readinessChecklist, setReadinessChecklist] = useState<ReadinessTask[]>([
     { id: "rc1", task: "Check shelves for fresh stock alignment", completed: false },
-    { id: "rc2", task: "Scan Dairy rack for product expiration dates", completed: false },
+    { id: "rc2", task: "Inspect inventory for near-expiry and damaged stock", completed: false },
     { id: "rc3", task: "Clear pending online WhatsApp orders queue", completed: false },
-    { id: "rc4", task: "Verify starting cashier cash box float (₹5,000)", completed: true },
+    { id: "rc4", task: "Verify starting cashier cash box float", completed: false },
     { id: "rc5", task: "Confirm thermal receipt printing paper is loaded", completed: false },
-    { id: "rc6", task: "Sanitize counter & sweep entrance layout", completed: true },
+    { id: "rc6", task: "Sanitize counter & sweep entrance layout", completed: false },
   ]);
 
   // Chapter 4: User Roles & SaaS active tenants
@@ -690,7 +688,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           plan: t.plan,
           status: t.status,
           registeredDate: new Date(t.registeredDate).toISOString().split("T")[0],
-          salesCount: 1450,
+          salesCount: t.salesCount ?? 0,
         }));
         setTenants(mapped);
       }
@@ -733,9 +731,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // Chapter 5: Stock Movement Logs (IR-006)
-  const [stockMovementLogs, setStockMovementLogs] = useState<StockMovementLog[]>([
-    { id: "LOG-001", productId: "p1", productName: "Amul Milk (1L)", quantity: -10, reason: "Morning Billing Sales Check-out", date: "2026-07-03T11:00:00", user: "Cashier" },
-  ]);
+  const [stockMovementLogs, setStockMovementLogs] = useState<StockMovementLog[]>([]);
 
   const logStockMovement = (productId: string, productName: string, quantity: number, reason: string) => {
     const newLog: StockMovementLog = {
@@ -751,11 +747,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // Chapter 7: Automation Logs
-  const [automationLogs, setAutomationLogs] = useState<AutomationLog[]>([
-    { id: "AUT-01", time: "09:00:15", trigger: "Employee Attendance started", action: "Log Present Shift Attendance", result: "Sunil Verma marked Present", status: "Success", duration: "8ms" },
-    { id: "AUT-02", time: "09:00:16", trigger: "Employee Attendance started", action: "Check Standby Staff Allocation", result: "Alerted Owner of Rohit Singh absence", status: "Success", duration: "12ms" },
-    { id: "AUT-03", time: "10:30:00", trigger: "Log Overhead Expense (EXP-01)", action: "Reports Margin Subtraction", result: "Deducted ₹150 from net profit margins", status: "Success", duration: "3ms" },
-  ]);
+  const [automationLogs, setAutomationLogs] = useState<AutomationLog[]>([]);
 
   const logAutomation = (trigger: string, action: string, result: string, status: "Success" | "Failed" = "Success", duration: string = "5ms") => {
     const newLog: AutomationLog = {

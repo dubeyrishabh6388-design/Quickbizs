@@ -28,17 +28,6 @@ interface CustomerDashboardProps {
   toggleTheme: () => void;
 }
 
-// Pre-seeded catalog items for Fresh Choice Supermarket (matching database IDs and prices)
-const FRESH_CHOICE_PRODUCTS = [
-  { id: "p1", name: "Amul Gold Milk (1L)", category: "Dairy", price: 66, unit: "Pkt" },
-  { id: "p2", name: "Mother Dairy Paneer (200g)", category: "Dairy", price: 85, unit: "Pkt" },
-  { id: "p3", name: "Aashirvaad Atta (5kg)", category: "Grocery", price: 270, unit: "Bag" },
-  { id: "p4", name: "Fortune Soya Oil (1L)", category: "Grocery", price: 140, unit: "Bottle" },
-  { id: "p5", name: "Maggi Noodles (12-pack)", category: "Snacks", price: 85, unit: "Pkt" },
-  { id: "p6", name: "Tata Salt (1kg)", category: "Grocery", price: 28, unit: "Pkt" },
-  { id: "p7", name: "Good Day Cookies", category: "Snacks", price: 20, unit: "Pkt" }
-];
-
 export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ handleLogout, theme, toggleTheme }) => {
   const [profile, setProfile] = useState<any>(null);
   const [nearbyShops, setNearbyShops] = useState<any[]>([]);
@@ -176,9 +165,10 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ handleLogo
   };
 
   const getCartTotal = () => {
-    return FRESH_CHOICE_PRODUCTS.reduce((sum, item) => {
-      const qty = cart[item.id] || 0;
-      return sum + qty * item.price;
+    return Object.entries(cart).reduce((sum, [productId, qty]) => {
+      const item = shopProducts.find(p => p.id === productId);
+      const price = item?.price || 0;
+      return sum + qty * price;
     }, 0);
   };
 

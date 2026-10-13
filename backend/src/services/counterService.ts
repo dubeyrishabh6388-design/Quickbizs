@@ -29,30 +29,45 @@ export class CounterService {
     } else if (bType.includes("hardw")) {
       timeCategory = "Fast Moving Hardware";
       targetKeywords = ["Bolt", "Screw", "Nut", "Drill", "Tape", "Nail", "Hinge", "Paint", "Lock", "Pipe"];
-    } else {
+    } else if (bType.includes("cloth") || bType.includes("apparel") || bType.includes("fashion") || bType.includes("footwear")) {
+      timeCategory = "Fast Moving Fashion & Apparel";
+      targetKeywords = ["Shirt", "Pant", "T-Shirt", "Jeans", "Kurti", "Saree", "Dress", "Shoe"];
+    } else if (bType.includes("pharm") || bType.includes("medic")) {
+      timeCategory = "Fast Moving Health & Pharmacy";
+      targetKeywords = ["Tablet", "Syrup", "Capsule", "Bandage", "Ointment", "Drops", "Powder"];
+    } else if (bType.includes("dairy")) {
+      timeCategory = "Dairy Essentials";
+      targetKeywords = ["Milk", "Paneer", "Curd", "Butter", "Ghee", "Bread"];
+    } else if (bType.includes("groc") || bType.includes("kirana") || bType.includes("supermarket")) {
       if (hour >= 6 && hour < 10) {
         timeCategory = "Morning Essentials";
-        targetKeywords = ["Milk", "Paneer", "Curd", "Bread", "Butter"];
+        targetKeywords = ["Milk", "Bread", "Butter", "Tea", "Sugar", "Atta"];
       } else if (hour >= 12 && hour < 16) {
         timeCategory = "Afternoon Refreshments";
-        targetKeywords = ["Lassi", "Drink", "Juice", "Cola", "Soda", "Cold"];
-      } else if (hour >= 17 && hour < 22) {
-        timeCategory = "Evening Snacks";
-        targetKeywords = ["Chocolate", "Biscuit", "Snack", "Chips", "Tea", "Coffee"];
+        targetKeywords = ["Juice", "Cola", "Soda", "Drink", "Water", "Snack"];
+      } else {
+        timeCategory = "Evening Staples";
+        targetKeywords = ["Atta", "Rice", "Dal", "Oil", "Snacks", "Biscuits"];
       }
+    } else {
+      timeCategory = "Fast Moving Products";
+      targetKeywords = [];
     }
 
     // Load products that match target keywords
-    let frequentlySold = await prisma.product.findMany({
-      where: {
-        businessId,
-        isDeleted: false,
-        OR: targetKeywords.map((kw) => ({
-          name: { contains: kw },
-        })),
-      },
-      take: 6,
-    });
+    let frequentlySold: any[] = [];
+    if (targetKeywords.length > 0) {
+      frequentlySold = await prisma.product.findMany({
+        where: {
+          businessId,
+          isDeleted: false,
+          OR: targetKeywords.map((kw) => ({
+            name: { contains: kw },
+          })),
+        },
+        take: 6,
+      });
+    }
 
     // Fallback to top products if no keyword match
     if (frequentlySold.length === 0) {
@@ -123,17 +138,20 @@ export class CounterService {
   async getCombos(businessId: string) {
     const products = await prisma.product.findMany({
       where: { businessId, isDeleted: false },
-      take: 5,
+      take: 2,
     });
 
     if (products.length >= 2) {
+      const p1 = products[0];
+      const p2 = products[1];
+      const comboPrice = Math.round((p1.price + p2.price) * 0.95);
       return [
         {
-          id: "combo-1",
-          name: "🥛 + 🍞 Quick Breakfast",
-          description: "Amul Milk + Premium Bread",
-          price: 50,
-          productIds: JSON.stringify([products[0].id, products[1].id]),
+          id: `combo-${p1.id}-${p2.id}`,
+          name: `${p1.name} + ${p2.name}`,
+          description: `Special value bundle (${p1.name} & ${p2.name})`,
+          price: comboPrice,
+          productIds: JSON.stringify([p1.id, p2.id]),
         },
       ];
     }

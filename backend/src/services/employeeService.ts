@@ -173,53 +173,7 @@ export class EmployeeService {
     const maxDay = isCurrentMonth ? Math.min(daysInMonth, now.getDate()) : daysInMonth;
 
     const employees = await employeeRepository.findEmployees(businessId);
-    let attendances = await employeeRepository.findMonthlyAttendance(businessId, startDate, endDate);
-
-    // Auto-seed realistic month history if no historical attendance exists for this month
-    if (attendances.length <= 1 && employees.length > 0) {
-      const seedList: any[] = [];
-      for (const emp of employees) {
-        for (let d = 1; d <= maxDay; d++) {
-          const checkDate = new Date(year, month - 1, d, 9, 30, 0);
-          const dayOfWeek = checkDate.getDay(); // 0 is Sunday
-          if (dayOfWeek === 0) continue; // Sunday off
-
-          // Deterministic realistic attendance profile per staff
-          let status: "Present" | "Absent" | "Late" = "Present";
-          if (emp.id === "e1" || emp.firstName === "Sunil") {
-            if (d === 4 || d === 12) status = "Absent";
-            else if (d === 8) status = "Late";
-          } else if (emp.id === "e2" || emp.firstName === "Rohit") {
-            if (d === 2 || d === 9 || d === 15) status = "Absent";
-            else if (d === 6) status = "Late";
-          } else if (emp.id === "e3" || emp.firstName === "Aarti") {
-            if (d === 11) status = "Absent";
-            else if (d === 14) status = "Late";
-          } else {
-            if (d % 9 === 0) status = "Absent";
-            else if (d % 7 === 0) status = "Late";
-          }
-
-          if (status !== "Absent") {
-            seedList.push({
-              businessId,
-              employeeId: emp.id,
-              date: checkDate,
-              checkIn: checkDate,
-              status,
-            });
-          }
-        }
-      }
-
-      if (seedList.length > 0) {
-        await prisma.attendance.createMany({
-          data: seedList,
-          skipDuplicates: true,
-        });
-        attendances = await employeeRepository.findMonthlyAttendance(businessId, startDate, endDate);
-      }
-    }
+    const attendances = await employeeRepository.findMonthlyAttendance(businessId, startDate, endDate);
 
     // Build day-by-day muster roll per employee
     const staffBreakdown = employees.map((emp) => {

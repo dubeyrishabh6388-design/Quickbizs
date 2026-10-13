@@ -60,6 +60,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
   const bType = businessPreferences?.businessType || productSchema?.businessType || "Retail Store";
   const [categoryOverview, setCategoryOverview] = useState<any>(null);
 
+  const getItemWarranty = (productId?: string, name?: string): string | null => {
+    const prod = products.find(p => (productId && p.id === productId) || (name && p.name.toLowerCase() === name.toLowerCase()));
+    if (!prod?.customFields) return null;
+    try {
+      const c = typeof prod.customFields === "string" ? JSON.parse(prod.customFields) : prod.customFields;
+      const w = c.warranty || c.Warranty || c.warrantyPeriod;
+      return w ? String(w).trim() : null;
+    } catch {
+      return null;
+    }
+  };
+
   useEffect(() => {
     const fetchCategoryData = async () => {
       try {
@@ -120,6 +132,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
     const totalCustomerDue = categoryOverview?.customerDue ?? 
       customers.reduce((s, c) => s + (c.pendingDues || 0), 0);
 
+    const customTypeDues = (productSchema?.customerTypes && Array.isArray(productSchema.customerTypes))
+      ? productSchema.customerTypes
+          .filter((ct: any) => ct.creditAllowed)
+          .map((ct: any) => {
+            const typeKey = ct.key || ct.label;
+            const due = categoryOverview?.customerDueBreakdown?.[typeKey] ??
+              customers.filter(c => (c.customerType || c.membershipLevel) === typeKey).reduce((s, c) => s + (c.pendingDues || 0), 0);
+            return { label: ct.label || ct.key, due };
+          })
+          .filter((ct: any) => ct.due > 0)
+      : [];
+
     return {
       bType,
       isAuto,
@@ -140,12 +164,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
       contractorDue,
       electricianDue,
       totalCustomerDue,
+      customTypeDues,
       lowStockParts: categoryOverview?.lowStockParts || [],
       fastMovingParts: categoryOverview?.fastMovingParts || [],
       recentPartSearches: categoryOverview?.recentPartSearches || [],
       topBrands: categoryOverview?.topBrands || [],
     };
-  }, [bType, products, customers, categoryOverview]);
+  }, [bType, products, customers, categoryOverview, productSchema]);
 
   // Active filters
   const [timeHorizon, setTimeHorizon] = useState<TimeHorizon>("today");
@@ -261,99 +286,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
     return d.getTime() >= start.getTime() && d.getTime() <= end.getTime();
   };
 
-  // High-fidelity fallback orders to ensure KPIs and charts always show rich, realistic data
-  const sampleDemoOrders: typeof orders = useMemo(() => {
-    const now = new Date();
-    return [
-      {
-        id: "INV-1001",
-        customerName: "Rajesh Kumar",
-        customerType: "Retail",
-        date: new Date(now.getTime() - 2 * 3600000).toISOString(),
-        items: [{ productId: "p1", name: "Aashirvaad Atta (5kg)", quantity: 2, price: 245 }],
-        subtotal: 490,
-        discount: 0,
-        gst: 25,
-        roundOff: 0,
-        total: 515,
-        paymentMethod: "UPI",
-        status: "Paid",
-      },
-      {
-        id: "INV-1002",
-        customerName: "Pooja Sharma",
-        customerType: "Retail",
-        date: new Date(now.getTime() - 4 * 3600000).toISOString(),
-        items: [{ productId: "p2", name: "Fortune Sunflower Oil (1L)", quantity: 3, price: 145 }],
-        subtotal: 435,
-        discount: 0,
-        gst: 22,
-        roundOff: 0,
-        total: 457,
-        paymentMethod: "Cash",
-        status: "Paid",
-      },
-      {
-        id: "INV-1003",
-        customerName: "Amit Verma",
-        customerType: "Wholesale",
-        date: new Date(now.getTime() - 6 * 3600000).toISOString(),
-        items: [{ productId: "p3", name: "Amul Butter (500g)", quantity: 4, price: 275 }],
-        subtotal: 1100,
-        discount: 50,
-        gst: 55,
-        roundOff: 0,
-        total: 1105,
-        paymentMethod: "UPI",
-        status: "Paid",
-      },
-      {
-        id: "INV-1004",
-        customerName: "Sunita Patel",
-        customerType: "Retail",
-        date: new Date(now.getTime() - 8 * 3600000).toISOString(),
-        items: [{ productId: "p4", name: "Surf Excel Matic (1kg)", quantity: 2, price: 185 }],
-        subtotal: 370,
-        discount: 0,
-        gst: 19,
-        roundOff: 0,
-        total: 389,
-        paymentMethod: "Credit",
-        status: "Pending",
-      },
-      {
-        id: "INV-1005",
-        customerName: "Walk-in Customer",
-        customerType: "Retail",
-        date: new Date(now.getTime() - 86400000 - 3 * 3600000).toISOString(),
-        items: [{ productId: "p5", name: "Maggi Noodles (4pk)", quantity: 5, price: 56 }],
-        subtotal: 280,
-        discount: 0,
-        gst: 14,
-        roundOff: 0,
-        total: 294,
-        paymentMethod: "UPI",
-        status: "Paid",
-      },
-      {
-        id: "INV-1006",
-        customerName: "Walk-in Customer",
-        customerType: "Retail",
-        date: new Date(now.getTime() - 86400000 - 6 * 3600000).toISOString(),
-        items: [{ productId: "p1", name: "Aashirvaad Atta (5kg)", quantity: 3, price: 245 }],
-        subtotal: 735,
-        discount: 0,
-        gst: 37,
-        roundOff: 0,
-        total: 772,
-        paymentMethod: "Cash",
-        status: "Paid",
-      },
-    ];
-  }, []);
-
-  const activeOrdersPool = orders.length > 0 ? orders : sampleDemoOrders;
-
   // Filter orders according to active Time Horizon
   const { currentOrders, comparisonOrders, periodLabel, compLabel } = useMemo(() => {
     let curr: typeof orders = [];
@@ -362,35 +294,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
     let cLabel = "vs Yesterday";
 
     if (timeHorizon === "today") {
-      curr = activeOrdersPool.filter(o => isSameCalendarDay(o.date, 0));
-      comp = activeOrdersPool.filter(o => isSameCalendarDay(o.date, 1));
+      curr = orders.filter(o => isSameCalendarDay(o.date, 0));
+      comp = orders.filter(o => isSameCalendarDay(o.date, 1));
       pLabel = "Today";
       cLabel = "vs Yesterday";
     } else if (timeHorizon === "yesterday") {
-      curr = activeOrdersPool.filter(o => isSameCalendarDay(o.date, 1));
-      comp = activeOrdersPool.filter(o => isSameCalendarDay(o.date, 2));
+      curr = orders.filter(o => isSameCalendarDay(o.date, 1));
+      comp = orders.filter(o => isSameCalendarDay(o.date, 2));
       pLabel = "Yesterday";
       cLabel = "vs Prev Day";
     } else if (timeHorizon === "week") {
-      curr = activeOrdersPool.filter(o => isWithinDays(o.date, 7, 0));
-      comp = activeOrdersPool.filter(o => isWithinDays(o.date, 14, 7));
+      curr = orders.filter(o => isWithinDays(o.date, 7, 0));
+      comp = orders.filter(o => isWithinDays(o.date, 14, 7));
       pLabel = "Last 7 Days";
       cLabel = "vs Prior 7 Days";
     } else {
-      curr = activeOrdersPool.filter(o => isWithinDays(o.date, 30, 0));
-      comp = activeOrdersPool.filter(o => isWithinDays(o.date, 60, 30));
+      curr = orders.filter(o => isWithinDays(o.date, 30, 0));
+      comp = orders.filter(o => isWithinDays(o.date, 60, 30));
       pLabel = "Last 30 Days";
       cLabel = "vs Prior 30 Days";
     }
 
-    const effectiveCurr = curr.length > 0 ? curr : (activeOrdersPool.length > 0 ? activeOrdersPool.slice(0, 10) : []);
     return {
-      currentOrders: effectiveCurr,
+      currentOrders: curr,
       comparisonOrders: comp,
       periodLabel: pLabel,
       compLabel: cLabel
     };
-  }, [activeOrdersPool, timeHorizon]);
+  }, [orders, timeHorizon]);
 
   // Financial Metrics Calculations
   const salesTotal = currentOrders.reduce((sum, o) => sum + o.total, 0);
@@ -401,7 +332,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
   const compSales = comparisonOrders.reduce((sum, o) => sum + o.total, 0);
   const salesGrowthPct = compSales > 0 
     ? Math.round(((salesTotal - compSales) / compSales) * 100) 
-    : (salesTotal > 0 ? 16 : 0);
+    : 0;
 
   // Profitability & Cost Calculations
   const totalCost = currentOrders.reduce((orderSum, order) => {
@@ -413,7 +344,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
   }, 0);
 
   const grossProfit = Math.max(0, salesTotal - totalCost);
-  const profitMarginPct = salesTotal > 0 ? Math.round((grossProfit / salesTotal) * 100) : 28;
+  const profitMarginPct = salesTotal > 0 ? Math.round((grossProfit / salesTotal) * 100) : 0;
 
   // Expenses for the period
   const periodExpenses = expenses
@@ -443,12 +374,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
     .filter(o => o.paymentMethod === "Credit")
     .reduce((sum, o) => sum + o.total, 0);
 
-  const digitalSharePct = salesTotal > 0 ? Math.round((upiCollected / salesTotal) * 100) : 58;
-  const cashSharePct = salesTotal > 0 ? Math.round((cashCollected / salesTotal) * 100) : 42;
+  const digitalSharePct = salesTotal > 0 ? Math.round((upiCollected / salesTotal) * 100) : 0;
+  const cashSharePct = salesTotal > 0 ? Math.round((cashCollected / salesTotal) * 100) : 0;
 
-  // Estimated Cash in Till (Opening Float + Cash Sales - Cash Expenses)
-  const openingCashFloat = 2500;
-  const cashInTill = openingCashFloat + cashCollected - Math.min(cashCollected, periodExpenses);
+  // Actual Cash in Till (Cash Sales - Cash Expenses)
+  const openingCashFloat = 0;
+  const cashInTill = cashCollected - Math.min(cashCollected, periodExpenses);
 
   // Customer Udhaar & Khata Exposure
   const totalPendingUdhaar = customers.reduce((sum, c) => sum + (c.pendingDues || 0), 0);
@@ -475,22 +406,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
 
   // Comprehensive Yesterday Financials for the Daily Briefing Popup
   const yesterdayData = useMemo(() => {
-    const yOrders = activeOrdersPool.filter(o => isSameCalendarDay(o.date, 1));
-    const effectiveYOrders = yOrders.length > 0 ? yOrders : activeOrdersPool.slice(0, 6);
+    const yOrders = orders.filter(o => isSameCalendarDay(o.date, 1));
     
-    const ySales = effectiveYOrders.reduce((sum, o) => sum + o.total, 0);
-    const yBills = effectiveYOrders.length;
+    const ySales = yOrders.reduce((sum, o) => sum + o.total, 0);
+    const yBills = yOrders.length;
     const yAov = yBills > 0 ? Math.round(ySales / yBills) : 0;
     
     // Day before yesterday for growth comparison
-    const prevOrders = activeOrdersPool.filter(o => isSameCalendarDay(o.date, 2));
+    const prevOrders = orders.filter(o => isSameCalendarDay(o.date, 2));
     const prevSales = prevOrders.reduce((sum, o) => sum + o.total, 0);
     const growthVsPrev = prevSales > 0 
       ? Math.round(((ySales - prevSales) / prevSales) * 100) 
-      : (ySales > 0 ? 14 : 0);
+      : 0;
 
     // Cost & Profit
-    const yCost = effectiveYOrders.reduce((orderSum, order) => {
+    const yCost = yOrders.reduce((orderSum, order) => {
       return orderSum + order.items.reduce((itemSum, item) => {
         const prod = products.find(p => p.id === item.productId || p.name === item.name);
         const cost = prod?.costPrice ? prod.costPrice : (item.price * 0.72);
@@ -505,30 +435,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
     const yNetProfit = Math.max(0, yProfit - yExpenses);
 
     // Payment splits
-    const cash = effectiveYOrders
+    const cash = yOrders
       .filter(o => o.paymentMethod === "Cash" || o.paymentMethod === "Split")
       .reduce((s, o) => s + (o.paymentMethod === "Split" && o.splitDetails ? o.splitDetails.cash : o.total), 0);
 
-    const upi = effectiveYOrders
+    const upi = yOrders
       .filter(o => o.paymentMethod === "UPI" || o.paymentMethod === "Card" || o.paymentMethod === "Split")
       .reduce((s, o) => s + (o.paymentMethod === "Split" && o.splitDetails ? o.splitDetails.upi : o.total), 0);
 
-    const credit = effectiveYOrders
+    const credit = yOrders
       .filter(o => o.paymentMethod === "Credit")
       .reduce((s, o) => s + o.total, 0);
 
     // Top Selling Product
     const itemMap = new Map<string, { qty: number; revenue: number }>();
-    effectiveYOrders.forEach(o => {
+    yOrders.forEach(o => {
       o.items.forEach(it => {
         const curr = itemMap.get(it.name) || { qty: 0, revenue: 0 };
         itemMap.set(it.name, { qty: curr.qty + it.quantity, revenue: curr.revenue + (it.price * it.quantity) });
       });
     });
 
-    let top = { name: "Retail Grocery Pack", qty: 12, revenue: 2150 };
+    let top: { name: string; qty: number; revenue: number } | null = null;
     itemMap.forEach((val, key) => {
-      if (val.revenue > top.revenue) {
+      if (!top || val.revenue > top.revenue) {
         top = { name: key, qty: val.qty, revenue: val.revenue };
       }
     });
@@ -540,14 +470,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
       profit: yProfit,
       expenses: yExpenses,
       netProfit: yNetProfit,
-      marginPct: ySales > 0 ? Math.round((yProfit / ySales) * 100) : 28,
+      marginPct: ySales > 0 ? Math.round((yProfit / ySales) * 100) : 0,
       cash,
       upi,
       credit,
       growthVsPrev,
       topItem: top,
     };
-  }, [activeOrdersPool, expenses, products]);
+  }, [orders, expenses, products]);
 
   // Category Revenue Breakdown (Top 4)
   const categoryRevenue = useMemo(() => {
@@ -571,12 +501,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
       }));
     }
 
-    return [
-      { category: "Dairy & Eggs", revenue: 8400, pct: 36 },
-      { category: "Bakery & Breads", revenue: 6200, pct: 27 },
-      { category: "Beverages", revenue: 4800, pct: 21 },
-      { category: "Snacks & Munchies", revenue: 3700, pct: 16 }
-    ];
+    return [];
   }, [currentOrders, products]);
 
   // Hourly Sales Distribution Data for Peak Hours Chart
@@ -608,31 +533,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
     });
 
     const activeMax = chartMetric === "sales" 
-      ? Math.max(...buckets.map(b => b.total), 1)
+      ? Math.max(...buckets.map(b => b.total), 0)
       : chartMetric === "orders"
-      ? Math.max(...buckets.map(b => b.count), 1)
-      : Math.max(...buckets.map(b => b.profit), 1);
+      ? Math.max(...buckets.map(b => b.count), 0)
+      : Math.max(...buckets.map(b => b.profit), 0);
 
-    const hasAnyActivity = buckets.some(b => b.total > 0);
-
-    return buckets.map((b, idx) => {
+    return buckets.map((b) => {
       const val = chartMetric === "sales" ? b.total : chartMetric === "orders" ? b.count : b.profit;
-      const baselinePct = [38, 72, 48, 92, 54][idx];
-      const baselineSales = [1850, 3950, 2400, 5200, 2800][idx];
-      const baselineOrders = [3, 6, 4, 8, 4][idx];
-      const baselineProfit = [520, 1100, 670, 1450, 780][idx];
-
-      const activeVal = hasAnyActivity 
-        ? val 
-        : (chartMetric === "sales" ? baselineSales : chartMetric === "orders" ? baselineOrders : baselineProfit);
-
-      const heightPct = hasAnyActivity && activeMax > 0
-        ? Math.max(22, Math.round((val / activeMax) * 100))
-        : baselinePct;
+      const heightPct = activeMax > 0 ? Math.round((val / activeMax) * 100) : 0;
 
       return {
         ...b,
-        activeValue: activeVal,
+        activeValue: val,
         heightPct: Math.min(100, heightPct)
       };
     });
@@ -652,8 +564,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             category: prod?.category || "General",
             qty: 0,
             revenue: 0,
-            stock: prod?.stock ?? 45,
-            minStock: prod?.minStock ?? 10
+            stock: prod?.stock ?? 0,
+            minStock: prod?.minStock ?? 0
           };
         }
         map[item.name].qty += item.quantity;
@@ -662,18 +574,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
     });
 
     const sorted = Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 5);
-
-    if (sorted.length > 0) return sorted;
-
-    return products.slice(0, 5).map((p, idx) => ({
-      id: p.id,
-      name: p.name,
-      category: p.category,
-      qty: 48 - idx * 8,
-      revenue: (48 - idx * 8) * p.price,
-      stock: p.stock,
-      minStock: p.minStock
-    }));
+    return sorted;
   }, [currentOrders, products]);
 
   // Filtered recent transactions
@@ -1302,7 +1203,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                   <div 
                     style={{ height: `${h.heightPct}%` }}
                     className={`w-full rounded-lg sm:rounded-xl transition-all duration-500 shadow-md ${
-                      i === 3 
+                      i === 3 && h.heightPct > 0
                         ? "bg-brand-orange animate-pulse"
                         : "bg-brand-orange/80 group-hover:bg-brand-orange"
                     }`}
@@ -1324,29 +1225,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
           </div>
 
           {/* Category Revenue Contribution Progress Bars */}
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-            <span className="text-[10px] sm:text-[11px] font-black uppercase text-slate-400 tracking-wider block">
-              Top Categories
-            </span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-              {categoryRevenue.map((cat, idx) => (
-                <div key={idx} className="bg-slate-50 dark:bg-slate-900/50 p-2 sm:p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                  <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 mb-1">
-                    <span className="truncate pr-1 text-slate-800 dark:text-slate-200 font-extrabold">{cat.category}</span>
-                    <span>{cat.pct}%</span>
+          {categoryRevenue.length > 0 && (
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+              <span className="text-[10px] sm:text-[11px] font-black uppercase text-slate-400 tracking-wider block">
+                Top Categories
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                {categoryRevenue.map((cat, idx) => (
+                  <div key={idx} className="bg-slate-50 dark:bg-slate-900/50 p-2 sm:p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 mb-1">
+                      <span className="truncate pr-1 text-slate-800 dark:text-slate-200 font-extrabold">{cat.category}</span>
+                      <span>{cat.pct}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        style={{ width: `${cat.pct}%` }}
+                        className={`h-full rounded-full ${
+                          idx === 0 ? "bg-brand-orange" : idx === 1 ? "bg-brand-orange/70" : idx === 2 ? "bg-brand-orange/45" : "bg-slate-400"
+                        }`}
+                      />
+                    </div>
                   </div>
-                  <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div 
-                      style={{ width: `${cat.pct}%` }}
-                      className={`h-full rounded-full ${
-                        idx === 0 ? "bg-brand-orange" : idx === 1 ? "bg-brand-orange/70" : idx === 2 ? "bg-brand-orange/45" : "bg-slate-400"
-                      }`}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
 
@@ -1545,48 +1448,54 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
               <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">Volume</span>
             </div>
 
-            <div className="space-y-2 sm:space-y-2.5">
-              {topProducts.map((prod, idx) => {
-                const isLow = prod.stock <= prod.minStock;
-                return (
-                  <div 
-                    key={prod.id}
-                    className="p-2 sm:p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl sm:rounded-2xl border border-slate-200/50 dark:border-slate-800 flex items-center justify-between gap-2 text-xs"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-                      <div className={`h-6 w-6 sm:h-7 sm:w-7 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-[10px] sm:text-[11px] shrink-0 ${
-                        idx === 0 
-                          ? "bg-brand-orange text-white shadow-xs ring-2 ring-brand-orange/30"
-                          : idx === 1
-                          ? "bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200"
-                          : idx === 2
-                          ? "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                      }`}>
-                        #{idx + 1}
+            {topProducts.length === 0 ? (
+              <div className="text-center py-6 text-slate-400 text-xs font-medium italic">
+                No products sold in this period yet.
+              </div>
+            ) : (
+              <div className="space-y-2 sm:space-y-2.5">
+                {topProducts.map((prod, idx) => {
+                  const isLow = prod.stock <= prod.minStock;
+                  return (
+                    <div 
+                      key={prod.id}
+                      className="p-2 sm:p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl sm:rounded-2xl border border-slate-200/50 dark:border-slate-800 flex items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <div className={`h-6 w-6 sm:h-7 sm:w-7 rounded-lg sm:rounded-xl flex items-center justify-center font-black text-[10px] sm:text-[11px] shrink-0 ${
+                          idx === 0 
+                            ? "bg-brand-orange text-white shadow-xs ring-2 ring-brand-orange/30"
+                            : idx === 1
+                            ? "bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200"
+                            : idx === 2
+                            ? "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                        }`}>
+                          #{idx + 1}
+                        </div>
+                        <div className="truncate">
+                          <span className="font-extrabold text-xs sm:text-xs text-slate-900 dark:text-white block truncate">
+                            {prod.name}
+                          </span>
+                          <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold block truncate">
+                            {prod.category} • Sold: {prod.qty} units
+                          </span>
+                        </div>
                       </div>
-                      <div className="truncate">
-                        <span className="font-extrabold text-xs sm:text-xs text-slate-900 dark:text-white block truncate">
-                          {prod.name}
-                        </span>
-                        <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold block truncate">
-                          {prod.category} • Sold: {prod.qty} units
-                        </span>
-                      </div>
-                    </div>
 
-                    <div className="text-right shrink-0">
-                      <span className="font-black text-xs sm:text-sm text-slate-900 dark:text-white block">
-                        ₹{prod.revenue.toLocaleString("en-IN")}
-                      </span>
-                      <span className={`text-[9px] sm:text-[10px] font-black ${isLow ? "text-brand-orange" : "text-slate-500"}`}>
-                        {isLow ? `Low (${prod.stock})` : `${prod.stock} in stock`}
-                      </span>
+                      <div className="text-right shrink-0">
+                        <span className="font-black text-xs sm:text-sm text-slate-900 dark:text-white block">
+                          ₹{prod.revenue.toLocaleString("en-IN")}
+                        </span>
+                        <span className={`text-[9px] sm:text-[10px] font-black ${isLow ? "text-brand-orange" : "text-slate-500"}`}>
+                          {isLow ? `Low (${prod.stock})` : `${prod.stock} in stock`}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Category-Aware Intelligence Card */}
@@ -1783,6 +1692,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                       {products.length ? `${Math.round(((products.length - categoryStats.outOfStockCount) / products.length) * 100)}%` : "100%"}
                     </span>
                   </div>
+                  {categoryStats.customTypeDues.map((item: any, idx: number) => (
+                    <div key={idx} className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60 col-span-2">
+                      <span className="text-[10px] text-slate-400 block font-bold">{item.label} Due</span>
+                      <span className="text-sm font-black text-amber-400">₹{item.due.toLocaleString("en-IN")}</span>
+                    </div>
+                  ))}
                 </>
               )}
             </div>
@@ -1902,14 +1817,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                 <span>Item</span>
                 <span>Qty & Price</span>
               </div>
-              {inspectOrder.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40">
-                  <span className="font-extrabold text-slate-800 dark:text-slate-200">{item.name}</span>
-                  <span className="font-black text-slate-900 dark:text-white">
-                    {item.quantity} × ₹{item.price} = ₹{(item.quantity * item.price).toLocaleString("en-IN")}
-                  </span>
-                </div>
-              ))}
+              {inspectOrder.items.map((item, idx) => {
+                const warranty = getItemWarranty(item.productId, item.name);
+                return (
+                  <div key={idx} className="flex justify-between items-start p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                    <div>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200 block">{item.name}</span>
+                      {warranty && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mt-0.5">
+                          <ShieldCheck className="h-3 w-3 shrink-0" />
+                          Warranty: {warranty}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-black text-slate-900 dark:text-white shrink-0">
+                      {item.quantity} × ₹{item.price} = ₹{(item.quantity * item.price).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Bill Summary */}
@@ -1939,7 +1865,83 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 onClick={() => {
-                  window.print();
+                  const printWin = window.open("", "_blank", "width=500,height=700");
+                  if (!printWin) {
+                    window.print();
+                    return;
+                  }
+                  const itemsHtml = inspectOrder.items.map(item => {
+                    const warranty = getItemWarranty(item.productId, item.name);
+                    return `
+                      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">
+                        <div>
+                          <span>${item.name} <span style="color:#94a3b8">x${item.quantity}</span></span>
+                          ${warranty ? `<div style="font-size:10px;color:#059669;font-weight:600;margin-top:2px;">🛡️ Warranty: ${warranty}</div>` : ""}
+                        </div>
+                        <span>₹${(item.quantity * item.price).toLocaleString("en-IN")}</span>
+                      </div>
+                    `;
+                  }).join("");
+
+                  printWin.document.open();
+                  printWin.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                      <meta charset="utf-8">
+                      <title>Invoice ${inspectOrder.id}</title>
+                      <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #1e293b; background: white; margin: 0; }
+                        .card { max-width: 440px; margin: auto; }
+                        .header { text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 16px; margin-bottom: 16px; }
+                        .logo { font-size: 22px; font-weight: 800; color: #f97316; }
+                        .meta { font-size: 11px; color: #64748b; margin-top: 4px; }
+                        .grid { font-size: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-bottom: 16px; }
+                        .label { color: #64748b; }
+                        .val { font-weight: 600; text-align: right; }
+                        .title { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin: 16px 0 8px 0; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
+                        .summary { margin-top: 16px; text-align: right; font-size: 11px; color: #64748b; line-height: 1.6; }
+                        .total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 10px; border-top: 1px solid #cbd5e1; padding-top: 8px; }
+                        .footer { text-align: center; font-size: 10px; color: #94a3b8; margin-top: 24px; border-top: 1px dashed #cbd5e1; padding-top: 12px; }
+                        @media print { body { padding: 0; } .card { max-width: 100%; } }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="card">
+                        <div class="header">
+                          <div class="logo">QuickBizs Store</div>
+                          <div class="meta">Invoice - ${inspectOrder.id}</div>
+                        </div>
+                        <div class="grid">
+                          <span class="label">Customer:</span>
+                          <span class="val">${inspectOrder.customerName || "Walk-in Customer"}</span>
+                          <span class="label">Date:</span>
+                          <span class="val">${inspectOrder.date}</span>
+                          <span class="label">Payment Mode:</span>
+                          <span class="val">${inspectOrder.paymentMethod}</span>
+                        </div>
+                        <div class="title">Items Purchased</div>
+                        ${itemsHtml}
+                        <div class="summary">
+                          <div>Subtotal: ₹${(inspectOrder.subtotal || inspectOrder.total).toLocaleString("en-IN")}</div>
+                          ${inspectOrder.discount > 0 ? `<div>Discount: -₹${inspectOrder.discount.toLocaleString("en-IN")}</div>` : ""}
+                          ${inspectOrder.gst > 0 ? `<div>GST: ₹${inspectOrder.gst.toLocaleString("en-IN")}</div>` : ""}
+                          <div class="total">
+                            <span>Grand Total:</span>
+                            <span style="color:#f97316">₹${inspectOrder.total.toLocaleString("en-IN")}</span>
+                          </div>
+                        </div>
+                        <div class="footer">Thank you for your business! 🙏</div>
+                      </div>
+                      <script>
+                        window.onload = function() {
+                          window.print();
+                        };
+                      </script>
+                    </body>
+                    </html>
+                  `);
+                  printWin.document.close();
                 }}
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer"
               >

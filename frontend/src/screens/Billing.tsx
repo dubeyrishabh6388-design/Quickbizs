@@ -18,16 +18,18 @@ import {
   Coins,
   MessageCircle,
   FileDown,
-  Share2,
+  ShieldCheck,
   AlertTriangle,
   Globe,
-  Loader2
+  Loader2,
+  Share2
 } from "lucide-react";
 import { useBusiness } from "../context/BusinessContext";
 import type { Product } from "../context/BusinessContext";
 import { useProductSearch } from "../hooks/useProductSearch";
 import { motion, AnimatePresence } from "framer-motion";
 import { DynamicProductForm } from "../components/dynamic";
+import { getCategorySearchPlaceholder, getCategoryAttributeBadges } from "../utils/categorySearch";
 
 interface BillingProps {
   setActiveScreen?: (screen: any) => void;
@@ -37,78 +39,38 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
   const { products, customers, addOrder, addCustomer, addProduct, productSchema, businessPreferences } = useBusiness();
   const [protectionCustomer, setProtectionCustomer] = useState<any | null>(null);
 
+  const getProductWarranty = (prod: Product): string | undefined => {
+    if (!prod.customFields) return undefined;
+    try {
+      const c = typeof prod.customFields === "string" ? JSON.parse(prod.customFields) : prod.customFields;
+      const w = c.warranty || c.Warranty || c.warrantyPeriod || undefined;
+      return w ? String(w).trim() : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
   const renderCustomBadges = (prod: Product) => {
     if (!prod.customFields) return null;
-    try {
-      const parsed = JSON.parse(prod.customFields);
-      return (
-        <div className="flex flex-wrap gap-1 mt-1">
-          {Object.entries(parsed).map(([key, val]) => {
-            if (key === "variants" || key === "customFields" || !val) return null;
+    const badges = getCategoryAttributeBadges(prod.customFields, productSchema);
+    if (!badges || badges.length === 0) return null;
 
-            if (key === "expiryDate") {
-              const expDate = new Date(String(val));
-              const now = new Date();
-              const diffMs = expDate.getTime() - now.getTime();
-              const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-              const isNearExpiry = diffDays < 90;
-
-              return (
-                <span 
-                  key={key} 
-                  className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider ${
-                    isNearExpiry 
-                      ? "bg-rose-100 text-rose-700 border border-rose-200 animate-pulse" 
-                      : "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                  }`}
-                >
-                  Exp: {String(val)}
-                </span>
-              );
-            }
-
-            if (key === "prescriptionRequired") {
-              return (
-                <span 
-                  key={key} 
-                  className={`text-[8px] px-1.5 py-0.5 rounded font-extrabold ${
-                    val === "true" 
-                      ? "bg-blue-100 text-blue-800 border border-blue-200" 
-                      : "bg-slate-100 text-slate-500"
-                  }`}
-                >
-                  {val === "true" ? "Rx Required" : "OTC"}
-                </span>
-              );
-            }
-
-            if (key === "sizes" || key === "size") {
-              return (
-                <span key={key} className="text-[8px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded font-black uppercase">
-                  Size: {String(val)}
-                </span>
-              );
-            }
-
-            if (key === "colors" || key === "color") {
-              return (
-                <span key={key} className="text-[8px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded font-bold">
-                  Color: {String(val)}
-                </span>
-              );
-            }
-
-            return (
-              <span key={key} className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold whitespace-nowrap">
-                {key}: {String(val)}
-              </span>
-            );
-          })}
-        </div>
-      );
-    } catch (e) {
-      return null;
-    }
+    return (
+      <div className="flex flex-wrap gap-1 mt-1">
+        {badges.slice(0, 3).map((b) => (
+          <span
+            key={b.key}
+            className={`text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-md font-bold flex items-center gap-1 ${
+              b.key === "warranty"
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                : b.colorClass
+            }`}
+          >
+            {b.key === "warranty" ? "🛡️ " : ""}{b.label}: {b.value}
+          </span>
+        ))}
+      </div>
+    );
   };
   
   // Search & Filters using central hook
@@ -194,7 +156,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
   // Find customer phone number details
   const getSelectedCustomerPhone = () => {
     const cust = customers.find(c => c.id === selectedCustomerId);
-    return cust ? cust.phone : "6388248689"; // fallback mobile number
+    return cust?.phone || "";
   };
 
   // Cart List state
@@ -298,7 +260,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
     total: number;
     paymentMethod: string;
     splitDetails?: { cash: number; upi: number };
-    items: { name: string; quantity: number; price: number }[];
+    items: { name: string; quantity: number; price: number; warranty?: string }[];
     date: string;
   } | null>(null);
 
@@ -491,7 +453,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       items: cart.map(item => ({
         name: item.product.name,
         quantity: item.quantity,
-        price: getItemPrice(item.product, customerGroup)
+        price: getItemPrice(item.product, customerGroup),
+        warranty: getProductWarranty(item.product)
       })),
       date: new Date().toLocaleDateString("en-IN", {
         hour: "2-digit",
@@ -548,7 +511,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
     
     let itemsText = "";
     invoiceReceipt.items.forEach(item => {
-      itemsText += `• ${item.name} x${item.quantity}  =  ₹${(item.price * item.quantity).toLocaleString()}\n`;
+      const warrantyLine = item.warranty ? `   🛡️ Warranty: ${item.warranty}\n` : "";
+      itemsText += `• ${item.name} x${item.quantity}  =  ₹${(item.price * item.quantity).toLocaleString()}\n${warrantyLine}`;
     });
 
     const discountText = invoiceReceipt.discount > 0 
@@ -624,7 +588,10 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
           <div class="section-title">Items Purchased</div>
           ${invoiceReceipt.items.map(item => `
             <div class="item-row">
-              <span>${item.name} <span style="color:#94a3b8">x${item.quantity}</span></span>
+              <div>
+                <span>${item.name} <span style="color:#94a3b8">x${item.quantity}</span></span>
+                ${item.warranty ? `<div style="font-size:11px;color:#059669;font-weight:600;margin-top:2px;">🛡️ Warranty: ${item.warranty}</div>` : ""}
+              </div>
               <span>₹${(item.price * item.quantity).toLocaleString()}</span>
             </div>
           `).join("")}
@@ -653,6 +620,94 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
     link.download = `invoice-${invoiceReceipt.id}.html`;
     link.click();
     showToast(`Compiled & Downloaded Printable Invoice PDF for ${invoiceReceipt.id}!`);
+  };
+
+  const handlePrintReceipt = () => {
+    if (!invoiceReceipt) return;
+    const printWindow = window.open("", "_blank", "width=500,height=700");
+    if (!printWindow) {
+      handleDownloadPDF();
+      return;
+    }
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Invoice ${invoiceReceipt.id}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #1e293b; background: white; margin: 0; }
+          .invoice-card { max-width: 440px; margin: auto; }
+          .header { text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 16px; margin-bottom: 16px; }
+          .logo { font-size: 22px; font-weight: 800; color: #f97316; }
+          .meta { font-size: 11px; color: #64748b; margin-top: 4px; }
+          .section-title { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin: 16px 0 8px 0; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
+          .details-grid { font-size: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-bottom: 16px; }
+          .details-label { color: #64748b; }
+          .details-value { font-weight: 600; text-align: right; }
+          .item-row { display: flex; justify-content: space-between; align-items: flex-start; font-size: 12px; font-weight: 600; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+          .warranty-badge { font-size: 10px; color: #059669; font-weight: 600; margin-top: 2px; }
+          .summary-block { margin-top: 16px; text-align: right; font-size: 11px; color: #64748b; line-height: 1.6; }
+          .total-row { display: flex; justify-content: space-between; font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 10px; border-top: 1px solid #cbd5e1; padding-top: 8px; }
+          .footer { text-align: center; font-size: 10px; color: #94a3b8; margin-top: 24px; border-top: 1px dashed #cbd5e1; padding-top: 12px; }
+          @media print {
+            body { padding: 0; }
+            .invoice-card { max-width: 100%; box-shadow: none; border: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="invoice-card">
+          <div class="header">
+            <div class="logo">QuickBizs Store</div>
+            <div class="meta">Tax Invoice - ${invoiceReceipt.id}</div>
+          </div>
+          <div class="details-grid">
+            <span class="details-label">Customer:</span>
+            <span class="details-value">${invoiceReceipt.customerName}</span>
+            <span class="details-label">Customer Type:</span>
+            <span class="details-value">${invoiceReceipt.customerType}</span>
+            <span class="details-label">Date/Time:</span>
+            <span class="details-value">${invoiceReceipt.date}</span>
+            <span class="details-label">Payment Mode:</span>
+            <span class="details-value">${invoiceReceipt.paymentMethod}</span>
+          </div>
+          
+          <div class="section-title">Items Purchased</div>
+          ${invoiceReceipt.items.map(item => `
+            <div class="item-row">
+              <div>
+                <span>${item.name} <span style="color:#94a3b8">x${item.quantity}</span></span>
+                ${item.warranty ? `<div class="warranty-badge">🛡️ Warranty: ${item.warranty}</div>` : ""}
+              </div>
+              <span>₹${(item.price * item.quantity).toLocaleString()}</span>
+            </div>
+          `).join("")}
+
+          <div class="summary-block">
+            <div>Subtotal: ₹${invoiceReceipt.subtotal.toLocaleString()}</div>
+            ${invoiceReceipt.discount > 0 ? `<div>Discount: -₹${invoiceReceipt.discount.toLocaleString()}</div>` : ""}
+            <div>GST (5%): ₹${invoiceReceipt.gst.toLocaleString()}</div>
+            ${invoiceReceipt.roundOff !== 0 ? `<div>Round Off: ₹${invoiceReceipt.roundOff.toLocaleString()}</div>` : ""}
+            
+            <div class="total-row">
+              <span>Total Charges:</span>
+              <span style="color:#f97316">₹${invoiceReceipt.total.toLocaleString()}</span>
+            </div>
+          </div>
+          <div class="footer">Thank you for shopping with us! 🙏</div>
+        </div>
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        </script>
+      </body>
+      </html>
+    `;
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   const handleSharePDF = async () => {
@@ -1040,7 +1095,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products by name, brand, or barcode..."
+                placeholder={getCategorySearchPlaceholder(productSchema)}
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 sm:py-2.5 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange"
               />
             </div>
@@ -1100,13 +1155,10 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
                             : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-1 flex-wrap">
-                      <div className="flex flex-wrap gap-1 items-center max-w-[80%]">
-                        <span className="text-[9px] sm:text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-md font-bold truncate">
-                          {prod.category}
-                        </span>
-                        {renderCustomBadges(prod)}
-                      </div>
+                    <div className="flex items-start justify-between gap-1">
+                      <span className="text-[9px] sm:text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-md font-bold truncate max-w-[75%]">
+                        {prod.category}
+                      </span>
                       {cartQty > 0 && (
                         <span className="h-4.5 w-4.5 rounded-full bg-brand-orange text-white text-[9px] font-black flex items-center justify-center shrink-0 shadow-2xs">
                           {cartQty}
@@ -1114,7 +1166,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
                       )}
                     </div>
 
-                    <div className="my-1.5">
+                    <div className="my-1.5 flex-1">
                       <h4 className="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm line-clamp-2 leading-tight">
                         {prod.name}
                       </h4>
@@ -1123,6 +1175,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
                           {isOutOfStock ? "Out of Stock" : `${prod.stock} left`}
                         </span>
                       </div>
+                      {renderCustomBadges(prod)}
                     </div>
 
                     <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-1">
@@ -1316,10 +1369,18 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
                 <div className="border-t border-b border-slate-100 py-3 my-2 space-y-2">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Items Purchased</span>
                   {invoiceReceipt.items.map((item, index) => (
-                    <div key={index} className="flex justify-between font-semibold text-slate-755">
-                      <span>
-                        {item.name} <span className="text-slate-400">x{item.quantity}</span>
-                      </span>
+                    <div key={index} className="flex justify-between items-start font-semibold text-slate-700">
+                      <div>
+                        <span>
+                          {item.name} <span className="text-slate-400">x{item.quantity}</span>
+                        </span>
+                        {item.warranty && (
+                          <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-0.5">
+                            <ShieldCheck className="h-3 w-3 text-emerald-500 shrink-0" />
+                            Warranty: {item.warranty}
+                          </div>
+                        )}
+                      </div>
                       <span>₹{(item.price * item.quantity).toLocaleString()}</span>
                     </div>
                   ))}
@@ -1371,10 +1432,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
                   Close Bill
                 </button>
                 <button
-                  onClick={() => {
-                    alert("Printing Invoice to local thermal printer...");
-                    setInvoiceReceipt(null);
-                  }}
+                  onClick={handlePrintReceipt}
                   className="flex-1 py-2.5 bg-brand-navy hover:bg-brand-navy-light text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
                 >
                   <Receipt className="h-4 w-4" />

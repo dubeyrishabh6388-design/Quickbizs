@@ -132,30 +132,38 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
   // Pack size conversion preview
   const packSize = customFields.packSize ? Number(customFields.packSize) : 0;
 
+  // Core fields that are managed separately and should not be duplicated in dynamic sections or customFields
+  const CORE_FIELD_NAMES = useMemo(() => new Set([
+    "name", "category", "unit", "costPrice", "price", "stock", "minStock", "supplierName", "barcode"
+  ]), []);
+
   // Sections configuration
   const dynamicSections = useMemo(() => {
+    let raw: { name: string; fields: VerticalFieldSpec[] }[] = [];
     if (vertical?.sections && Array.isArray(vertical.sections) && vertical.sections.length > 0) {
-      return vertical.sections;
-    }
-    if (vertical?.fields && Array.isArray(vertical.fields) && vertical.fields.length > 0) {
-      // Group fields by section
+      raw = vertical.sections;
+    } else if (vertical?.fields && Array.isArray(vertical.fields) && vertical.fields.length > 0) {
       const map = new Map<string, VerticalFieldSpec[]>();
       for (const f of vertical.fields) {
-        // Skip core fields already handled in main form
-        if (["name", "category", "unit", "costPrice", "price", "stock", "minStock", "supplierName", "barcode"].includes(f.name)) {
-          continue;
-        }
+        if (CORE_FIELD_NAMES.has(f.name)) continue;
         const sec = f.section || "Additional Specifications";
         if (!map.has(sec)) map.set(sec, []);
         map.get(sec)!.push(f);
       }
-      return Array.from(map.entries()).map(([secName, secFields]) => ({
+      raw = Array.from(map.entries()).map(([secName, secFields]) => ({
         name: secName,
         fields: secFields,
       }));
     }
-    return [];
-  }, [vertical]);
+
+    // Filter out duplicate core fields from every section
+    return raw
+      .map((sec: any) => ({
+        ...sec,
+        fields: (sec.fields || []).filter((f: VerticalFieldSpec) => !CORE_FIELD_NAMES.has(f.name)),
+      }))
+      .filter((sec: any) => sec.fields.length > 0);
+  }, [vertical, CORE_FIELD_NAMES]);
 
   // Dynamic price tiers from vertical
   const priceTiers = vertical?.priceTiers || [];
@@ -170,6 +178,7 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
     // Validate vertical dynamic fields
     if (vertical?.fields) {
       for (const field of vertical.fields) {
+        if (CORE_FIELD_NAMES.has(field.name)) continue;
         if (field.required) {
           const val = customFields[field.name];
           if (val === undefined || val === null || val === "") {
@@ -187,6 +196,14 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
     e.preventDefault();
     if (!validate()) return;
 
+    // Filter out core duplicate keys from customFields
+    const cleanCustomFields: Record<string, any> = {};
+    Object.entries(customFields).forEach(([k, v]) => {
+      if (!CORE_FIELD_NAMES.has(k) && v !== undefined && v !== null && v !== "") {
+        cleanCustomFields[k] = v;
+      }
+    });
+
     const payload: DynamicProductFormData = {
       name: name.trim(),
       category: category || "General",
@@ -198,7 +215,7 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
       supplierName: supplierName.trim() || "Standard Supplier",
       barcode: barcode.trim() || undefined,
       customFields: {
-        ...customFields,
+        ...cleanCustomFields,
         ...(batchNumber ? { batchNumber } : {}),
         ...(expiryDate ? { expiryDate } : {}),
         ...(serials.length > 0 ? { serialNumbers: serials } : {}),
@@ -246,7 +263,7 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
                 setName(e.target.value);
                 if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
               }}
-              placeholder="e.g. Bosch Brake Pad, Samsung 43 TV, Amul Milk 1L..."
+              placeholder="e.g. Brake Pad Set, Engine Oil 5W-30, LED Light Bulb..."
               className={`w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 errors.name ? "border-red-400" : "border-slate-300"
               }`}

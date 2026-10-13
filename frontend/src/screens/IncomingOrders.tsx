@@ -438,7 +438,7 @@ export const IncomingOrders: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    const remark = prompt("Enter replacement offer notes (e.g. 'Amul Gold (1L) instead of Amul Slim'):");
+                                    const remark = prompt("Enter replacement offer notes (e.g. 'Alternative brand or pack size'):");
                                     if (remark !== null) {
                                       handleMarkItemPacked(item.id, "NOT_AVAILABLE", remark);
                                     }

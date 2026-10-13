@@ -24,6 +24,7 @@ import {
   Scale,
   Hash
 } from "lucide-react";
+import { useBusiness } from "../context/BusinessContext";
 
 interface Product {
   id: string;
@@ -80,34 +81,6 @@ interface CounterHomeData {
   combos: Combo[];
 }
 
-const smartProductCards = [
-  {
-    name: "🥛 Amul Milk",
-    variants: [
-      { label: "500ml", price: 30, id: "p1" },
-      { label: "1L", price: 60, id: "p1-1L" },
-    ]
-  },
-  {
-    name: "🍫 Dairy Milk",
-    variants: [
-      { label: "₹5", price: 5, id: "p-dm-5" },
-      { label: "₹10", price: 10, id: "p-dm-10" },
-      { label: "₹20", price: 20, id: "p-dm-20" },
-      { label: "₹50", price: 50, id: "p-dm-50" },
-    ]
-  },
-  {
-    name: "🧀 Paneer",
-    variants: [
-      { label: "100g", price: 40, id: "p-pn-100" },
-      { label: "250g", price: 100, id: "p-pn-250" },
-      { label: "500g", price: 200, id: "p-pn-500" },
-    ]
-  }
-];
-
-
 interface CounterModeProps {
   setActiveScreen: (screen: any) => void;
 }
@@ -127,7 +100,16 @@ class WeightMachineAdapter {
 const scaleAdapter = new WeightMachineAdapter();
 
 export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => {
+  const { products, productSchema } = useBusiness();
   const [data, setData] = useState<CounterHomeData | null>(null);
+
+  // Available categories derived dynamically from vertical schema or existing products
+  const availableCategories = React.useMemo(() => {
+    if (productSchema?.categories?.length) return productSchema.categories as string[];
+    const fromProds = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+    if (fromProds.length) return fromProds;
+    return ["General", "Fast Moving", "Spares", "Standard"];
+  }, [productSchema, products]);
   const [sellingMode, setSellingMode] = useState("Counter Speed Business");
   const [rushMode, setRushMode] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -169,7 +151,7 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
   // Quick Product Add Dialog states
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [newProdName, setNewProdName] = useState("");
-  const [newProdCategory, setNewProdCategory] = useState("Milk");
+  const [newProdCategory, setNewProdCategory] = useState("General");
   const [newProdPrice, setNewProdPrice] = useState("");
   const [newProdCostPrice, setNewProdCostPrice] = useState("");
   const [newProdStock, setNewProdStock] = useState("100");
@@ -1526,14 +1508,14 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
             </div>
           </div>
 
-          {/* Smart Product Cards (Tapping triggers Weight & Qty Engine Popover) */}
+          {/* Real Merchant Products Quick Terminal */}
           <div className="bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 p-5 rounded-3xl shadow-sm dark:shadow-slate-950/50 space-y-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider block flex items-center gap-2">
                 <span className="p-1.5 bg-brand-orange/10 rounded-lg text-brand-orange">
                   <Zap className="h-4 w-4" />
                 </span>
-                Smart Product Variants (Tap to select Weight/Qty)
+                Quick Tap Catalog ({products.length} Products)
               </span>
               <button
                 onClick={() => setIsAddProductOpen(true)}
@@ -1544,28 +1526,49 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {smartProductCards.map((card: { name: string; variants: any[] }, idx: number) => (
-                <div key={idx} className="bg-slate-100/60 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between min-h-[145px] hover:border-brand-orange/40 transition-all">
-                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white block mb-3 flex items-center gap-1.5">
-                    {card.name}
-                  </h4>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    {card.variants.map((v: { id: string; label: string; price: number }) => (
-                      <button
-                        key={v.id}
-                        onClick={() => handleProductTap({ id: v.id, name: `${card.name} (${v.label})`, price: v.price, category: card.name })}
-                        className="py-3 px-2.5 bg-white hover:bg-brand-orange/5 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-black rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-orange/40 cursor-pointer shadow-xs hover:shadow transition-all text-center flex flex-col items-center justify-center leading-none group active:scale-95"
-                      >
-                        <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-brand-orange mb-1">{v.label}</span>
-                        <span className="text-xs font-black text-brand-orange">₹{v.price}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            {products.length === 0 ? (
+              <div className="text-center py-10 px-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                  No products in your catalog yet.
+                </p>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Click "Add Product" above or visit the Inventory section to add your items.
+                </p>
+                <button
+                  onClick={() => setIsAddProductOpen(true)}
+                  className="mt-3 px-4 py-2 bg-brand-orange text-white text-xs font-black rounded-xl cursor-pointer inline-flex items-center gap-1 shadow-sm"
+                >
+                  <Plus className="h-4 w-4" /> Add First Product
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-80 overflow-y-auto pr-1">
+                {products.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleProductTap({ id: p.id, name: p.name, price: p.price, category: p.category, barcode: p.barcode })}
+                    className="p-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 hover:border-brand-orange/50 rounded-2xl text-left cursor-pointer flex flex-col justify-between min-h-[85px] active:scale-[0.98] transition-all shadow-xs group"
+                  >
+                    <div>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block truncate mb-1">
+                        {p.category}
+                      </span>
+                      <h5 className="font-extrabold text-xs text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-brand-orange transition-colors">
+                        {p.name}
+                      </h5>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-200/40 dark:border-slate-800">
+                      <span className="text-xs font-black text-brand-orange">
+                        ₹{p.price}
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400">
+                        Stock: {p.stock}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Time-Based Smart Selections Row */}
@@ -1847,14 +1850,11 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
                     onChange={(e) => setNewProdCategory(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-850 dark:text-white outline-none focus:border-brand-orange cursor-pointer"
                   >
-                    <option value="Milk">Milk</option>
-                    <option value="Chocolates">Chocolates</option>
-                    <option value="Paneer">Paneer</option>
-                    <option value="Curd">Curd</option>
-                    <option value="Lassi">Lassi</option>
-                    <option value="Cold Drinks">Cold Drinks</option>
-                    <option value="Biscuits">Biscuits</option>
-                    <option value="Snacks">Snacks</option>
+                    {availableCategories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

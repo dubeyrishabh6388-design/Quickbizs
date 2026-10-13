@@ -1,79 +1,21 @@
 import { prisma } from "../config/prisma";
+import { BUSINESS_TEMPLATES } from "../config/templates";
+import { verticalRegistry } from "../registry";
 
 export class BusinessTemplateService {
   // Predefined templates list
   getStaticTemplates() {
-    return [
-      {
-        businessType: "Dairy Shop",
-        sellingStyle: "Counter Mode",
-        layoutType: "tiles", // Large product tiles
-        categories: ["Milk", "Paneer", "Curd", "Butter", "Ghee", "Chocolate", "Cold Drinks"],
-        defaultUnit: "kg",
-        widgets: ["Milk Sales", "Peak Hours", "Low Stock"],
-        peakHours: [
-          { start: 6, end: 10, desc: "Morning milk rush" },
-          { start: 17, end: 21, desc: "Evening dairy purchase" },
-        ],
-        combos: [
-          { name: "Milk + Bread combo", price: 90, ids: [] },
-          { name: "Paneer + Curd combo", price: 150, ids: [] },
-        ]
-      },
-      {
-        businessType: "Kirana Store",
-        sellingStyle: "Counter Mode",
-        layoutType: "tiles",
-        categories: ["Rice", "Flour", "Oil", "Snacks", "Biscuits", "Beverages", "Household"],
-        defaultUnit: "pcs",
-        widgets: ["Gross Sales", "Recent Orders", "Low Stock"],
-        peakHours: [
-          { start: 8, end: 12, desc: "Morning grocery pick" },
-          { start: 16, end: 20, desc: "Evening rush" },
-        ],
-        combos: []
-      },
-      {
-        businessType: "Clothing Store",
-        sellingStyle: "Retail Mode",
-        layoutType: "categories", // Category-first layout
-        categories: ["Men", "Women", "Kids", "Accessories"],
-        defaultUnit: "pcs",
-        productAttributes: ["Size", "Color", "Fabric", "Brand"],
-        widgets: ["Top Brands", "Size Analytics"],
-        peakHours: [
-          { start: 11, end: 21, desc: "Regular showroom hours" },
-        ],
-        combos: []
-      },
-      {
-        businessType: "Medical Store",
-        sellingStyle: "Retail Mode",
-        layoutType: "search", // Medicine search first
-        categories: ["Tablets", "Syrups", "Creams", "Injections"],
-        defaultUnit: "pcs",
-        productAttributes: ["Batch Number", "Expiry Date", "Manufacturer", "Prescription"],
-        widgets: ["Expiry Alerts", "Fast Selling Medicines"],
-        peakHours: [
-          { start: 9, end: 13, desc: "Morning patients flow" },
-          { start: 17, end: 21, desc: "Evening clinic flow" },
-        ],
-        combos: []
-      },
-      {
-        businessType: "Restaurant",
-        sellingStyle: "Retail Mode",
-        layoutType: "tables", // Table-first layout
-        categories: ["Starters", "Main Course", "Drinks", "Desserts"],
-        defaultUnit: "pcs",
-        widgets: ["Table Occupancy", "Kitchen Queue", "Orders"],
-        peakHours: [
-          { start: 12, end: 15, desc: "Lunch rush" },
-          { start: 19, end: 23, desc: "Dinner rush" },
-        ],
-        combos: []
-      }
-    ];
+    return Object.entries(BUSINESS_TEMPLATES).map(([key, spec]) => ({
+      businessType: spec.name || key,
+      sellingStyle: "Retail Mode",
+      layoutType: "grid",
+      categories: spec.defaultCategories || ["General Items"],
+      defaultUnit: "pcs",
+      productAttributes: spec.customAttributes?.map(a => a.name) || [],
+      widgets: spec.dashboardWidgets || ["Today's Sales", "Low Stock", "Top Products"],
+      peakHours: [],
+      combos: []
+    }));
   }
 
   async getTemplates() {
@@ -81,8 +23,87 @@ export class BusinessTemplateService {
   }
 
   async getTemplate(businessType: string) {
-    const list = this.getStaticTemplates();
-    return list.find((t) => t.businessType.toLowerCase() === businessType.toLowerCase()) || list[0];
+    if (!businessType) {
+      const fallbackSpec = BUSINESS_TEMPLATES["Custom Business"];
+      return {
+        businessType: "Custom Business",
+        sellingStyle: "Retail Mode",
+        layoutType: "grid",
+        categories: fallbackSpec?.defaultCategories || ["General Items"],
+        defaultUnit: "pcs",
+        widgets: fallbackSpec?.dashboardWidgets || ["Today's Sales", "Low Stock", "Top Products"],
+        peakHours: [],
+        combos: []
+      };
+    }
+
+    // 1. Direct template match
+    const spec = BUSINESS_TEMPLATES[businessType];
+    if (spec) {
+      return {
+        businessType: spec.name,
+        sellingStyle: "Retail Mode",
+        layoutType: "grid",
+        categories: spec.defaultCategories || ["General Items"],
+        defaultUnit: "pcs",
+        productAttributes: spec.customAttributes?.map(a => a.name),
+        widgets: spec.dashboardWidgets || ["Today's Sales", "Low Stock", "Top Products"],
+        peakHours: [],
+        combos: []
+      };
+    }
+
+    // 2. Case-insensitive template match
+    const matchedKey = Object.keys(BUSINESS_TEMPLATES).find(
+      k => k.toLowerCase() === businessType.toLowerCase()
+    );
+    if (matchedKey) {
+      const foundSpec = BUSINESS_TEMPLATES[matchedKey];
+      return {
+        businessType: foundSpec.name,
+        sellingStyle: "Retail Mode",
+        layoutType: "grid",
+        categories: foundSpec.defaultCategories || ["General Items"],
+        defaultUnit: "pcs",
+        productAttributes: foundSpec.customAttributes?.map(a => a.name),
+        widgets: foundSpec.dashboardWidgets || ["Today's Sales", "Low Stock", "Top Products"],
+        peakHours: [],
+        combos: []
+      };
+    }
+
+    // 3. Declarative Vertical Registry resolution
+    const vertDef = verticalRegistry.resolve(businessType);
+    if (vertDef && vertDef.id !== "GENERIC_RETAIL") {
+      const categories = vertDef.defaultCategories && vertDef.defaultCategories.length > 0
+        ? vertDef.defaultCategories
+        : [vertDef.displayName, "General Items"];
+
+      return {
+        businessType: vertDef.displayName,
+        sellingStyle: "Retail Mode",
+        layoutType: "grid",
+        categories,
+        defaultUnit: vertDef.units?.[0] || "pcs",
+        productAttributes: vertDef.fields?.filter((f: any) => !["name", "category", "price", "stock"].includes(f.name)).map((f: any) => f.label || f.name),
+        widgets: vertDef.dashboard?.metrics || ["Today's Sales", "Low Stock", "Top Products"],
+        peakHours: [],
+        combos: []
+      };
+    }
+
+    // 4. Safe Generic Custom Retail fallback (NEVER dairy or mock data)
+    const fallbackSpec = BUSINESS_TEMPLATES["Custom Business"];
+    return {
+      businessType: businessType || "Custom Business",
+      sellingStyle: "Retail Mode",
+      layoutType: "grid",
+      categories: fallbackSpec?.defaultCategories || ["General Items"],
+      defaultUnit: "pcs",
+      widgets: fallbackSpec?.dashboardWidgets || ["Today's Sales", "Low Stock", "Top Products"],
+      peakHours: [],
+      combos: []
+    };
   }
 
   async applyTemplate(

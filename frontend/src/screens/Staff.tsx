@@ -162,20 +162,7 @@ export const Staff: React.FC = () => {
         }
 
         workingDaysCount++;
-        let status: "Present" | "Absent" | "Late" = "Present";
-        if (emp.name.toLowerCase().includes("rohit")) {
-          if (d === 2 || d === 9 || d === 15) status = "Absent";
-          else if (d === 6) status = "Late";
-        } else if (emp.name.toLowerCase().includes("sunil")) {
-          if (d === 4 || d === 12) status = "Absent";
-          else if (d === 8) status = "Late";
-        } else if (emp.name.toLowerCase().includes("aarti")) {
-          if (d === 11) status = "Absent";
-          else if (d === 14) status = "Late";
-        } else {
-          if (d % 8 === 0) status = "Absent";
-          else if (d % 6 === 0) status = "Late";
-        }
+        const status: "Present" | "Absent" | "Late" = (emp.status === "Absent" || emp.status === "Late") ? emp.status : "Present";
 
         if (status === "Present") {
           presentDays++;

@@ -26,13 +26,15 @@ export const Customers: React.FC = () => {
   const isElect = bType.toLowerCase().includes("electr");
   const isHardware = bType.toLowerCase().includes("hardw");
 
-  const customerTypeOptions = isAuto 
-    ? ["Retail Customer", "Mechanic", "Workshop", "Dealer"]
-    : isElect
-    ? ["Retail Customer", "Contractor", "Electrician", "Wholesale"]
-    : isHardware
-    ? ["Retail Customer", "Contractor", "Fabricator", "Wholesale"]
-    : ["Retail Customer", "Wholesale Customer", "Regular Member"];
+  const customerTypeOptions: string[] = React.useMemo(() => {
+    if (productSchema?.customerTypes && Array.isArray(productSchema.customerTypes) && productSchema.customerTypes.length > 0) {
+      return productSchema.customerTypes.map((ct: any) => String(ct.label || ct.key));
+    }
+    if (isAuto) return ["Retail Customer", "Mechanic", "Workshop", "Dealer"];
+    if (isElect) return ["Retail Customer", "Contractor", "Electrician", "Wholesale"];
+    if (isHardware) return ["Retail Customer", "Contractor", "Fabricator", "Wholesale"];
+    return ["Retail Customer", "Wholesale Customer", "Regular Member"];
+  }, [productSchema, isAuto, isElect, isHardware]);
 
   // Add Customer Modal
   const [isAddOpen, setIsAddOpen] = useState(false);

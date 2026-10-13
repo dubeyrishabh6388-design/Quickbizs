@@ -31,9 +31,9 @@ export const AIAssistantScreen: React.FC = () => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [isRefreshingForecast, setIsRefreshingForecast] = useState(false);
   const [forecastData, setForecastData] = useState<{ demandPrediction: string; rosterSuggestion: string; cashflowAdvice: string }>({
-    demandPrediction: "Tomorrow's footfall will peak in the morning (08:00 - 11:00 AM) and evening. Ensure fresh staples are restocked.",
-    rosterSuggestion: "Billing cashier station should be staffed by 08:30 AM. Assign floor backup for restocking shelves.",
-    cashflowAdvice: "Send polite WhatsApp reminders to top Khata accounts over ₹1,000 to maximize working capital."
+    demandPrediction: "Analyzing inventory and demand patterns...",
+    rosterSuggestion: "Analyzing staff scheduling...",
+    cashflowAdvice: "Evaluating cashflow and customer credit..."
   });
 
   const chatEndRef = useRef<HTMLDivElement>(null);

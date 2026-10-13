@@ -11,6 +11,7 @@ import { useBusiness } from "../context/BusinessContext";
 import type { Product } from "../context/BusinessContext";
 import { api } from "../config/api";
 import { DynamicProductForm } from "../components/dynamic";
+import { getCategorySearchPlaceholder, getCategoryAttributeBadges } from "../utils/categorySearch";
 
 export const Inventory: React.FC = () => {
   const { products, updateProductStock, addProduct, productSchema } = useBusiness();
@@ -122,7 +123,7 @@ export const Inventory: React.FC = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search product by name or barcode..."
+            placeholder={getCategorySearchPlaceholder(productSchema)}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 sm:py-2.5 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange"
@@ -160,12 +161,7 @@ export const Inventory: React.FC = () => {
             const reserved = inv?.reservedQuantity ?? 0;
             const isLowStock = p.stock <= p.minStock;
 
-            let custom: Record<string, any> = {};
-            if (p.customFields) {
-              try {
-                custom = typeof p.customFields === "string" ? JSON.parse(p.customFields) : p.customFields;
-              } catch (e) {}
-            }
+            const badges = getCategoryAttributeBadges(p.customFields, productSchema);
 
             return (
               <div 
@@ -190,98 +186,19 @@ export const Inventory: React.FC = () => {
                   </h3>
 
                   {/* Category-Aware Attribute Tags */}
-                  <div className="flex flex-wrap gap-1 pt-0.5">
-                    {custom.partNumber && (
-                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 truncate max-w-full">
-                        PN: {custom.partNumber}
-                      </span>
-                    )}
-                    {custom.oemNumber && (
-                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 truncate max-w-full">
-                        OEM: {custom.oemNumber}
-                      </span>
-                    )}
-                    {custom.brand && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 truncate max-w-full">
-                        {custom.brand}
-                      </span>
-                    )}
-                    {custom.vehicleModel && (
-                      <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-full">
-                        Fit: {custom.vehicleModel}
-                      </span>
-                    )}
-                    {(custom.rack || custom.bin) && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 truncate">
-                        Loc: {custom.rack ? `R:${custom.rack}` : ""}{custom.bin ? ` B:${custom.bin}` : ""}
-                      </span>
-                    )}
-                    {custom.wattage && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
-                        {custom.wattage}
-                      </span>
-                    )}
-                    {custom.voltage && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
-                        {custom.voltage}
-                      </span>
-                    )}
-                    {custom.wireGauge && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
-                        Gauge: {custom.wireGauge}
-                      </span>
-                    )}
-                    {custom.material && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                        {custom.material}
-                      </span>
-                    )}
-                    {custom.size && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                        Size: {custom.size}
-                      </span>
-                    )}
-                    {custom.specification && (
-                      <span className="text-[8px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 truncate max-w-full">
-                        Spec: {custom.specification}
-                      </span>
-                    )}
-                    {custom.warranty && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                        War: {custom.warranty}
-                      </span>
-                    )}
-                    {custom.wholesalePrice && (
-                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400">
-                        Whl: ₹{custom.wholesalePrice}
-                      </span>
-                    )}
-                    {custom.mechanicPrice && (
-                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-600 dark:text-orange-400">
-                        Mech: ₹{custom.mechanicPrice}
-                      </span>
-                    )}
-                    {custom.contractorPrice && (
-                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
-                        Contr: ₹{custom.contractorPrice}
-                      </span>
-                    )}
-                    {custom.electricianPrice && (
-                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                        Elec: ₹{custom.electricianPrice}
-                      </span>
-                    )}
-                    {custom.expiryDate && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                        Exp: {custom.expiryDate}
-                      </span>
-                    )}
-                    {custom.moq && (
-                      <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                        MOQ: {custom.moq}
-                      </span>
-                    )}
-                  </div>
+                  {badges.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-0.5">
+                      {badges.map((b) => (
+                        <span
+                          key={b.key}
+                          className={`text-[8px] font-bold px-1.5 py-0.5 rounded truncate max-w-full ${b.colorClass}`}
+                          title={`${b.label}: ${b.value}`}
+                        >
+                          {b.label}: {b.value}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400 pt-1">
                     <span>₹{p.price}</span>
