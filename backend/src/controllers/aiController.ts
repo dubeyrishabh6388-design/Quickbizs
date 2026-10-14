@@ -1,16 +1,17 @@
-import { Request, Response, NextFunction } from "express";
-import { GeminiService, StoreContextSnapshot } from "../services/geminiService";
-import { prisma } from "../config/prisma";
+import { Response, NextFunction } from "express";
+import { AuthenticatedRequest } from "../middlewares/auth";
+import { AIContextService } from "../services/aiContextService";
+import { GroqService } from "../services/groqService";
 import { logger } from "../utils/logger";
 
 export class AIController {
   /**
-   * POST /api/ai/chat
-   * Chat with Gemini AI with live store data
+   * POST /api/v1/ai/chat
+   * Chat with Quickbizs AI Copilot using verified business context
    */
-  public static async chat(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public static async chat(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { query, storeContext } = req.body;
+      const { query } = req.body;
 
       if (!query || typeof query !== "string" || !query.trim()) {
         res.status(400).json({
@@ -20,101 +21,81 @@ export class AIController {
         return;
       }
 
-      const businessId = (req as any).user?.businessId || req.headers["x-business-id"] as string;
-      let enrichedContext: StoreContextSnapshot = storeContext || {};
-
-      // If businessId is available, enrich with database records if not fully supplied
-      if (businessId && (!storeContext || !storeContext.todaySales)) {
-        try {
-          const business = await prisma.business.findUnique({
-            where: { id: businessId },
-            select: { name: true, businessType: true }
-          });
-
-          if (business) {
-            enrichedContext.storeName = enrichedContext.storeName || business.name;
-            enrichedContext.businessType = enrichedContext.businessType || business.businessType || "Retail Store";
-          }
-
-          // Fetch low stock items from inventory
-          const lowStock = await prisma.inventory.findMany({
-            where: {
-              businessId,
-              stock: { lte: 10 }
-            },
-            take: 10,
-            select: {
-              product: { select: { name: true, price: true } },
-              stock: true,
-              minStock: true
-            }
-          });
-
-          if (lowStock.length > 0 && !enrichedContext.lowStockItems) {
-            enrichedContext.lowStockItems = lowStock.map(i => ({
-              name: i.product?.name || "Unknown Product",
-              stock: i.stock,
-              minStock: i.minStock || 10,
-              price: Number(i.product?.price || 0)
-            }));
-          }
-
-          // Fetch top pending Udhaar customers
-          const udhaarCusts = await prisma.customer.findMany({
-            where: {
-              businessId,
-              pendingAmount: { gt: 0 }
-            },
-            orderBy: { pendingAmount: "desc" },
-            take: 5,
-            select: { name: true, mobile: true, pendingAmount: true }
-          });
-
-          if (udhaarCusts.length > 0 && !enrichedContext.topUdhaarCustomers) {
-            enrichedContext.topUdhaarCustomers = udhaarCusts.map(c => ({
-              name: c.name,
-              phone: c.mobile || undefined,
-              pendingDues: Number(c.pendingAmount)
-            }));
-            enrichedContext.totalOutstandingUdhaar = udhaarCusts.reduce((acc, c) => acc + Number(c.pendingAmount), 0);
-          }
-        } catch (dbErr: any) {
-          logger.warn(`Could not enrich AI context from DB: ${dbErr?.message || dbErr}`);
-        }
+      // Strictly enforce verified tenant scope from authenticated JWT session
+      const businessId = req.user?.tenantId || req.user?.businessId;
+      if (!businessId) {
+        res.status(401).json({
+          success: false,
+          message: "Unauthorized: Missing verified business tenant identity."
+        });
+        return;
       }
 
-      logger.info(`Processing store AI query: "${query}" for ${enrichedContext.storeName || "Store"}`);
-      const aiReply = await GeminiService.askStoreAI(query, enrichedContext);
+      logger.info(`[QuickBizs AI] Processing store query for tenant: ${businessId} ("${query.slice(0, 50)}...")`);
+
+      // 1. Fetch deterministic database context for the authenticated business
+      const { computed, formattedPromptContext } = await AIContextService.getStoreContext(businessId, query.trim());
+
+      // 2. Query QuickBizs AI Engine
+      const aiReply = await GroqService.askStoreAI(query.trim(), formattedPromptContext, computed);
 
       res.status(200).json({
         success: true,
         reply: aiReply,
-        storeName: enrichedContext.storeName,
+        storeName: computed.storeName,
+        metrics: {
+          todaySales: computed.todaySales,
+          thisMonthSales: computed.thisMonthSales,
+          lowStockCount: computed.lowStockItems.length,
+          outstandingUdhaar: computed.totalOutstandingUdhaar
+        },
         timestamp: new Date().toISOString()
       });
-    } catch (error) {
-      logger.error("AI Controller chat error:", error);
-      next(error);
+    } catch (error: any) {
+      logger.error("[QuickBizs AI] Controller chat error:", error);
+      res.status(500).json({
+        success: false,
+        message: "An error occurred while consulting the store intelligence assistant. Please try again.",
+        timestamp: new Date().toISOString()
+      });
     }
   }
 
   /**
-   * POST /api/ai/forecast
-   * Next-day demand and roster forecasting
+   * POST /api/v1/ai/forecast
+   * Next-day operational demand, roster, and cashflow forecast grounded in real metrics
    */
-  public static async forecast(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public static async forecast(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { storeContext } = req.body;
-      const forecast = await GeminiService.getStoreForecast(storeContext);
+      const businessId = req.user?.tenantId || req.user?.businessId;
+      if (!businessId) {
+        res.status(401).json({
+          success: false,
+          message: "Unauthorized: Missing verified business tenant identity."
+        });
+        return;
+      }
+
+      logger.info(`[QuickBizs AI] Compiling operational forecast for tenant: ${businessId}`);
+
+      // 1. Fetch deterministic store context
+      const { computed, formattedPromptContext } = await AIContextService.getStoreContext(businessId);
+
+      // 2. Generate grounded forecast via QuickBizs AI
+      const forecast = await GroqService.getStoreForecast(formattedPromptContext, computed);
 
       res.status(200).json({
         success: true,
         forecast,
         timestamp: new Date().toISOString()
       });
-    } catch (error) {
-      logger.error("AI Controller forecast error:", error);
-      next(error);
+    } catch (error: any) {
+      logger.error("[QuickBizs AI] Controller forecast error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Unable to compile operational forecast at this time.",
+        timestamp: new Date().toISOString()
+      });
     }
   }
 }

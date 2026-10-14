@@ -232,7 +232,7 @@ export const DeepDataAnalyzer: React.FC<DeepDataAnalyzerProps> = ({ onNavigateTo
     }, 750);
   };
 
-  // Generate Deep AI Audit via Gemini
+  // Generate Deep AI Audit via QuickBizs AI
   const handleGenerateAiAudit = async () => {
     setIsGeneratingAiAudit(true);
     try {
@@ -294,7 +294,7 @@ Estimate how much monthly revenue can be unlocked.`;
                 Store Intelligence Engine
               </span>
               <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/25">
-                Gemini 3.6 Flash Synced
+                QuickBizs AI Synced
               </span>
             </div>
             
@@ -427,7 +427,7 @@ Estimate how much monthly revenue can be unlocked.`;
               }`}
             >
               <Sparkles className="h-4 w-4" />
-              <span>Gemini AI Deep Audit</span>
+              <span>QuickBizs AI Deep Audit</span>
             </button>
           </div>
 
@@ -907,7 +907,7 @@ Estimate how much monthly revenue can be unlocked.`;
             </div>
           )}
 
-          {/* TAB 5: GEMINI AI DEEP AUDIT */}
+          {/* TAB 5: QUICKBIZS AI DEEP AUDIT */}
           {activeTab === "ai-audit" && (
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
@@ -917,7 +917,7 @@ Estimate how much monthly revenue can be unlocked.`;
                   </div>
                   <div>
                     <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                      Gemini 3.6 Flash Deep Audit Report
+                      QuickBizs AI Deep Audit Report
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Live store diagnostic tailored to your exact store inventory, sales, and Khata numbers
@@ -964,16 +964,16 @@ Estimate how much monthly revenue can be unlocked.`;
                     <span className="h-3 w-3 rounded-full bg-brand-orange animate-bounce [animation-delay:0.4s]"></span>
                   </div>
                   <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                    Gemini 3.6 Flash is analyzing your store's live financial data and formulating instructions...
+                    QuickBizs AI is analyzing your store's live financial data and formulating instructions...
                   </p>
                 </div>
               ) : aiAuditReport ? (
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-750">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-755">
                   <AIMarkdownRenderer content={aiAuditReport} />
                 </div>
               ) : (
                 <div className="py-12 text-center text-slate-500 text-xs">
-                  Click "Re-Run AI Audit" to generate an executive report from Google Gemini.
+                  Click "Re-Run AI Audit" to generate an executive report from QuickBizs AI.
                 </div>
               )}
             </div>

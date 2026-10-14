@@ -17,6 +17,8 @@ export interface Environment {
   dbName?: string;
   dbSsl?: boolean;
   dbConnectionLimit?: number;
+  groqApiKey?: string;
+  groqModel?: string;
 }
 
 // Ensure database configuration exists (either DATABASE_URL or decomposed DB variables)
@@ -60,6 +62,8 @@ export const env: Environment = {
   dbName: process.env.DB_NAME,
   dbSsl: process.env.DB_SSL === "true",
   dbConnectionLimit: process.env.DB_CONNECTION_LIMIT ? parseInt(process.env.DB_CONNECTION_LIMIT, 10) : 10,
+  groqApiKey: process.env.GROQ_API_KEY || "",
+  groqModel: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
 };
 
 /**

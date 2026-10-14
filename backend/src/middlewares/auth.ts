@@ -5,6 +5,7 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     tenantId: string;
+    businessId: string;
     role: string;
     email?: string;
     employeeId?: string;
@@ -24,9 +25,11 @@ export const requireAuth = async (
     // Verify JWT access token
     const decoded = verifyToken(token);
     if (decoded) {
+      const bId = decoded.businessId || "";
       req.user = {
         id: decoded.userId,
-        tenantId: decoded.businessId || "",
+        tenantId: bId,
+        businessId: bId,
         role: decoded.role,
         employeeId: decoded.userId,
       };
@@ -39,9 +42,11 @@ export const requireAuth = async (
   const devTenant = req.headers["x-tenant-id"] as string;
 
   if (devRole || devTenant) {
+    const bId = devTenant || "t1";
     req.user = {
       id: "dev-mock-employee",
-      tenantId: devTenant || "t1",
+      tenantId: bId,
+      businessId: bId,
       role: devRole || "Owner",
       employeeId: "dev-mock-employee",
     };

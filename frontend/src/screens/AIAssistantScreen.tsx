@@ -22,7 +22,7 @@ export const AIAssistantScreen: React.FC = () => {
   const [messages, setMessages] = useState<{ sender: "user" | "ai"; text: string; time: string }[]>([
     {
       sender: "ai",
-      text: "Namaste! I am your QuickBizs AI Business Copilot powered by Google Gemini. I have live access to your inventory, bills, customer Udhaar ledger, and staff attendance. Ask me anything about your business data!",
+      text: "Namaste! I am your QuickBizs AI Business Copilot — your store's built-in intelligent partner. I have complete real-time access to your inventory, bills, customer Udhaar ledger, expenses, and staff attendance. Ask me anything about your business data!",
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -124,7 +124,7 @@ export const AIAssistantScreen: React.FC = () => {
                 QuickBizs AI Assistant
               </h1>
               <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                Gemini 3.6 Flash Active
+                QuickBizs AI Active
               </span>
             </div>
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
@@ -343,7 +343,7 @@ export const AIAssistantScreen: React.FC = () => {
               <div className="h-2.5 w-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Active AI Intelligence Session</span>
             </div>
-            <span className="text-[10px] font-semibold text-slate-400">Context: Live Store Database · Gemini 3.6 Flash</span>
+            <span className="text-[10px] font-semibold text-slate-400">Context: Live Store Database · QuickBizs AI Engine</span>
           </div>
 
           {/* Chat Messages */}
@@ -422,7 +422,7 @@ export const AIAssistantScreen: React.FC = () => {
                     <span className="h-2 w-2 rounded-full bg-brand-orange animate-bounce [animation-delay:0.4s]"></span>
                   </div>
                   <span className="text-xs font-semibold">
-                    Gemini AI is analyzing live store data...
+                    QuickBizs AI is analyzing live store data...
                   </span>
                 </div>
               </div>

@@ -28,7 +28,7 @@ export const AIAssistPanel: React.FC = () => {
 
   const initialGreeting = {
     sender: "ai" as const,
-    text: "Namaste! I am your **QuickBizs AI Copilot** powered by **Google Gemini 3.6 Flash**.\n\nI have direct access to your live inventory, today's sales bills, Udhaar Khata ledger, and staff attendance. Ask me anything about your store or choose a quick prompt below!",
+    text: "Namaste! I am your **QuickBizs AI Copilot** — your store's built-in intelligent partner.\n\nI have complete real-time access to your store's inventory, sales bills, customer Khata Udhaar, expenses, and staff attendance. Ask me anything about your business or pick a prompt below!",
     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   };
 
@@ -146,7 +146,7 @@ export const AIAssistPanel: React.FC = () => {
                     </h3>
                     <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      Gemini 3.6
+                      QuickBizs AI
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400 font-medium">
@@ -265,7 +265,7 @@ export const AIAssistPanel: React.FC = () => {
                         {/* Actions for AI responses */}
                         {msg.sender === "ai" && (
                           <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500">
-                            <span>QuickBizs Gemini Copilot</span>
+                            <span>QuickBizs AI Copilot</span>
                             <button
                               onClick={() => handleCopy(msg.text, i)}
                               className="hover:text-slate-300 transition-colors flex items-center gap-1 cursor-pointer"
@@ -357,7 +357,7 @@ export const AIAssistPanel: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between text-[9px] text-slate-500 px-1">
-                <span>Gemini 3.6 Flash · Instant store analytics</span>
+                <span>QuickBizs Proprietary AI · Real-time store analytics</span>
                 <span>Press Enter to send</span>
               </div>
             </form>

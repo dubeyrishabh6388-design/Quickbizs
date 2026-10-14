@@ -1317,7 +1317,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   };
 
-  // Real AI Store Intelligence powered by Google Gemini 3.6 Flash
+  // QuickBizs Autonomous AI Store Intelligence
   const askAI = async (query: string): Promise<string> => {
     // 1. Prepare live store context snapshot
     const todaySales = orders.reduce((acc, o) => acc + (o.total || 0), 0);
@@ -1366,46 +1366,17 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       totalExpenses
     };
 
-    // 2. Primary: Call Backend AI Endpoint
+    // 2. Primary: Call Backend QuickBizs AI Endpoint (Authenticated & Multi-Tenant Verified)
     try {
       const res = await api.post("/ai/chat", { query, storeContext });
       if (res.data?.success && res.data?.reply) {
         return res.data.reply;
       }
     } catch (backendErr) {
-      console.warn("Backend AI endpoint unavailable, using direct Gemini fallback:", backendErr);
+      console.warn("Backend AI endpoint unavailable, falling back to local store metrics:", backendErr);
     }
 
-    // 3. Secondary: Direct Gemini 3.6 Flash Fallback
-    const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
-    const geminiModel = import.meta.env.VITE_GEMINI_MODEL || "gemini-3.6-flash";
-    try {
-      const systemInstruction = `You are QuickBizs AI Store Partner for Indian retail merchants.
-Use this live store database to answer the merchant accurately with numbers, currency amounts (₹), customer names, and practical Kirana/Retail advice:
-${JSON.stringify(storeContext, null, 2)}
-
-Merchant question: ${query}`;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: systemInstruction }] }]
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (reply && reply.trim()) {
-          return reply.trim();
-        }
-      }
-    } catch (directErr) {
-      console.error("Direct Gemini API error:", directErr);
-    }
-
-    // 4. Local Heuristic Analysis Fallback
+    // 3. Deterministic Local Store Analysis Fallback (if backend is offline)
     if (lowStockItems.length > 0 && (query.toLowerCase().includes("stock") || query.toLowerCase().includes("reorder"))) {
       return `### 📦 Urgent Reorder Proposals\nYou have **${lowStockItems.length} products** low on stock: ${lowStockItems.map(p => `${p.name} (${p.stock} units left)`).join(", ")}. Please raise purchase orders today!`;
     }
