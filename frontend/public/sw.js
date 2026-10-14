@@ -1,8 +1,6 @@
 /* QuickBizs Progressive Web App Service Worker */
-const CACHE_NAME = "quickbizs-pwa-v1";
+const CACHE_NAME = "quickbizs-pwa-v2";
 const STATIC_ASSETS = [
-  "/",
-  "/index.html",
   "/manifest.json",
   "/favicon.jpg",
   "/pwa-icon.svg",
@@ -10,7 +8,7 @@ const STATIC_ASSETS = [
   "/pwa-512.png"
 ];
 
-// 1. Install event: Cache critical shell assets & skip waiting
+// 1. Install event: Cache essential assets & force activation
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -22,13 +20,14 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// 2. Activate event: Clean up previous version caches & claim clients
+// 2. Activate event: Clean up previous version caches & claim all open client tabs
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log("[PWA SW] Purging obsolete cache:", key);
             return caches.delete(key);
           }
         })
@@ -37,18 +36,18 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// 3. Fetch event: Stale-while-revalidate for assets, Network-first for APIs
+// 3. Fetch event
 self.addEventListener("fetch", (event) => {
   const request = event.request;
 
-  // Skip non-GET requests or chrome-extension URLs
+  // Skip non-GET requests or browser extension URLs
   if (request.method !== "GET" || !request.url.startsWith("http")) {
     return;
   }
 
   const url = new URL(request.url);
 
-  // Network-first for dynamic API calls
+  // Network-First for dynamic API calls
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(
       fetch(request).catch(() => {
@@ -58,7 +57,26 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Stale-while-revalidate for static application assets
+  // Network-First for HTML navigation (ensures browsers ALWAYS load latest deployed build on Render)
+  if (request.mode === "navigate" || request.destination === "document") {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          // Offline fallback
+          return caches.match(request) || caches.match("/");
+        })
+    );
+    return;
+  }
+
+  // Stale-while-revalidate for hashed static assets
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       const fetchPromise = fetch(request).then((networkResponse) => {
@@ -70,10 +88,7 @@ self.addEventListener("fetch", (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // If both cache and network fail for HTML navigation, return cached root
-        if (request.mode === "navigate") {
-          return caches.match("/");
-        }
+        return cachedResponse;
       });
 
       return cachedResponse || fetchPromise;
