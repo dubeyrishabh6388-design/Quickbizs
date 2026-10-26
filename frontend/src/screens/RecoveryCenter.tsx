@@ -219,7 +219,7 @@ export const RecoveryCenter: React.FC<RecoveryCenterProps> = ({ setActiveScreen 
       {isLoading && !data ? (
         <div className="p-16 flex flex-col items-center justify-center gap-3">
           <Loader2 className="h-10 w-10 text-brand-orange animate-spin" />
-          <span className="text-xs font-bold text-slate-400">Loading Recovery Dashboard...</span>
+          <span className="text-xs font-bold text-slate-400 tracking-wide">Compiling debt recovery analytics & Khata dues...</span>
         </div>
       ) : !data ? (
         <div className="p-12 text-center text-xs text-slate-400">Failed to compile metrics.</div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../config/api";
+import { AppSplashScreen } from "../components/common/AppSplashScreen";
 import { 
   Store, 
   Heart, 
@@ -215,14 +216,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ handleLogo
   };
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900 px-6">
-        <div className="flex flex-col items-center gap-4 max-w-sm text-center">
-          <div className="w-12 h-12 border-4 border-brand-orange border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wider uppercase">Loading Customer PWA Profile...</p>
-        </div>
-      </div>
-    );
+    return <AppSplashScreen variant="customer" />;
   }
 
   return (

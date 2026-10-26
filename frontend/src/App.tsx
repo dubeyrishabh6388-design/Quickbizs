@@ -24,6 +24,7 @@ import { Login } from "./screens/Login";
 import { CustomerDashboard } from "./screens/CustomerDashboard";
 import { IncomingOrders } from "./screens/IncomingOrders";
 import { PWAInstallModal } from "./components/PWAInstallModal";
+import { AppSplashScreen } from "./components/common/AppSplashScreen";
 import { 
   LayoutDashboard, 
   Receipt, 
@@ -267,14 +268,7 @@ function AppContent() {
   };
 
   if (isAuthLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-900 text-slate-400 font-sans">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-brand-orange border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-xs font-bold tracking-wider uppercase">Loading Session Ledger...</span>
-        </div>
-      </div>
-    );
+    return <AppSplashScreen variant="merchant" />;
   }
 
   if (!isAuthenticated) {

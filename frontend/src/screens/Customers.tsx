@@ -574,7 +574,10 @@ export const Customers: React.FC = () => {
               <div className="space-y-2">
                 <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Pickup Order History</h4>
                 {loadingProfileData ? (
-                  <div className="py-8 text-center text-xs text-slate-500 font-bold">Loading order ledger history...</div>
+                  <div className="py-8 flex flex-col items-center justify-center gap-2 text-slate-400">
+                    <div className="w-5 h-5 border-2 border-brand-orange border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-xs font-semibold text-slate-400">Retrieving customer order history...</span>
+                  </div>
                 ) : customerOrders.length === 0 ? (
                   <div className="py-8 text-center text-xs text-slate-500 italic font-medium">No pickup orders recorded for this customer account.</div>
                 ) : (

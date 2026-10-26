@@ -386,7 +386,7 @@ export const Tasks: React.FC = () => {
         {loading ? (
           <div className="h-64 flex flex-col items-center justify-center gap-3">
             <div className="w-8 h-8 border-4 border-brand-orange border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Auditing Task Ledger...</span>
+            <span className="text-xs text-slate-400 font-bold tracking-wider">Synchronizing store tasks & approvals...</span>
           </div>
         ) : filteredTasks.length === 0 ? (
           <div className="h-64 flex flex-col items-center justify-center text-slate-500 gap-2 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900">
