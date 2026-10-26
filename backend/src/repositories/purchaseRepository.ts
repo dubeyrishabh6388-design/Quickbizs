@@ -1,4 +1,5 @@
 import { prisma } from "../config/prisma";
+import { normalizeIdentifier } from "../utils/identifierUtils";
 
 export class PurchaseRepository {
   async findMany(params: {
@@ -165,6 +166,21 @@ export class PurchaseRepository {
         remainingQuantity: number;
         status: string;
       }[];
+      serialReceipts?: {
+        purchaseItemId: string;
+        productId: string;
+        serials: { serialNumber: string; imei1?: string; imei2?: string; costPrice?: number }[];
+      }[];
+      batchReceipts?: {
+        purchaseItemId: string;
+        productId: string;
+        batchNumber: string;
+        expiryDate?: Date;
+        quantity: number;
+        costPrice: number;
+        salePrice: number;
+        mrp?: number;
+      }[];
       automationLog: any;
     }
   ) {
@@ -177,6 +193,138 @@ export class PurchaseRepository {
         receivedBy: params.grn.receivedBy,
         remarks: params.grn.remarks || null,
       };
+
+      // 2. Ingest Serialized Units if provided
+      if (params.serialReceipts && params.serialReceipts.length > 0) {
+        for (const receipt of params.serialReceipts) {
+          for (const s of receipt.serials) {
+            const normSerial = normalizeIdentifier(s.serialNumber);
+            const normImei1 = s.imei1 ? normalizeIdentifier(s.imei1) : null;
+            const normImei2 = s.imei2 ? normalizeIdentifier(s.imei2) : null;
+
+            const serial = await tx.productSerial.create({
+              data: {
+                businessId,
+                productId: receipt.productId,
+                purchaseItemId: receipt.purchaseItemId,
+                serialNumber: normSerial,
+                imei1: normImei1,
+                imei2: normImei2,
+                status: "IN_STOCK",
+                costPrice: s.costPrice || 0,
+              },
+            });
+
+            await tx.deviceIdentifier.create({
+              data: {
+                businessId,
+                serialId: serial.id,
+                identifierType: "SERIAL_NUMBER",
+                identifierValue: normSerial,
+              },
+            });
+
+            if (normImei1) {
+              await tx.deviceIdentifier.create({
+                data: {
+                  businessId,
+                  serialId: serial.id,
+                  identifierType: "IMEI1",
+                  identifierValue: normImei1,
+                },
+              });
+            }
+
+            if (normImei2) {
+              await tx.deviceIdentifier.create({
+                data: {
+                  businessId,
+                  serialId: serial.id,
+                  identifierType: "IMEI2",
+                  identifierValue: normImei2,
+                },
+              });
+            }
+
+            await tx.serialAuditLog.create({
+              data: {
+                businessId,
+                serialId: serial.id,
+                action: "GOODS_RECEIVED",
+                newStatus: "IN_STOCK",
+                referenceType: "PurchaseOrder",
+                referenceId: poId,
+                performedBy: params.grn.receivedBy || "Purchasing",
+                notes: `Received on GRN ${grnNumber}`,
+              },
+            });
+          }
+        }
+      }
+
+      // 3. Ingest Multi-Batch Lots if provided
+      if (params.batchReceipts && params.batchReceipts.length > 0) {
+        for (const b of params.batchReceipts) {
+          const normBatchNumber = b.batchNumber.trim().toUpperCase();
+
+          const existingBatch = await tx.productBatch.findUnique({
+            where: {
+              businessId_productId_batchNumber: {
+                businessId,
+                productId: b.productId,
+                batchNumber: normBatchNumber,
+              },
+            },
+          });
+
+          let batchId = "";
+          let balanceAfter = 0;
+
+          if (existingBatch) {
+            balanceAfter = existingBatch.availableQuantity + b.quantity;
+            await tx.productBatch.update({
+              where: { id: existingBatch.id },
+              data: {
+                availableQuantity: balanceAfter,
+                status: "ACTIVE",
+              },
+            });
+            batchId = existingBatch.id;
+          } else {
+            balanceAfter = b.quantity;
+            const newBatch = await tx.productBatch.create({
+              data: {
+                businessId,
+                productId: b.productId,
+                purchaseItemId: b.purchaseItemId,
+                batchNumber: normBatchNumber,
+                expiryDate: b.expiryDate ? new Date(b.expiryDate) : null,
+                initialQuantity: b.quantity,
+                availableQuantity: b.quantity,
+                costPrice: b.costPrice,
+                salePrice: b.salePrice,
+                mrp: b.mrp || b.salePrice,
+                status: "ACTIVE",
+              },
+            });
+            batchId = newBatch.id;
+          }
+
+          await tx.batchMovement.create({
+            data: {
+              businessId,
+              batchId,
+              movementType: "PURCHASE_RECEIPT",
+              quantityDelta: b.quantity,
+              balanceAfter,
+              referenceType: "PurchaseOrder",
+              referenceId: poId,
+              performedBy: params.grn.receivedBy || "Purchasing",
+              notes: `Received on GRN ${grnNumber}`,
+            },
+          });
+        }
+      }
 
       // 4. Update PurchaseItems received quantities
       for (const itemUpdate of params.itemQuantityUpdates) {

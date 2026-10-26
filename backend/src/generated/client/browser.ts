@@ -282,3 +282,58 @@ export type PaymentWebhook = Prisma.PaymentWebhookModel
  * 
  */
 export type PaymentLog = Prisma.PaymentLogModel
+/**
+ * Model ProductSerial
+ * 
+ */
+export type ProductSerial = Prisma.ProductSerialModel
+/**
+ * Model DeviceIdentifier
+ * 
+ */
+export type DeviceIdentifier = Prisma.DeviceIdentifierModel
+/**
+ * Model SerialSaleHistory
+ * 
+ */
+export type SerialSaleHistory = Prisma.SerialSaleHistoryModel
+/**
+ * Model ProductBatch
+ * 
+ */
+export type ProductBatch = Prisma.ProductBatchModel
+/**
+ * Model BatchMovement
+ * 
+ */
+export type BatchMovement = Prisma.BatchMovementModel
+/**
+ * Model OrderItemBatch
+ * 
+ */
+export type OrderItemBatch = Prisma.OrderItemBatchModel
+/**
+ * Model SalesReturn
+ * 
+ */
+export type SalesReturn = Prisma.SalesReturnModel
+/**
+ * Model ReturnItemBatch
+ * 
+ */
+export type ReturnItemBatch = Prisma.ReturnItemBatchModel
+/**
+ * Model ReturnItemSerial
+ * 
+ */
+export type ReturnItemSerial = Prisma.ReturnItemSerialModel
+/**
+ * Model SerialAuditLog
+ * 
+ */
+export type SerialAuditLog = Prisma.SerialAuditLogModel
+/**
+ * Model PurchaseReturn
+ * 
+ */
+export type PurchaseReturn = Prisma.PurchaseReturnModel

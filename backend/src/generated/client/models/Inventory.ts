@@ -33,6 +33,7 @@ export type InventoryAvgAggregateOutputType = {
   minimumStock: number | null
   maximumStock: number | null
   reorderLevel: number | null
+  untrackedQuantity: number | null
 }
 
 export type InventorySumAggregateOutputType = {
@@ -42,6 +43,7 @@ export type InventorySumAggregateOutputType = {
   minimumStock: number | null
   maximumStock: number | null
   reorderLevel: number | null
+  untrackedQuantity: number | null
 }
 
 export type InventoryMinAggregateOutputType = {
@@ -61,6 +63,7 @@ export type InventoryMinAggregateOutputType = {
   batchNumber: string | null
   expiryDate: Date | null
   status: string | null
+  untrackedQuantity: number | null
 }
 
 export type InventoryMaxAggregateOutputType = {
@@ -80,6 +83,7 @@ export type InventoryMaxAggregateOutputType = {
   batchNumber: string | null
   expiryDate: Date | null
   status: string | null
+  untrackedQuantity: number | null
 }
 
 export type InventoryCountAggregateOutputType = {
@@ -99,6 +103,7 @@ export type InventoryCountAggregateOutputType = {
   batchNumber: number
   expiryDate: number
   status: number
+  untrackedQuantity: number
   _all: number
 }
 
@@ -110,6 +115,7 @@ export type InventoryAvgAggregateInputType = {
   minimumStock?: true
   maximumStock?: true
   reorderLevel?: true
+  untrackedQuantity?: true
 }
 
 export type InventorySumAggregateInputType = {
@@ -119,6 +125,7 @@ export type InventorySumAggregateInputType = {
   minimumStock?: true
   maximumStock?: true
   reorderLevel?: true
+  untrackedQuantity?: true
 }
 
 export type InventoryMinAggregateInputType = {
@@ -138,6 +145,7 @@ export type InventoryMinAggregateInputType = {
   batchNumber?: true
   expiryDate?: true
   status?: true
+  untrackedQuantity?: true
 }
 
 export type InventoryMaxAggregateInputType = {
@@ -157,6 +165,7 @@ export type InventoryMaxAggregateInputType = {
   batchNumber?: true
   expiryDate?: true
   status?: true
+  untrackedQuantity?: true
 }
 
 export type InventoryCountAggregateInputType = {
@@ -176,6 +185,7 @@ export type InventoryCountAggregateInputType = {
   batchNumber?: true
   expiryDate?: true
   status?: true
+  untrackedQuantity?: true
   _all?: true
 }
 
@@ -282,6 +292,7 @@ export type InventoryGroupByOutputType = {
   batchNumber: string | null
   expiryDate: Date | null
   status: string
+  untrackedQuantity: number
   _count: InventoryCountAggregateOutputType | null
   _avg: InventoryAvgAggregateOutputType | null
   _sum: InventorySumAggregateOutputType | null
@@ -324,6 +335,7 @@ export type InventoryWhereInput = {
   batchNumber?: Prisma.StringNullableFilter<"Inventory"> | string | null
   expiryDate?: Prisma.DateTimeNullableFilter<"Inventory"> | Date | string | null
   status?: Prisma.StringFilter<"Inventory"> | string
+  untrackedQuantity?: Prisma.IntFilter<"Inventory"> | number
   business?: Prisma.XOR<Prisma.BusinessScalarRelationFilter, Prisma.BusinessWhereInput>
   product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
   stockMovements?: Prisma.StockMovementListRelationFilter
@@ -346,6 +358,7 @@ export type InventoryOrderByWithRelationInput = {
   batchNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   expiryDate?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  untrackedQuantity?: Prisma.SortOrder
   business?: Prisma.BusinessOrderByWithRelationInput
   product?: Prisma.ProductOrderByWithRelationInput
   stockMovements?: Prisma.StockMovementOrderByRelationAggregateInput
@@ -373,6 +386,7 @@ export type InventoryWhereUniqueInput = Prisma.AtLeast<{
   batchNumber?: Prisma.StringNullableFilter<"Inventory"> | string | null
   expiryDate?: Prisma.DateTimeNullableFilter<"Inventory"> | Date | string | null
   status?: Prisma.StringFilter<"Inventory"> | string
+  untrackedQuantity?: Prisma.IntFilter<"Inventory"> | number
   business?: Prisma.XOR<Prisma.BusinessScalarRelationFilter, Prisma.BusinessWhereInput>
   product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
   stockMovements?: Prisma.StockMovementListRelationFilter
@@ -395,6 +409,7 @@ export type InventoryOrderByWithAggregationInput = {
   batchNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   expiryDate?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  untrackedQuantity?: Prisma.SortOrder
   _count?: Prisma.InventoryCountOrderByAggregateInput
   _avg?: Prisma.InventoryAvgOrderByAggregateInput
   _max?: Prisma.InventoryMaxOrderByAggregateInput
@@ -422,6 +437,7 @@ export type InventoryScalarWhereWithAggregatesInput = {
   batchNumber?: Prisma.StringNullableWithAggregatesFilter<"Inventory"> | string | null
   expiryDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Inventory"> | Date | string | null
   status?: Prisma.StringWithAggregatesFilter<"Inventory"> | string
+  untrackedQuantity?: Prisma.IntWithAggregatesFilter<"Inventory"> | number
 }
 
 export type InventoryCreateInput = {
@@ -439,6 +455,7 @@ export type InventoryCreateInput = {
   batchNumber?: string | null
   expiryDate?: Date | string | null
   status?: string
+  untrackedQuantity?: number
   business: Prisma.BusinessCreateNestedOneWithoutInventoriesInput
   product: Prisma.ProductCreateNestedOneWithoutInventoriesInput
   stockMovements?: Prisma.StockMovementCreateNestedManyWithoutInventoryInput
@@ -461,6 +478,7 @@ export type InventoryUncheckedCreateInput = {
   batchNumber?: string | null
   expiryDate?: Date | string | null
   status?: string
+  untrackedQuantity?: number
   stockMovements?: Prisma.StockMovementUncheckedCreateNestedManyWithoutInventoryInput
 }
 
@@ -479,6 +497,7 @@ export type InventoryUpdateInput = {
   batchNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  untrackedQuantity?: Prisma.IntFieldUpdateOperationsInput | number
   business?: Prisma.BusinessUpdateOneRequiredWithoutInventoriesNestedInput
   product?: Prisma.ProductUpdateOneRequiredWithoutInventoriesNestedInput
   stockMovements?: Prisma.StockMovementUpdateManyWithoutInventoryNestedInput
@@ -501,6 +520,7 @@ export type InventoryUncheckedUpdateInput = {
   batchNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  untrackedQuantity?: Prisma.IntFieldUpdateOperationsInput | number
   stockMovements?: Prisma.StockMovementUncheckedUpdateManyWithoutInventoryNestedInput
 }
 
@@ -521,6 +541,7 @@ export type InventoryCreateManyInput = {
   batchNumber?: string | null
   expiryDate?: Date | string | null
   status?: string
+  untrackedQuantity?: number
 }
 
 export type InventoryUpdateManyMutationInput = {
@@ -538,6 +559,7 @@ export type InventoryUpdateManyMutationInput = {
   batchNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  untrackedQuantity?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type InventoryUncheckedUpdateManyInput = {
@@ -557,6 +579,7 @@ export type InventoryUncheckedUpdateManyInput = {
   batchNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  untrackedQuantity?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type InventoryListRelationFilter = {
@@ -597,6 +620,7 @@ export type InventoryCountOrderByAggregateInput = {
   batchNumber?: Prisma.SortOrder
   expiryDate?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  untrackedQuantity?: Prisma.SortOrder
 }
 
 export type InventoryAvgOrderByAggregateInput = {
@@ -606,6 +630,7 @@ export type InventoryAvgOrderByAggregateInput = {
   minimumStock?: Prisma.SortOrder
   maximumStock?: Prisma.SortOrder
   reorderLevel?: Prisma.SortOrder
+  untrackedQuantity?: Prisma.SortOrder
 }
 
 export type InventoryMaxOrderByAggregateInput = {
@@ -625,6 +650,7 @@ export type InventoryMaxOrderByAggregateInput = {
   batchNumber?: Prisma.SortOrder
   expiryDate?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  untrackedQuantity?: Prisma.SortOrder
 }
 
 export type InventoryMinOrderByAggregateInput = {
@@ -644,6 +670,7 @@ export type InventoryMinOrderByAggregateInput = {
   batchNumber?: Prisma.SortOrder
   expiryDate?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  untrackedQuantity?: Prisma.SortOrder
 }
 
 export type InventorySumOrderByAggregateInput = {
@@ -653,6 +680,7 @@ export type InventorySumOrderByAggregateInput = {
   minimumStock?: Prisma.SortOrder
   maximumStock?: Prisma.SortOrder
   reorderLevel?: Prisma.SortOrder
+  untrackedQuantity?: Prisma.SortOrder
 }
 
 export type InventoryScalarRelationFilter = {
@@ -773,6 +801,7 @@ export type InventoryCreateWithoutBusinessInput = {
   batchNumber?: string | null
   expiryDate?: Date | string | null
   status?: string
+  untrackedQuantity?: number
   product: Prisma.ProductCreateNestedOneWithoutInventoriesInput
   stockMovements?: Prisma.StockMovementCreateNestedManyWithoutInventoryInput
 }
@@ -793,6 +822,7 @@ export type InventoryUncheckedCreateWithoutBusinessInput = {
   batchNumber?: string | null
   expiryDate?: Date | string | null
   status?: string
+  untrackedQuantity?: number
   stockMovements?: Prisma.StockMovementUncheckedCreateNestedManyWithoutInventoryInput
 }
 
@@ -842,6 +872,7 @@ export type InventoryScalarWhereInput = {
   batchNumber?: Prisma.StringNullableFilter<"Inventory"> | string | null
   expiryDate?: Prisma.DateTimeNullableFilter<"Inventory"> | Date | string | null
   status?: Prisma.StringFilter<"Inventory"> | string
+  untrackedQuantity?: Prisma.IntFilter<"Inventory"> | number
 }
 
 export type InventoryCreateWithoutProductInput = {
@@ -859,6 +890,7 @@ export type InventoryCreateWithoutProductInput = {
   batchNumber?: string | null
   expiryDate?: Date | string | null
   status?: string
+  untrackedQuantity?: number
   business: Prisma.BusinessCreateNestedOneWithoutInventoriesInput
   stockMovements?: Prisma.StockMovementCreateNestedManyWithoutInventoryInput
 }
@@ -879,6 +911,7 @@ export type InventoryUncheckedCreateWithoutProductInput = {
   batchNumber?: string | null
   expiryDate?: Date | string | null
   status?: string
+  untrackedQuantity?: number
   stockMovements?: Prisma.StockMovementUncheckedCreateNestedManyWithoutInventoryInput
 }
 
@@ -923,6 +956,7 @@ export type InventoryCreateWithoutStockMovementsInput = {
   batchNumber?: string | null
   expiryDate?: Date | string | null
   status?: string
+  untrackedQuantity?: number
   business: Prisma.BusinessCreateNestedOneWithoutInventoriesInput
   product: Prisma.ProductCreateNestedOneWithoutInventoriesInput
 }
@@ -944,6 +978,7 @@ export type InventoryUncheckedCreateWithoutStockMovementsInput = {
   batchNumber?: string | null
   expiryDate?: Date | string | null
   status?: string
+  untrackedQuantity?: number
 }
 
 export type InventoryCreateOrConnectWithoutStockMovementsInput = {
@@ -977,6 +1012,7 @@ export type InventoryUpdateWithoutStockMovementsInput = {
   batchNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  untrackedQuantity?: Prisma.IntFieldUpdateOperationsInput | number
   business?: Prisma.BusinessUpdateOneRequiredWithoutInventoriesNestedInput
   product?: Prisma.ProductUpdateOneRequiredWithoutInventoriesNestedInput
 }
@@ -998,6 +1034,7 @@ export type InventoryUncheckedUpdateWithoutStockMovementsInput = {
   batchNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  untrackedQuantity?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type InventoryCreateManyBusinessInput = {
@@ -1016,6 +1053,7 @@ export type InventoryCreateManyBusinessInput = {
   batchNumber?: string | null
   expiryDate?: Date | string | null
   status?: string
+  untrackedQuantity?: number
 }
 
 export type InventoryUpdateWithoutBusinessInput = {
@@ -1033,6 +1071,7 @@ export type InventoryUpdateWithoutBusinessInput = {
   batchNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  untrackedQuantity?: Prisma.IntFieldUpdateOperationsInput | number
   product?: Prisma.ProductUpdateOneRequiredWithoutInventoriesNestedInput
   stockMovements?: Prisma.StockMovementUpdateManyWithoutInventoryNestedInput
 }
@@ -1053,6 +1092,7 @@ export type InventoryUncheckedUpdateWithoutBusinessInput = {
   batchNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  untrackedQuantity?: Prisma.IntFieldUpdateOperationsInput | number
   stockMovements?: Prisma.StockMovementUncheckedUpdateManyWithoutInventoryNestedInput
 }
 
@@ -1072,6 +1112,7 @@ export type InventoryUncheckedUpdateManyWithoutBusinessInput = {
   batchNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  untrackedQuantity?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type InventoryCreateManyProductInput = {
@@ -1090,6 +1131,7 @@ export type InventoryCreateManyProductInput = {
   batchNumber?: string | null
   expiryDate?: Date | string | null
   status?: string
+  untrackedQuantity?: number
 }
 
 export type InventoryUpdateWithoutProductInput = {
@@ -1107,6 +1149,7 @@ export type InventoryUpdateWithoutProductInput = {
   batchNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  untrackedQuantity?: Prisma.IntFieldUpdateOperationsInput | number
   business?: Prisma.BusinessUpdateOneRequiredWithoutInventoriesNestedInput
   stockMovements?: Prisma.StockMovementUpdateManyWithoutInventoryNestedInput
 }
@@ -1127,6 +1170,7 @@ export type InventoryUncheckedUpdateWithoutProductInput = {
   batchNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  untrackedQuantity?: Prisma.IntFieldUpdateOperationsInput | number
   stockMovements?: Prisma.StockMovementUncheckedUpdateManyWithoutInventoryNestedInput
 }
 
@@ -1146,6 +1190,7 @@ export type InventoryUncheckedUpdateManyWithoutProductInput = {
   batchNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  untrackedQuantity?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 
@@ -1196,6 +1241,7 @@ export type InventorySelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   batchNumber?: boolean
   expiryDate?: boolean
   status?: boolean
+  untrackedQuantity?: boolean
   business?: boolean | Prisma.BusinessDefaultArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   stockMovements?: boolean | Prisma.Inventory$stockMovementsArgs<ExtArgs>
@@ -1221,9 +1267,10 @@ export type InventorySelectScalar = {
   batchNumber?: boolean
   expiryDate?: boolean
   status?: boolean
+  untrackedQuantity?: boolean
 }
 
-export type InventoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "businessId" | "productId" | "availableQuantity" | "reservedQuantity" | "damagedQuantity" | "minimumStock" | "maximumStock" | "reorderLevel" | "lastUpdated" | "createdAt" | "updatedAt" | "deletedAt" | "batchNumber" | "expiryDate" | "status", ExtArgs["result"]["inventory"]>
+export type InventoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "businessId" | "productId" | "availableQuantity" | "reservedQuantity" | "damagedQuantity" | "minimumStock" | "maximumStock" | "reorderLevel" | "lastUpdated" | "createdAt" | "updatedAt" | "deletedAt" | "batchNumber" | "expiryDate" | "status" | "untrackedQuantity", ExtArgs["result"]["inventory"]>
 export type InventoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   business?: boolean | Prisma.BusinessDefaultArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
@@ -1255,6 +1302,7 @@ export type $InventoryPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     batchNumber: string | null
     expiryDate: Date | null
     status: string
+    untrackedQuantity: number
   }, ExtArgs["result"]["inventory"]>
   composites: {}
 }
@@ -1643,6 +1691,7 @@ export interface InventoryFieldRefs {
   readonly batchNumber: Prisma.FieldRef<"Inventory", 'String'>
   readonly expiryDate: Prisma.FieldRef<"Inventory", 'DateTime'>
   readonly status: Prisma.FieldRef<"Inventory", 'String'>
+  readonly untrackedQuantity: Prisma.FieldRef<"Inventory", 'Int'>
 }
     
 

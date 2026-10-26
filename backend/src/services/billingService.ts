@@ -1,6 +1,7 @@
 import { BillingRepository } from "../repositories/billingRepository";
 import { prisma } from "../config/prisma";
 import { verticalRegistry } from "../registry";
+import { trackingService } from "./trackingService";
 
 const billingRepository = new BillingRepository();
 
@@ -106,6 +107,9 @@ export class BillingService {
         unitPrice?: number;
         discount?: number;
         gst?: number;
+        serialId?: string;
+        serialIds?: string[];
+        batchId?: string;
       }[];
       paymentMethod: "Cash" | "UPI" | "Card" | "Wallet" | "Credit" | "Split";
       splitDetails?: { cash: number; upi: number };
@@ -151,8 +155,11 @@ export class BillingService {
     let gstAmount = 0;
     const compiledItems: any[] = [];
     const inventoryUpdates: any[] = [];
+    const serialAllocations: { orderItemIndex: number; serialId: string }[] = [];
+    const batchAllocations: { orderItemIndex: number; batchId: string; quantity: number }[] = [];
 
-    for (const item of data.items) {
+    for (let idx = 0; idx < data.items.length; idx++) {
+      const item = data.items[idx];
       const product = await prisma.product.findFirst({
         where: { id: item.productId, businessId, isDeleted: false },
         include: { inventories: true },
@@ -162,6 +169,56 @@ export class BillingService {
         const err: any = new Error("Product card does not exist.");
         err.statusCode = 400;
         throw err;
+      }
+
+      // Handle Tracked Products Validation & Allocation
+      if (product.trackingMode === "SERIAL") {
+        const providedSerials = item.serialIds || (item.serialId ? [item.serialId] : []);
+        if (providedSerials.length !== item.quantity) {
+          const err: any = new Error(
+            `Product "${product.name}" requires exactly ${item.quantity} serial/IMEI selection(s), but received ${providedSerials.length}.`
+          );
+          err.statusCode = 400;
+          throw err;
+        }
+
+        for (const sId of providedSerials) {
+          serialAllocations.push({
+            orderItemIndex: compiledItems.length,
+            serialId: sId,
+          });
+        }
+      } else if (product.trackingMode === "BATCH") {
+        if (item.batchId) {
+          batchAllocations.push({
+            orderItemIndex: compiledItems.length,
+            batchId: item.batchId,
+            quantity: item.quantity,
+          });
+        } else {
+          // Auto-allocate via FEFO
+          const fefoLots = await trackingService.getFEFOBatches(businessId, product.id);
+          let remainingToAllocate = item.quantity;
+
+          for (const lot of fefoLots) {
+            if (remainingToAllocate <= 0) break;
+            const takeQty = Math.min(lot.availableQuantity, remainingToAllocate);
+            batchAllocations.push({
+              orderItemIndex: compiledItems.length,
+              batchId: lot.id,
+              quantity: takeQty,
+            });
+            remainingToAllocate -= takeQty;
+          }
+
+          if (remainingToAllocate > 0) {
+            const err: any = new Error(
+              `Insufficient unexpired batch stock for "${product.name}". Required: ${item.quantity}, Missing: ${remainingToAllocate}.`
+            );
+            err.statusCode = 400;
+            throw err;
+          }
+        }
       }
 
       // Check stock availability (Step 9)
@@ -335,6 +392,8 @@ export class BillingService {
       customerUpdate: customerUpdateData,
       inventoryUpdates,
       automationLog,
+      serialAllocations,
+      batchAllocations,
     });
 
     return result;

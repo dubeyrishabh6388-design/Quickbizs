@@ -160,7 +160,14 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
   };
 
   // Cart List state
-  const [cart, setCart] = useState<{ product: Product; quantity: number }[]>([]);
+  const [cart, setCart] = useState<{
+    product: Product;
+    quantity: number;
+    serialIds?: string[];
+    batchId?: string;
+    batchNumber?: string;
+    expiryDate?: string;
+  }[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<string>("Cash");
   const [splitCashAmount, setSplitCashAmount] = useState("");
   const [splitUpiAmount, setSplitUpiAmount] = useState("");
@@ -415,7 +422,10 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       productId: item.product.id,
       name: item.product.name,
       quantity: item.quantity,
-      price: getItemPrice(item.product, customerGroup)
+      price: getItemPrice(item.product, customerGroup),
+      serialIds: item.serialIds,
+      serialId: item.serialIds?.[0],
+      batchId: item.batchId,
     }));
 
     const custName = getSelectedCustomerName();

@@ -16,6 +16,8 @@ export interface DynamicProductFormData {
   barcode?: string;
   customFields: Record<string, any>;
   // Serial / Batch metadata
+  trackingMode?: "NONE" | "SERIAL" | "BATCH";
+  isExpiryMandatory?: boolean;
   serialNumbers?: string[];
   batchNumber?: string;
   expiryDate?: string;
@@ -48,6 +50,9 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
   const [barcode, setBarcode] = useState(initialData?.barcode || "");
 
   // Serial / Batch states
+  const [trackingMode, setTrackingMode] = useState<"NONE" | "SERIAL" | "BATCH">(
+    initialData?.trackingMode || "NONE"
+  );
   const [batchNumber, setBatchNumber] = useState(initialData?.batchNumber || "");
   const [expiryDate, setExpiryDate] = useState(initialData?.expiryDate || "");
   const [serialInput, setSerialInput] = useState("");
@@ -214,8 +219,11 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
       minStock: minStock ? Number(minStock) : 5,
       supplierName: supplierName.trim() || "Standard Supplier",
       barcode: barcode.trim() || undefined,
+      trackingMode,
+      isExpiryMandatory: trackingMode === "BATCH",
       customFields: {
         ...cleanCustomFields,
+        trackingMode,
         ...(batchNumber ? { batchNumber } : {}),
         ...(expiryDate ? { expiryDate } : {}),
         ...(serials.length > 0 ? { serialNumbers: serials } : {}),
@@ -449,8 +457,59 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
         )}
       </div>
 
+      {/* INVENTORY TRACKING MODE (STANDARD / SERIAL / BATCH) */}
+      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600">
+            <Sparkles className="w-4 h-4 text-indigo-500" />
+            Inventory Tracking Mode
+          </div>
+          <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-bold uppercase">
+            {trackingMode}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button
+            type="button"
+            onClick={() => setTrackingMode("NONE")}
+            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+              trackingMode === "NONE"
+                ? "border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20"
+                : "border-slate-200 bg-white hover:border-slate-300"
+            }`}
+          >
+            <div className="font-semibold text-xs text-slate-800">Standard Stock</div>
+            <div className="text-[10px] text-slate-500 mt-0.5">Aggregate shelf quantities</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTrackingMode("SERIAL")}
+            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+              trackingMode === "SERIAL"
+                ? "border-blue-600 bg-blue-50/50 ring-2 ring-blue-500/20"
+                : "border-slate-200 bg-white hover:border-slate-300"
+            }`}
+          >
+            <div className="font-semibold text-xs text-blue-900">Serialized (IMEI / Serial)</div>
+            <div className="text-[10px] text-slate-500 mt-0.5">Unique unit identification</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTrackingMode("BATCH")}
+            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+              trackingMode === "BATCH"
+                ? "border-rose-600 bg-rose-50/50 ring-2 ring-rose-500/20"
+                : "border-slate-200 bg-white hover:border-slate-300"
+            }`}
+          >
+            <div className="font-semibold text-xs text-rose-900">Multi-Batch & Expiry</div>
+            <div className="text-[10px] text-slate-500 mt-0.5">FEFO and lot management</div>
+          </button>
+        </div>
+      </div>
+
       {/* OPTIONAL SERIAL / IMEI TRACKING (FOR ELECTRONICS/MOBILE) */}
-      {isSerialEnabled && (
+      {(trackingMode === "SERIAL" || isSerialEnabled) && (
         <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600">
             <Hash className="w-4 h-4 text-blue-500" />
@@ -496,7 +555,7 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
       )}
 
       {/* OPTIONAL BATCH & EXPIRY TRACKING (FOR PHARMACY/DAIRY/FOOD) */}
-      {isBatchEnabled && (
+      {(trackingMode === "BATCH" || isBatchEnabled) && (
         <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600">
             <Calendar className="w-4 h-4 text-rose-500" />

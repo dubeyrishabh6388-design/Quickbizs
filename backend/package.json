@@ -6,7 +6,8 @@
   "scripts": {
     "build": "prisma generate && tsc",
     "start": "node dist/server.js",
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "test": "tsx test/trackingVerification.test.ts"
   },
   "keywords": [],
   "author": "",

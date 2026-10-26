@@ -9,7 +9,69 @@
 * 🟢 You can import this file directly.
 */
 
+export const TrackingMode = {
+  NONE: 'NONE',
+  SERIAL: 'SERIAL',
+  BATCH: 'BATCH'
+} as const
+
+export type TrackingMode = (typeof TrackingMode)[keyof typeof TrackingMode]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const DeviceIdentifierType = {
+  SERIAL_NUMBER: 'SERIAL_NUMBER',
+  IMEI1: 'IMEI1',
+  IMEI2: 'IMEI2',
+  MAC_ADDRESS: 'MAC_ADDRESS'
+} as const
+
+export type DeviceIdentifierType = (typeof DeviceIdentifierType)[keyof typeof DeviceIdentifierType]
+
+
+export const SerialUnitStatus = {
+  IN_STOCK: 'IN_STOCK',
+  RESERVED: 'RESERVED',
+  SOLD: 'SOLD',
+  RETURNED_RESTOCKED: 'RETURNED_RESTOCKED',
+  DEFECTIVE: 'DEFECTIVE',
+  WRITTEN_OFF: 'WRITTEN_OFF'
+} as const
+
+export type SerialUnitStatus = (typeof SerialUnitStatus)[keyof typeof SerialUnitStatus]
+
+
+export const SerialSaleStatus = {
+  COMPLETED: 'COMPLETED',
+  RETURNED_RESTOCKED: 'RETURNED_RESTOCKED',
+  RETURNED_DEFECTIVE: 'RETURNED_DEFECTIVE',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type SerialSaleStatus = (typeof SerialSaleStatus)[keyof typeof SerialSaleStatus]
+
+
+export const BatchStatus = {
+  ACTIVE: 'ACTIVE',
+  NEAR_EXPIRY: 'NEAR_EXPIRY',
+  EXPIRED: 'EXPIRED',
+  QUARANTINED: 'QUARANTINED',
+  DEPLETED: 'DEPLETED'
+} as const
+
+export type BatchStatus = (typeof BatchStatus)[keyof typeof BatchStatus]
+
+
+export const BatchMovementType = {
+  OPENING_BALANCE: 'OPENING_BALANCE',
+  PURCHASE_RECEIPT: 'PURCHASE_RECEIPT',
+  SALE_ALLOCATION: 'SALE_ALLOCATION',
+  SALE_VOID: 'SALE_VOID',
+  CUSTOMER_RETURN: 'CUSTOMER_RETURN',
+  SUPPLIER_RTV: 'SUPPLIER_RTV',
+  DAMAGE_WRITEOFF: 'DAMAGE_WRITEOFF',
+  QUARANTINE_HOLD: 'QUARANTINE_HOLD',
+  QUARANTINE_RELEASE: 'QUARANTINE_RELEASE',
+  INVENTORY_AUDIT_ADJUSTMENT: 'INVENTORY_AUDIT_ADJUSTMENT'
+} as const
+
+export type BatchMovementType = (typeof BatchMovementType)[keyof typeof BatchMovementType]

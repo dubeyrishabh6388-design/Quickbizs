@@ -31,6 +31,7 @@ import businessRoutes from "./businessRoutes";
 import pwaCustomerRoutes from "./pwaCustomerRoutes";
 import pickupOrderRoutes from "./pickupOrderRoutes";
 import aiRoutes from "./aiRoutes";
+import trackingRoutes from "./trackingRoutes";
 import { logger } from "../utils/logger";
 
 const router = Router();
@@ -38,6 +39,7 @@ const router = Router();
 // Mount API routes
 router.use("/auth", authRoutes);
 router.use("/ai", aiRoutes);
+router.use("/tracking", trackingRoutes);
 router.use("/pwa-customer", pwaCustomerRoutes);
 router.use("/pickup-orders", pickupOrderRoutes);
 router.use("/business", businessRoutes);

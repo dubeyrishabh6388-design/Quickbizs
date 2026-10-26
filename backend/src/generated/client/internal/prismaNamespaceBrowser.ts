@@ -103,7 +103,18 @@ export const ModelName = {
   PaymentRefund: 'PaymentRefund',
   PaymentLink: 'PaymentLink',
   PaymentWebhook: 'PaymentWebhook',
-  PaymentLog: 'PaymentLog'
+  PaymentLog: 'PaymentLog',
+  ProductSerial: 'ProductSerial',
+  DeviceIdentifier: 'DeviceIdentifier',
+  SerialSaleHistory: 'SerialSaleHistory',
+  ProductBatch: 'ProductBatch',
+  BatchMovement: 'BatchMovement',
+  OrderItemBatch: 'OrderItemBatch',
+  SalesReturn: 'SalesReturn',
+  ReturnItemBatch: 'ReturnItemBatch',
+  ReturnItemSerial: 'ReturnItemSerial',
+  SerialAuditLog: 'SerialAuditLog',
+  PurchaseReturn: 'PurchaseReturn'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -284,7 +295,9 @@ export const ProductScalarFieldEnum = {
   description: 'description',
   keywords: 'keywords',
   productStatus: 'productStatus',
-  categoryId: 'categoryId'
+  categoryId: 'categoryId',
+  trackingMode: 'trackingMode',
+  isExpiryMandatory: 'isExpiryMandatory'
 } as const
 
 export type ProductScalarFieldEnum = (typeof ProductScalarFieldEnum)[keyof typeof ProductScalarFieldEnum]
@@ -319,7 +332,8 @@ export const InventoryScalarFieldEnum = {
   deletedAt: 'deletedAt',
   batchNumber: 'batchNumber',
   expiryDate: 'expiryDate',
-  status: 'status'
+  status: 'status',
+  untrackedQuantity: 'untrackedQuantity'
 } as const
 
 export type InventoryScalarFieldEnum = (typeof InventoryScalarFieldEnum)[keyof typeof InventoryScalarFieldEnum]
@@ -1030,6 +1044,183 @@ export const PaymentLogScalarFieldEnum = {
 export type PaymentLogScalarFieldEnum = (typeof PaymentLogScalarFieldEnum)[keyof typeof PaymentLogScalarFieldEnum]
 
 
+export const ProductSerialScalarFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  productId: 'productId',
+  purchaseItemId: 'purchaseItemId',
+  serialNumber: 'serialNumber',
+  imei1: 'imei1',
+  imei2: 'imei2',
+  status: 'status',
+  costPrice: 'costPrice',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProductSerialScalarFieldEnum = (typeof ProductSerialScalarFieldEnum)[keyof typeof ProductSerialScalarFieldEnum]
+
+
+export const DeviceIdentifierScalarFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  serialId: 'serialId',
+  identifierType: 'identifierType',
+  identifierValue: 'identifierValue',
+  createdAt: 'createdAt'
+} as const
+
+export type DeviceIdentifierScalarFieldEnum = (typeof DeviceIdentifierScalarFieldEnum)[keyof typeof DeviceIdentifierScalarFieldEnum]
+
+
+export const SerialSaleHistoryScalarFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  serialId: 'serialId',
+  orderItemId: 'orderItemId',
+  customerId: 'customerId',
+  soldAt: 'soldAt',
+  salePrice: 'salePrice',
+  warrantyStartDate: 'warrantyStartDate',
+  warrantyEndDate: 'warrantyEndDate',
+  status: 'status',
+  returnedAt: 'returnedAt',
+  inspectionNotes: 'inspectionNotes'
+} as const
+
+export type SerialSaleHistoryScalarFieldEnum = (typeof SerialSaleHistoryScalarFieldEnum)[keyof typeof SerialSaleHistoryScalarFieldEnum]
+
+
+export const ProductBatchScalarFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  productId: 'productId',
+  purchaseItemId: 'purchaseItemId',
+  batchNumber: 'batchNumber',
+  manufacturingDate: 'manufacturingDate',
+  expiryDate: 'expiryDate',
+  initialQuantity: 'initialQuantity',
+  availableQuantity: 'availableQuantity',
+  reservedQuantity: 'reservedQuantity',
+  quarantinedQuantity: 'quarantinedQuantity',
+  costPrice: 'costPrice',
+  mrp: 'mrp',
+  salePrice: 'salePrice',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProductBatchScalarFieldEnum = (typeof ProductBatchScalarFieldEnum)[keyof typeof ProductBatchScalarFieldEnum]
+
+
+export const BatchMovementScalarFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  batchId: 'batchId',
+  movementType: 'movementType',
+  quantityDelta: 'quantityDelta',
+  balanceAfter: 'balanceAfter',
+  referenceType: 'referenceType',
+  referenceId: 'referenceId',
+  performedBy: 'performedBy',
+  notes: 'notes',
+  createdAt: 'createdAt'
+} as const
+
+export type BatchMovementScalarFieldEnum = (typeof BatchMovementScalarFieldEnum)[keyof typeof BatchMovementScalarFieldEnum]
+
+
+export const OrderItemBatchScalarFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  orderItemId: 'orderItemId',
+  batchId: 'batchId',
+  quantityAllocated: 'quantityAllocated',
+  quantityReturned: 'quantityReturned',
+  unitPrice: 'unitPrice',
+  costPrice: 'costPrice',
+  createdAt: 'createdAt'
+} as const
+
+export type OrderItemBatchScalarFieldEnum = (typeof OrderItemBatchScalarFieldEnum)[keyof typeof OrderItemBatchScalarFieldEnum]
+
+
+export const SalesReturnScalarFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  returnNumber: 'returnNumber',
+  orderId: 'orderId',
+  customerId: 'customerId',
+  refundAmount: 'refundAmount',
+  refundMethod: 'refundMethod',
+  reason: 'reason',
+  receivedBy: 'receivedBy',
+  createdAt: 'createdAt'
+} as const
+
+export type SalesReturnScalarFieldEnum = (typeof SalesReturnScalarFieldEnum)[keyof typeof SalesReturnScalarFieldEnum]
+
+
+export const ReturnItemBatchScalarFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  salesReturnId: 'salesReturnId',
+  orderItemBatchId: 'orderItemBatchId',
+  returnQuantity: 'returnQuantity',
+  disposition: 'disposition',
+  createdAt: 'createdAt'
+} as const
+
+export type ReturnItemBatchScalarFieldEnum = (typeof ReturnItemBatchScalarFieldEnum)[keyof typeof ReturnItemBatchScalarFieldEnum]
+
+
+export const ReturnItemSerialScalarFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  salesReturnId: 'salesReturnId',
+  serialId: 'serialId',
+  disposition: 'disposition',
+  inspectionNotes: 'inspectionNotes',
+  createdAt: 'createdAt'
+} as const
+
+export type ReturnItemSerialScalarFieldEnum = (typeof ReturnItemSerialScalarFieldEnum)[keyof typeof ReturnItemSerialScalarFieldEnum]
+
+
+export const SerialAuditLogScalarFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  serialId: 'serialId',
+  action: 'action',
+  previousStatus: 'previousStatus',
+  newStatus: 'newStatus',
+  referenceType: 'referenceType',
+  referenceId: 'referenceId',
+  performedBy: 'performedBy',
+  notes: 'notes',
+  createdAt: 'createdAt'
+} as const
+
+export type SerialAuditLogScalarFieldEnum = (typeof SerialAuditLogScalarFieldEnum)[keyof typeof SerialAuditLogScalarFieldEnum]
+
+
+export const PurchaseReturnScalarFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  purchaseOrderId: 'purchaseOrderId',
+  returnNumber: 'returnNumber',
+  productId: 'productId',
+  returnQty: 'returnQty',
+  reason: 'reason',
+  returnedBy: 'returnedBy',
+  createdAt: 'createdAt'
+} as const
+
+export type PurchaseReturnScalarFieldEnum = (typeof PurchaseReturnScalarFieldEnum)[keyof typeof PurchaseReturnScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1734,4 +1925,138 @@ export const PaymentLogOrderByRelevanceFieldEnum = {
 } as const
 
 export type PaymentLogOrderByRelevanceFieldEnum = (typeof PaymentLogOrderByRelevanceFieldEnum)[keyof typeof PaymentLogOrderByRelevanceFieldEnum]
+
+
+export const ProductSerialOrderByRelevanceFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  productId: 'productId',
+  purchaseItemId: 'purchaseItemId',
+  serialNumber: 'serialNumber',
+  imei1: 'imei1',
+  imei2: 'imei2',
+  notes: 'notes'
+} as const
+
+export type ProductSerialOrderByRelevanceFieldEnum = (typeof ProductSerialOrderByRelevanceFieldEnum)[keyof typeof ProductSerialOrderByRelevanceFieldEnum]
+
+
+export const DeviceIdentifierOrderByRelevanceFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  serialId: 'serialId',
+  identifierValue: 'identifierValue'
+} as const
+
+export type DeviceIdentifierOrderByRelevanceFieldEnum = (typeof DeviceIdentifierOrderByRelevanceFieldEnum)[keyof typeof DeviceIdentifierOrderByRelevanceFieldEnum]
+
+
+export const SerialSaleHistoryOrderByRelevanceFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  serialId: 'serialId',
+  orderItemId: 'orderItemId',
+  customerId: 'customerId',
+  inspectionNotes: 'inspectionNotes'
+} as const
+
+export type SerialSaleHistoryOrderByRelevanceFieldEnum = (typeof SerialSaleHistoryOrderByRelevanceFieldEnum)[keyof typeof SerialSaleHistoryOrderByRelevanceFieldEnum]
+
+
+export const ProductBatchOrderByRelevanceFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  productId: 'productId',
+  purchaseItemId: 'purchaseItemId',
+  batchNumber: 'batchNumber'
+} as const
+
+export type ProductBatchOrderByRelevanceFieldEnum = (typeof ProductBatchOrderByRelevanceFieldEnum)[keyof typeof ProductBatchOrderByRelevanceFieldEnum]
+
+
+export const BatchMovementOrderByRelevanceFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  batchId: 'batchId',
+  referenceType: 'referenceType',
+  referenceId: 'referenceId',
+  performedBy: 'performedBy',
+  notes: 'notes'
+} as const
+
+export type BatchMovementOrderByRelevanceFieldEnum = (typeof BatchMovementOrderByRelevanceFieldEnum)[keyof typeof BatchMovementOrderByRelevanceFieldEnum]
+
+
+export const OrderItemBatchOrderByRelevanceFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  orderItemId: 'orderItemId',
+  batchId: 'batchId'
+} as const
+
+export type OrderItemBatchOrderByRelevanceFieldEnum = (typeof OrderItemBatchOrderByRelevanceFieldEnum)[keyof typeof OrderItemBatchOrderByRelevanceFieldEnum]
+
+
+export const SalesReturnOrderByRelevanceFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  returnNumber: 'returnNumber',
+  orderId: 'orderId',
+  customerId: 'customerId',
+  refundMethod: 'refundMethod',
+  reason: 'reason',
+  receivedBy: 'receivedBy'
+} as const
+
+export type SalesReturnOrderByRelevanceFieldEnum = (typeof SalesReturnOrderByRelevanceFieldEnum)[keyof typeof SalesReturnOrderByRelevanceFieldEnum]
+
+
+export const ReturnItemBatchOrderByRelevanceFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  salesReturnId: 'salesReturnId',
+  orderItemBatchId: 'orderItemBatchId',
+  disposition: 'disposition'
+} as const
+
+export type ReturnItemBatchOrderByRelevanceFieldEnum = (typeof ReturnItemBatchOrderByRelevanceFieldEnum)[keyof typeof ReturnItemBatchOrderByRelevanceFieldEnum]
+
+
+export const ReturnItemSerialOrderByRelevanceFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  salesReturnId: 'salesReturnId',
+  serialId: 'serialId',
+  disposition: 'disposition',
+  inspectionNotes: 'inspectionNotes'
+} as const
+
+export type ReturnItemSerialOrderByRelevanceFieldEnum = (typeof ReturnItemSerialOrderByRelevanceFieldEnum)[keyof typeof ReturnItemSerialOrderByRelevanceFieldEnum]
+
+
+export const SerialAuditLogOrderByRelevanceFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  serialId: 'serialId',
+  action: 'action',
+  referenceType: 'referenceType',
+  referenceId: 'referenceId',
+  performedBy: 'performedBy',
+  notes: 'notes'
+} as const
+
+export type SerialAuditLogOrderByRelevanceFieldEnum = (typeof SerialAuditLogOrderByRelevanceFieldEnum)[keyof typeof SerialAuditLogOrderByRelevanceFieldEnum]
+
+
+export const PurchaseReturnOrderByRelevanceFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  purchaseOrderId: 'purchaseOrderId',
+  returnNumber: 'returnNumber',
+  productId: 'productId',
+  reason: 'reason',
+  returnedBy: 'returnedBy'
+} as const
+
+export type PurchaseReturnOrderByRelevanceFieldEnum = (typeof PurchaseReturnOrderByRelevanceFieldEnum)[keyof typeof PurchaseReturnOrderByRelevanceFieldEnum]
 

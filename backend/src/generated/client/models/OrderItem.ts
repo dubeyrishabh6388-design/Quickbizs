@@ -281,6 +281,8 @@ export type OrderItemWhereInput = {
   total?: Prisma.FloatFilter<"OrderItem"> | number
   createdAt?: Prisma.DateTimeFilter<"OrderItem"> | Date | string
   order?: Prisma.XOR<Prisma.OrderScalarRelationFilter, Prisma.OrderWhereInput>
+  batchAllocations?: Prisma.OrderItemBatchListRelationFilter
+  serialSaleHistories?: Prisma.SerialSaleHistoryListRelationFilter
 }
 
 export type OrderItemOrderByWithRelationInput = {
@@ -296,6 +298,8 @@ export type OrderItemOrderByWithRelationInput = {
   total?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   order?: Prisma.OrderOrderByWithRelationInput
+  batchAllocations?: Prisma.OrderItemBatchOrderByRelationAggregateInput
+  serialSaleHistories?: Prisma.SerialSaleHistoryOrderByRelationAggregateInput
   _relevance?: Prisma.OrderItemOrderByRelevanceInput
 }
 
@@ -315,6 +319,8 @@ export type OrderItemWhereUniqueInput = Prisma.AtLeast<{
   total?: Prisma.FloatFilter<"OrderItem"> | number
   createdAt?: Prisma.DateTimeFilter<"OrderItem"> | Date | string
   order?: Prisma.XOR<Prisma.OrderScalarRelationFilter, Prisma.OrderWhereInput>
+  batchAllocations?: Prisma.OrderItemBatchListRelationFilter
+  serialSaleHistories?: Prisma.SerialSaleHistoryListRelationFilter
 }, "id">
 
 export type OrderItemOrderByWithAggregationInput = {
@@ -365,6 +371,8 @@ export type OrderItemCreateInput = {
   total: number
   createdAt?: Date | string
   order: Prisma.OrderCreateNestedOneWithoutItemsInput
+  batchAllocations?: Prisma.OrderItemBatchCreateNestedManyWithoutOrderItemInput
+  serialSaleHistories?: Prisma.SerialSaleHistoryCreateNestedManyWithoutOrderItemInput
 }
 
 export type OrderItemUncheckedCreateInput = {
@@ -379,6 +387,8 @@ export type OrderItemUncheckedCreateInput = {
   gst: number
   total: number
   createdAt?: Date | string
+  batchAllocations?: Prisma.OrderItemBatchUncheckedCreateNestedManyWithoutOrderItemInput
+  serialSaleHistories?: Prisma.SerialSaleHistoryUncheckedCreateNestedManyWithoutOrderItemInput
 }
 
 export type OrderItemUpdateInput = {
@@ -393,6 +403,8 @@ export type OrderItemUpdateInput = {
   total?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   order?: Prisma.OrderUpdateOneRequiredWithoutItemsNestedInput
+  batchAllocations?: Prisma.OrderItemBatchUpdateManyWithoutOrderItemNestedInput
+  serialSaleHistories?: Prisma.SerialSaleHistoryUpdateManyWithoutOrderItemNestedInput
 }
 
 export type OrderItemUncheckedUpdateInput = {
@@ -407,6 +419,8 @@ export type OrderItemUncheckedUpdateInput = {
   gst?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchAllocations?: Prisma.OrderItemBatchUncheckedUpdateManyWithoutOrderItemNestedInput
+  serialSaleHistories?: Prisma.SerialSaleHistoryUncheckedUpdateManyWithoutOrderItemNestedInput
 }
 
 export type OrderItemCreateManyInput = {
@@ -524,6 +538,11 @@ export type OrderItemSumOrderByAggregateInput = {
   total?: Prisma.SortOrder
 }
 
+export type OrderItemScalarRelationFilter = {
+  is?: Prisma.OrderItemWhereInput
+  isNot?: Prisma.OrderItemWhereInput
+}
+
 export type OrderItemCreateNestedManyWithoutOrderInput = {
   create?: Prisma.XOR<Prisma.OrderItemCreateWithoutOrderInput, Prisma.OrderItemUncheckedCreateWithoutOrderInput> | Prisma.OrderItemCreateWithoutOrderInput[] | Prisma.OrderItemUncheckedCreateWithoutOrderInput[]
   connectOrCreate?: Prisma.OrderItemCreateOrConnectWithoutOrderInput | Prisma.OrderItemCreateOrConnectWithoutOrderInput[]
@@ -566,6 +585,34 @@ export type OrderItemUncheckedUpdateManyWithoutOrderNestedInput = {
   deleteMany?: Prisma.OrderItemScalarWhereInput | Prisma.OrderItemScalarWhereInput[]
 }
 
+export type OrderItemCreateNestedOneWithoutSerialSaleHistoriesInput = {
+  create?: Prisma.XOR<Prisma.OrderItemCreateWithoutSerialSaleHistoriesInput, Prisma.OrderItemUncheckedCreateWithoutSerialSaleHistoriesInput>
+  connectOrCreate?: Prisma.OrderItemCreateOrConnectWithoutSerialSaleHistoriesInput
+  connect?: Prisma.OrderItemWhereUniqueInput
+}
+
+export type OrderItemUpdateOneRequiredWithoutSerialSaleHistoriesNestedInput = {
+  create?: Prisma.XOR<Prisma.OrderItemCreateWithoutSerialSaleHistoriesInput, Prisma.OrderItemUncheckedCreateWithoutSerialSaleHistoriesInput>
+  connectOrCreate?: Prisma.OrderItemCreateOrConnectWithoutSerialSaleHistoriesInput
+  upsert?: Prisma.OrderItemUpsertWithoutSerialSaleHistoriesInput
+  connect?: Prisma.OrderItemWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrderItemUpdateToOneWithWhereWithoutSerialSaleHistoriesInput, Prisma.OrderItemUpdateWithoutSerialSaleHistoriesInput>, Prisma.OrderItemUncheckedUpdateWithoutSerialSaleHistoriesInput>
+}
+
+export type OrderItemCreateNestedOneWithoutBatchAllocationsInput = {
+  create?: Prisma.XOR<Prisma.OrderItemCreateWithoutBatchAllocationsInput, Prisma.OrderItemUncheckedCreateWithoutBatchAllocationsInput>
+  connectOrCreate?: Prisma.OrderItemCreateOrConnectWithoutBatchAllocationsInput
+  connect?: Prisma.OrderItemWhereUniqueInput
+}
+
+export type OrderItemUpdateOneRequiredWithoutBatchAllocationsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrderItemCreateWithoutBatchAllocationsInput, Prisma.OrderItemUncheckedCreateWithoutBatchAllocationsInput>
+  connectOrCreate?: Prisma.OrderItemCreateOrConnectWithoutBatchAllocationsInput
+  upsert?: Prisma.OrderItemUpsertWithoutBatchAllocationsInput
+  connect?: Prisma.OrderItemWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrderItemUpdateToOneWithWhereWithoutBatchAllocationsInput, Prisma.OrderItemUpdateWithoutBatchAllocationsInput>, Prisma.OrderItemUncheckedUpdateWithoutBatchAllocationsInput>
+}
+
 export type OrderItemCreateWithoutOrderInput = {
   id?: string
   productId: string
@@ -577,6 +624,8 @@ export type OrderItemCreateWithoutOrderInput = {
   gst: number
   total: number
   createdAt?: Date | string
+  batchAllocations?: Prisma.OrderItemBatchCreateNestedManyWithoutOrderItemInput
+  serialSaleHistories?: Prisma.SerialSaleHistoryCreateNestedManyWithoutOrderItemInput
 }
 
 export type OrderItemUncheckedCreateWithoutOrderInput = {
@@ -590,6 +639,8 @@ export type OrderItemUncheckedCreateWithoutOrderInput = {
   gst: number
   total: number
   createdAt?: Date | string
+  batchAllocations?: Prisma.OrderItemBatchUncheckedCreateNestedManyWithoutOrderItemInput
+  serialSaleHistories?: Prisma.SerialSaleHistoryUncheckedCreateNestedManyWithoutOrderItemInput
 }
 
 export type OrderItemCreateOrConnectWithoutOrderInput = {
@@ -635,6 +686,158 @@ export type OrderItemScalarWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"OrderItem"> | Date | string
 }
 
+export type OrderItemCreateWithoutSerialSaleHistoriesInput = {
+  id?: string
+  productId: string
+  productName: string
+  barcode?: string | null
+  quantity: number
+  unitPrice: number
+  discount: number
+  gst: number
+  total: number
+  createdAt?: Date | string
+  order: Prisma.OrderCreateNestedOneWithoutItemsInput
+  batchAllocations?: Prisma.OrderItemBatchCreateNestedManyWithoutOrderItemInput
+}
+
+export type OrderItemUncheckedCreateWithoutSerialSaleHistoriesInput = {
+  id?: string
+  orderId: string
+  productId: string
+  productName: string
+  barcode?: string | null
+  quantity: number
+  unitPrice: number
+  discount: number
+  gst: number
+  total: number
+  createdAt?: Date | string
+  batchAllocations?: Prisma.OrderItemBatchUncheckedCreateNestedManyWithoutOrderItemInput
+}
+
+export type OrderItemCreateOrConnectWithoutSerialSaleHistoriesInput = {
+  where: Prisma.OrderItemWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrderItemCreateWithoutSerialSaleHistoriesInput, Prisma.OrderItemUncheckedCreateWithoutSerialSaleHistoriesInput>
+}
+
+export type OrderItemUpsertWithoutSerialSaleHistoriesInput = {
+  update: Prisma.XOR<Prisma.OrderItemUpdateWithoutSerialSaleHistoriesInput, Prisma.OrderItemUncheckedUpdateWithoutSerialSaleHistoriesInput>
+  create: Prisma.XOR<Prisma.OrderItemCreateWithoutSerialSaleHistoriesInput, Prisma.OrderItemUncheckedCreateWithoutSerialSaleHistoriesInput>
+  where?: Prisma.OrderItemWhereInput
+}
+
+export type OrderItemUpdateToOneWithWhereWithoutSerialSaleHistoriesInput = {
+  where?: Prisma.OrderItemWhereInput
+  data: Prisma.XOR<Prisma.OrderItemUpdateWithoutSerialSaleHistoriesInput, Prisma.OrderItemUncheckedUpdateWithoutSerialSaleHistoriesInput>
+}
+
+export type OrderItemUpdateWithoutSerialSaleHistoriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  productId?: Prisma.StringFieldUpdateOperationsInput | string
+  productName?: Prisma.StringFieldUpdateOperationsInput | string
+  barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  quantity?: Prisma.IntFieldUpdateOperationsInput | number
+  unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  total?: Prisma.FloatFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  order?: Prisma.OrderUpdateOneRequiredWithoutItemsNestedInput
+  batchAllocations?: Prisma.OrderItemBatchUpdateManyWithoutOrderItemNestedInput
+}
+
+export type OrderItemUncheckedUpdateWithoutSerialSaleHistoriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  orderId?: Prisma.StringFieldUpdateOperationsInput | string
+  productId?: Prisma.StringFieldUpdateOperationsInput | string
+  productName?: Prisma.StringFieldUpdateOperationsInput | string
+  barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  quantity?: Prisma.IntFieldUpdateOperationsInput | number
+  unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  total?: Prisma.FloatFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchAllocations?: Prisma.OrderItemBatchUncheckedUpdateManyWithoutOrderItemNestedInput
+}
+
+export type OrderItemCreateWithoutBatchAllocationsInput = {
+  id?: string
+  productId: string
+  productName: string
+  barcode?: string | null
+  quantity: number
+  unitPrice: number
+  discount: number
+  gst: number
+  total: number
+  createdAt?: Date | string
+  order: Prisma.OrderCreateNestedOneWithoutItemsInput
+  serialSaleHistories?: Prisma.SerialSaleHistoryCreateNestedManyWithoutOrderItemInput
+}
+
+export type OrderItemUncheckedCreateWithoutBatchAllocationsInput = {
+  id?: string
+  orderId: string
+  productId: string
+  productName: string
+  barcode?: string | null
+  quantity: number
+  unitPrice: number
+  discount: number
+  gst: number
+  total: number
+  createdAt?: Date | string
+  serialSaleHistories?: Prisma.SerialSaleHistoryUncheckedCreateNestedManyWithoutOrderItemInput
+}
+
+export type OrderItemCreateOrConnectWithoutBatchAllocationsInput = {
+  where: Prisma.OrderItemWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrderItemCreateWithoutBatchAllocationsInput, Prisma.OrderItemUncheckedCreateWithoutBatchAllocationsInput>
+}
+
+export type OrderItemUpsertWithoutBatchAllocationsInput = {
+  update: Prisma.XOR<Prisma.OrderItemUpdateWithoutBatchAllocationsInput, Prisma.OrderItemUncheckedUpdateWithoutBatchAllocationsInput>
+  create: Prisma.XOR<Prisma.OrderItemCreateWithoutBatchAllocationsInput, Prisma.OrderItemUncheckedCreateWithoutBatchAllocationsInput>
+  where?: Prisma.OrderItemWhereInput
+}
+
+export type OrderItemUpdateToOneWithWhereWithoutBatchAllocationsInput = {
+  where?: Prisma.OrderItemWhereInput
+  data: Prisma.XOR<Prisma.OrderItemUpdateWithoutBatchAllocationsInput, Prisma.OrderItemUncheckedUpdateWithoutBatchAllocationsInput>
+}
+
+export type OrderItemUpdateWithoutBatchAllocationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  productId?: Prisma.StringFieldUpdateOperationsInput | string
+  productName?: Prisma.StringFieldUpdateOperationsInput | string
+  barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  quantity?: Prisma.IntFieldUpdateOperationsInput | number
+  unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  total?: Prisma.FloatFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  order?: Prisma.OrderUpdateOneRequiredWithoutItemsNestedInput
+  serialSaleHistories?: Prisma.SerialSaleHistoryUpdateManyWithoutOrderItemNestedInput
+}
+
+export type OrderItemUncheckedUpdateWithoutBatchAllocationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  orderId?: Prisma.StringFieldUpdateOperationsInput | string
+  productId?: Prisma.StringFieldUpdateOperationsInput | string
+  productName?: Prisma.StringFieldUpdateOperationsInput | string
+  barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  quantity?: Prisma.IntFieldUpdateOperationsInput | number
+  unitPrice?: Prisma.FloatFieldUpdateOperationsInput | number
+  discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  gst?: Prisma.FloatFieldUpdateOperationsInput | number
+  total?: Prisma.FloatFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  serialSaleHistories?: Prisma.SerialSaleHistoryUncheckedUpdateManyWithoutOrderItemNestedInput
+}
+
 export type OrderItemCreateManyOrderInput = {
   id?: string
   productId: string
@@ -659,6 +862,8 @@ export type OrderItemUpdateWithoutOrderInput = {
   gst?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchAllocations?: Prisma.OrderItemBatchUpdateManyWithoutOrderItemNestedInput
+  serialSaleHistories?: Prisma.SerialSaleHistoryUpdateManyWithoutOrderItemNestedInput
 }
 
 export type OrderItemUncheckedUpdateWithoutOrderInput = {
@@ -672,6 +877,8 @@ export type OrderItemUncheckedUpdateWithoutOrderInput = {
   gst?: Prisma.FloatFieldUpdateOperationsInput | number
   total?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  batchAllocations?: Prisma.OrderItemBatchUncheckedUpdateManyWithoutOrderItemNestedInput
+  serialSaleHistories?: Prisma.SerialSaleHistoryUncheckedUpdateManyWithoutOrderItemNestedInput
 }
 
 export type OrderItemUncheckedUpdateManyWithoutOrderInput = {
@@ -688,6 +895,44 @@ export type OrderItemUncheckedUpdateManyWithoutOrderInput = {
 }
 
 
+/**
+ * Count Type OrderItemCountOutputType
+ */
+
+export type OrderItemCountOutputType = {
+  batchAllocations: number
+  serialSaleHistories: number
+}
+
+export type OrderItemCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  batchAllocations?: boolean | OrderItemCountOutputTypeCountBatchAllocationsArgs
+  serialSaleHistories?: boolean | OrderItemCountOutputTypeCountSerialSaleHistoriesArgs
+}
+
+/**
+ * OrderItemCountOutputType without action
+ */
+export type OrderItemCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OrderItemCountOutputType
+   */
+  select?: Prisma.OrderItemCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * OrderItemCountOutputType without action
+ */
+export type OrderItemCountOutputTypeCountBatchAllocationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OrderItemBatchWhereInput
+}
+
+/**
+ * OrderItemCountOutputType without action
+ */
+export type OrderItemCountOutputTypeCountSerialSaleHistoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SerialSaleHistoryWhereInput
+}
+
 
 export type OrderItemSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -702,6 +947,9 @@ export type OrderItemSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   total?: boolean
   createdAt?: boolean
   order?: boolean | Prisma.OrderDefaultArgs<ExtArgs>
+  batchAllocations?: boolean | Prisma.OrderItem$batchAllocationsArgs<ExtArgs>
+  serialSaleHistories?: boolean | Prisma.OrderItem$serialSaleHistoriesArgs<ExtArgs>
+  _count?: boolean | Prisma.OrderItemCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["orderItem"]>
 
 
@@ -723,12 +971,17 @@ export type OrderItemSelectScalar = {
 export type OrderItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "orderId" | "productId" | "productName" | "barcode" | "quantity" | "unitPrice" | "discount" | "gst" | "total" | "createdAt", ExtArgs["result"]["orderItem"]>
 export type OrderItemInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   order?: boolean | Prisma.OrderDefaultArgs<ExtArgs>
+  batchAllocations?: boolean | Prisma.OrderItem$batchAllocationsArgs<ExtArgs>
+  serialSaleHistories?: boolean | Prisma.OrderItem$serialSaleHistoriesArgs<ExtArgs>
+  _count?: boolean | Prisma.OrderItemCountOutputTypeDefaultArgs<ExtArgs>
 }
 
 export type $OrderItemPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "OrderItem"
   objects: {
     order: Prisma.$OrderPayload<ExtArgs>
+    batchAllocations: Prisma.$OrderItemBatchPayload<ExtArgs>[]
+    serialSaleHistories: Prisma.$SerialSaleHistoryPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1083,6 +1336,8 @@ readonly fields: OrderItemFieldRefs;
 export interface Prisma__OrderItemClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   order<T extends Prisma.OrderDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrderDefaultArgs<ExtArgs>>): Prisma.Prisma__OrderClient<runtime.Types.Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  batchAllocations<T extends Prisma.OrderItem$batchAllocationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrderItem$batchAllocationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderItemBatchPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  serialSaleHistories<T extends Prisma.OrderItem$serialSaleHistoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrderItem$serialSaleHistoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SerialSaleHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1468,6 +1723,54 @@ export type OrderItemDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Limit how many OrderItems to delete.
    */
   limit?: number
+}
+
+/**
+ * OrderItem.batchAllocations
+ */
+export type OrderItem$batchAllocationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OrderItemBatch
+   */
+  select?: Prisma.OrderItemBatchSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OrderItemBatch
+   */
+  omit?: Prisma.OrderItemBatchOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OrderItemBatchInclude<ExtArgs> | null
+  where?: Prisma.OrderItemBatchWhereInput
+  orderBy?: Prisma.OrderItemBatchOrderByWithRelationInput | Prisma.OrderItemBatchOrderByWithRelationInput[]
+  cursor?: Prisma.OrderItemBatchWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.OrderItemBatchScalarFieldEnum | Prisma.OrderItemBatchScalarFieldEnum[]
+}
+
+/**
+ * OrderItem.serialSaleHistories
+ */
+export type OrderItem$serialSaleHistoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SerialSaleHistory
+   */
+  select?: Prisma.SerialSaleHistorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SerialSaleHistory
+   */
+  omit?: Prisma.SerialSaleHistoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SerialSaleHistoryInclude<ExtArgs> | null
+  where?: Prisma.SerialSaleHistoryWhereInput
+  orderBy?: Prisma.SerialSaleHistoryOrderByWithRelationInput | Prisma.SerialSaleHistoryOrderByWithRelationInput[]
+  cursor?: Prisma.SerialSaleHistoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SerialSaleHistoryScalarFieldEnum | Prisma.SerialSaleHistoryScalarFieldEnum[]
 }
 
 /**

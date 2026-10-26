@@ -75,6 +75,11 @@ model Business {
   searchHistory           SearchHistory[]
   suppliers               Supplier[]
   users                   User[]
+  productSerials          ProductSerial[]
+  deviceIdentifiers       DeviceIdentifier[]
+  productBatches          ProductBatch[]
+  salesReturns            SalesReturn[]
+  purchaseReturns         PurchaseReturn[]
 
   @@map("businesses")
 }
@@ -219,6 +224,8 @@ model Product {
   keywords        String?          @db.VarChar(500)
   productStatus   String           @default("Active") @map("product_status") @db.VarChar(50)
   categoryId      String?          @map("category_id") @db.VarChar(50)
+  trackingMode    TrackingMode     @default(NONE) @map("tracking_mode")
+  isExpiryMandatory Boolean        @default(false) @map("is_expiry_mandatory")
   inventories     Inventory[]
   productUnit     ProductUnit?
   business        Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -227,6 +234,9 @@ model Product {
   quantityPresets QuantityPreset[]
   stockMovements  StockMovement[]
   weightPresets   WeightPreset[]
+  productSerials  ProductSerial[]
+  productBatches  ProductBatch[]
+  purchaseReturns PurchaseReturn[]
 
   @@index([businessId])
   @@index([categoryId], map: "products_category_id_fkey")
@@ -268,6 +278,7 @@ model Inventory {
   batchNumber       String?         @map("batch_number") @db.VarChar(50)
   expiryDate        DateTime?       @map("expiry_date")
   status            String          @default("IN_STOCK") @db.VarChar(50)
+  untrackedQuantity Int             @default(0) @map("untracked_quantity")
   business          Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
   product           Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   stockMovements    StockMovement[]
@@ -363,6 +374,7 @@ model Order {
   customer      Customer?    @relation(fields: [customerId], references: [id])
   pwaCustomer   PwaCustomer? @relation(fields: [pwaCustomerId], references: [id])
   payments      Payment[]
+  salesReturns  SalesReturn[]
 
   @@unique([businessId, invoiceNumber])
   @@index([customerId])
@@ -382,8 +394,10 @@ model OrderItem {
   discount    Float
   gst         Float
   total       Float
-  createdAt   DateTime @default(now()) @map("created_at")
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt           DateTime            @default(now()) @map("created_at")
+  order               Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  batchAllocations    OrderItemBatch[]
+  serialSaleHistories SerialSaleHistory[]
 
   @@index([orderId])
   @@index([productId])
@@ -552,6 +566,7 @@ model PurchaseOrder {
   business         Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
   supplier         Supplier          @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   purchasePayments PurchasePayment[]
+  purchaseReturns  PurchaseReturn[]
 
   @@unique([businessId, poNumber])
   @@index([supplierId])
@@ -573,6 +588,8 @@ model PurchaseItem {
   status            String        @default("Pending") @db.VarChar(50)
   product           Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
   purchaseOrder     PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  receivedSerials   ProductSerial[]
+  receivedBatches   ProductBatch[]
 
   @@index([purchaseOrderId])
   @@index([productId])
@@ -1098,4 +1115,291 @@ model PaymentLog {
 
   @@index([businessId])
   @@map("payment_logs")
+}
+
+// ==============================================================================
+// SERIAL & BATCH TRACKING EXTENSIONS
+// ==============================================================================
+
+enum TrackingMode {
+  NONE
+  SERIAL
+  BATCH
+}
+
+enum DeviceIdentifierType {
+  SERIAL_NUMBER
+  IMEI1
+  IMEI2
+  MAC_ADDRESS
+}
+
+enum SerialUnitStatus {
+  IN_STOCK
+  RESERVED
+  SOLD
+  RETURNED_RESTOCKED
+  DEFECTIVE
+  WRITTEN_OFF
+}
+
+enum SerialSaleStatus {
+  COMPLETED
+  RETURNED_RESTOCKED
+  RETURNED_DEFECTIVE
+  CANCELLED
+}
+
+enum BatchStatus {
+  ACTIVE
+  NEAR_EXPIRY
+  EXPIRED
+  QUARANTINED
+  DEPLETED
+}
+
+enum BatchMovementType {
+  OPENING_BALANCE
+  PURCHASE_RECEIPT
+  SALE_ALLOCATION
+  SALE_VOID
+  CUSTOMER_RETURN
+  SUPPLIER_RTV
+  DAMAGE_WRITEOFF
+  QUARANTINE_HOLD
+  QUARANTINE_RELEASE
+  INVENTORY_AUDIT_ADJUSTMENT
+}
+
+model ProductSerial {
+  id              String              @id @default(uuid()) @db.VarChar(50)
+  businessId      String              @map("business_id") @db.VarChar(50)
+  productId       String              @map("product_id") @db.VarChar(50)
+  purchaseItemId  String?             @map("purchase_item_id") @db.VarChar(50)
+  serialNumber    String              @map("serial_number") @db.VarChar(100)
+  imei1           String?             @db.VarChar(50)
+  imei2           String?             @db.VarChar(50)
+  status          SerialUnitStatus    @default(IN_STOCK)
+  costPrice       Decimal             @default(0.00) @map("cost_price") @db.Decimal(12, 2)
+  notes           String?             @db.VarChar(255)
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  business        Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  product         Product             @relation(fields: [productId], references: [id], onDelete: Restrict)
+  purchaseItem    PurchaseItem?       @relation(fields: [purchaseItemId], references: [id], onDelete: SetNull)
+  identifiers     DeviceIdentifier[]
+  saleHistory     SerialSaleHistory[]
+  auditLogs       SerialAuditLog[]
+  returnSerials   ReturnItemSerial[]
+
+  @@index([businessId, productId, status])
+  @@index([purchaseItemId])
+  @@map("product_serials")
+}
+
+model DeviceIdentifier {
+  id              String               @id @default(uuid()) @db.VarChar(50)
+  businessId      String               @map("business_id") @db.VarChar(50)
+  serialId        String               @map("serial_id") @db.VarChar(50)
+  identifierType  DeviceIdentifierType @map("identifier_type")
+  identifierValue String               @map("identifier_value") @db.VarChar(100)
+  createdAt       DateTime             @default(now()) @map("created_at")
+
+  business        Business             @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  serial          ProductSerial        @relation(fields: [serialId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, identifierValue])
+  @@index([serialId])
+  @@map("device_identifiers")
+}
+
+model SerialSaleHistory {
+  id                String           @id @default(uuid()) @db.VarChar(50)
+  businessId        String           @map("business_id") @db.VarChar(50)
+  serialId          String           @map("serial_id") @db.VarChar(50)
+  orderItemId       String           @map("order_item_id") @db.VarChar(50)
+  customerId        String?          @map("customer_id") @db.VarChar(50)
+  soldAt            DateTime         @default(now()) @map("sold_at")
+  salePrice         Decimal          @map("sale_price") @db.Decimal(12, 2)
+  warrantyStartDate DateTime?        @map("warranty_start_date")
+  warrantyEndDate   DateTime?        @map("warranty_end_date")
+  status            SerialSaleStatus @default(COMPLETED)
+  returnedAt        DateTime?        @map("returned_at")
+  inspectionNotes   String?          @map("inspection_notes") @db.VarChar(255)
+
+  serial            ProductSerial    @relation(fields: [serialId], references: [id], onDelete: Restrict)
+  orderItem         OrderItem        @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, serialId])
+  @@index([orderItemId])
+  @@index([customerId])
+  @@map("serial_sale_histories")
+}
+
+model ProductBatch {
+  id                  String           @id @default(uuid()) @db.VarChar(50)
+  businessId          String           @map("business_id") @db.VarChar(50)
+  productId           String           @map("product_id") @db.VarChar(50)
+  purchaseItemId      String?          @map("purchase_item_id") @db.VarChar(50)
+  batchNumber         String           @map("batch_number") @db.VarChar(100)
+  manufacturingDate   DateTime?        @map("manufacturing_date")
+  expiryDate          DateTime?        @map("expiry_date")
+  initialQuantity     Int              @map("initial_quantity")
+  availableQuantity   Int              @map("available_quantity")
+  reservedQuantity    Int              @default(0) @map("reserved_quantity")
+  quarantinedQuantity Int              @default(0) @map("quarantined_quantity")
+  costPrice           Decimal          @map("cost_price") @db.Decimal(12, 2)
+  mrp                 Decimal?         @db.Decimal(12, 2)
+  salePrice           Decimal          @map("sale_price") @db.Decimal(12, 2)
+  status              BatchStatus      @default(ACTIVE)
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  business            Business         @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  product             Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  purchaseItem        PurchaseItem?    @relation(fields: [purchaseItemId], references: [id], onDelete: SetNull)
+  movements           BatchMovement[]
+  orderAllocations    OrderItemBatch[]
+
+  @@unique([businessId, productId, batchNumber])
+  @@index([businessId, productId, status, expiryDate])
+  @@map("product_batches")
+}
+
+model BatchMovement {
+  id            String            @id @default(uuid()) @db.VarChar(50)
+  businessId    String            @map("business_id") @db.VarChar(50)
+  batchId       String            @map("batch_id") @db.VarChar(50)
+  movementType  BatchMovementType @map("movement_type")
+  quantityDelta Int               @map("quantity_delta")
+  balanceAfter  Int               @map("balance_after")
+  referenceType String            @map("reference_type") @db.VarChar(50)
+  referenceId   String            @map("reference_id") @db.VarChar(50)
+  performedBy   String?           @map("performed_by") @db.VarChar(100)
+  notes         String?           @db.VarChar(255)
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  batch         ProductBatch      @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, batchId, createdAt])
+  @@index([referenceType, referenceId])
+  @@map("batch_movements")
+}
+
+model OrderItemBatch {
+  id                String            @id @default(uuid()) @db.VarChar(50)
+  businessId        String            @map("business_id") @db.VarChar(50)
+  orderItemId       String            @map("order_item_id") @db.VarChar(50)
+  batchId           String            @map("batch_id") @db.VarChar(50)
+  quantityAllocated Int               @map("quantity_allocated")
+  quantityReturned  Int               @default(0) @map("quantity_returned")
+  unitPrice         Decimal           @map("unit_price") @db.Decimal(12, 2)
+  costPrice         Decimal           @map("cost_price") @db.Decimal(12, 2)
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  orderItem         OrderItem         @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  batch             ProductBatch      @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  returnItems       ReturnItemBatch[]
+
+  @@index([orderItemId])
+  @@index([batchId])
+  @@map("order_item_batches")
+}
+
+model SalesReturn {
+  id            String             @id @default(uuid()) @db.VarChar(50)
+  businessId    String             @map("business_id") @db.VarChar(50)
+  returnNumber  String             @map("return_number") @db.VarChar(50)
+  orderId       String             @map("order_id") @db.VarChar(50)
+  customerId    String?            @map("customer_id") @db.VarChar(50)
+  refundAmount  Decimal            @map("refund_amount") @db.Decimal(12, 2)
+  refundMethod  String             @map("refund_method") @db.VarChar(50)
+  reason        String?            @db.VarChar(255)
+  receivedBy    String?            @map("received_by") @db.VarChar(100)
+  createdAt     DateTime           @default(now()) @map("created_at")
+
+  business      Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  order         Order              @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  batchReturns  ReturnItemBatch[]
+  serialReturns ReturnItemSerial[]
+
+  @@unique([businessId, returnNumber])
+  @@index([orderId])
+  @@map("sales_returns")
+}
+
+model ReturnItemBatch {
+  id               String         @id @default(uuid()) @db.VarChar(50)
+  businessId       String         @map("business_id") @db.VarChar(50)
+  salesReturnId    String         @map("sales_return_id") @db.VarChar(50)
+  orderItemBatchId String         @map("order_item_batch_id") @db.VarChar(50)
+  returnQuantity   Int            @map("return_quantity")
+  disposition      String         @default("RESTOCKED") @db.VarChar(50)
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  salesReturn      SalesReturn    @relation(fields: [salesReturnId], references: [id], onDelete: Restrict)
+  orderItemBatch   OrderItemBatch @relation(fields: [orderItemBatchId], references: [id], onDelete: Restrict)
+
+  @@index([salesReturnId])
+  @@index([orderItemBatchId])
+  @@map("return_item_batches")
+}
+
+model ReturnItemSerial {
+  id              String        @id @default(uuid()) @db.VarChar(50)
+  businessId      String        @map("business_id") @db.VarChar(50)
+  salesReturnId   String        @map("sales_return_id") @db.VarChar(50)
+  serialId        String        @map("serial_id") @db.VarChar(50)
+  disposition     String        @default("RESTOCKED") @db.VarChar(50)
+  inspectionNotes String?       @map("inspection_notes") @db.VarChar(255)
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  salesReturn     SalesReturn   @relation(fields: [salesReturnId], references: [id], onDelete: Restrict)
+  serial          ProductSerial @relation(fields: [serialId], references: [id], onDelete: Restrict)
+
+  @@index([salesReturnId])
+  @@index([serialId])
+  @@map("return_item_serials")
+}
+
+model SerialAuditLog {
+  id             String            @id @default(uuid()) @db.VarChar(50)
+  businessId     String            @map("business_id") @db.VarChar(50)
+  serialId       String            @map("serial_id") @db.VarChar(50)
+  action         String            @db.VarChar(50)
+  previousStatus SerialUnitStatus? @map("previous_status")
+  newStatus      SerialUnitStatus  @map("new_status")
+  referenceType  String            @map("reference_type") @db.VarChar(50)
+  referenceId    String            @map("reference_id") @db.VarChar(50)
+  performedBy    String?           @map("performed_by") @db.VarChar(100)
+  notes          String?           @db.VarChar(255)
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  serial         ProductSerial     @relation(fields: [serialId], references: [id], onDelete: Restrict)
+
+  @@index([serialId])
+  @@index([businessId, createdAt])
+  @@map("serial_audit_logs")
+}
+
+model PurchaseReturn {
+  id              String        @id @default(uuid()) @db.VarChar(50)
+  businessId      String        @map("business_id") @db.VarChar(50)
+  purchaseOrderId String        @map("purchase_order_id") @db.VarChar(50)
+  returnNumber    String        @map("return_number") @db.VarChar(50)
+  productId       String        @map("product_id") @db.VarChar(50)
+  returnQty       Int           @map("return_qty")
+  reason          String?       @db.VarChar(255)
+  returnedBy      String?       @map("returned_by") @db.VarChar(100)
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  business        Business      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([businessId])
+  @@index([purchaseOrderId])
+  @@index([productId])
+  @@map("purchase_returns")
 }

@@ -24,6 +24,8 @@ export interface Product {
   supplierName: string;
   barcode?: string;
   customFields?: string;
+  trackingMode?: "NONE" | "SERIAL" | "BATCH";
+  isExpiryMandatory?: boolean;
 }
 
 export interface Customer {
@@ -53,6 +55,9 @@ export interface OrderItem {
   name: string;
   quantity: number;
   price: number;
+  serialIds?: string[];
+  serialId?: string;
+  batchId?: string;
 }
 
 export type UserRole = "Owner" | "Cashier" | "Accountant" | "Warehouse" | "SuperAdmin" | "Manager" | "Employee";
@@ -933,6 +938,9 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       unitPrice: item.price,
       discount: Math.round(itemDiscountProportion * item.quantity),
       gst: 5,
+      serialId: (item as any).serialId,
+      serialIds: (item as any).serialIds,
+      batchId: (item as any).batchId,
     }));
 
     try {

@@ -353,6 +353,7 @@ export type OrderWhereInput = {
   customer?: Prisma.XOR<Prisma.CustomerNullableScalarRelationFilter, Prisma.CustomerWhereInput> | null
   pwaCustomer?: Prisma.XOR<Prisma.PwaCustomerNullableScalarRelationFilter, Prisma.PwaCustomerWhereInput> | null
   payments?: Prisma.PaymentListRelationFilter
+  salesReturns?: Prisma.SalesReturnListRelationFilter
 }
 
 export type OrderOrderByWithRelationInput = {
@@ -380,6 +381,7 @@ export type OrderOrderByWithRelationInput = {
   customer?: Prisma.CustomerOrderByWithRelationInput
   pwaCustomer?: Prisma.PwaCustomerOrderByWithRelationInput
   payments?: Prisma.PaymentOrderByRelationAggregateInput
+  salesReturns?: Prisma.SalesReturnOrderByRelationAggregateInput
   _relevance?: Prisma.OrderOrderByRelevanceInput
 }
 
@@ -412,6 +414,7 @@ export type OrderWhereUniqueInput = Prisma.AtLeast<{
   customer?: Prisma.XOR<Prisma.CustomerNullableScalarRelationFilter, Prisma.CustomerWhereInput> | null
   pwaCustomer?: Prisma.XOR<Prisma.PwaCustomerNullableScalarRelationFilter, Prisma.PwaCustomerWhereInput> | null
   payments?: Prisma.PaymentListRelationFilter
+  salesReturns?: Prisma.SalesReturnListRelationFilter
 }, "id" | "businessId_invoiceNumber">
 
 export type OrderOrderByWithAggregationInput = {
@@ -488,6 +491,7 @@ export type OrderCreateInput = {
   customer?: Prisma.CustomerCreateNestedOneWithoutOrdersInput
   pwaCustomer?: Prisma.PwaCustomerCreateNestedOneWithoutOrdersInput
   payments?: Prisma.PaymentCreateNestedManyWithoutOrderInput
+  salesReturns?: Prisma.SalesReturnCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateInput = {
@@ -512,6 +516,7 @@ export type OrderUncheckedCreateInput = {
   pwaCustomerId?: string | null
   items?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutOrderInput
+  salesReturns?: Prisma.SalesReturnUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUpdateInput = {
@@ -536,6 +541,7 @@ export type OrderUpdateInput = {
   customer?: Prisma.CustomerUpdateOneWithoutOrdersNestedInput
   pwaCustomer?: Prisma.PwaCustomerUpdateOneWithoutOrdersNestedInput
   payments?: Prisma.PaymentUpdateManyWithoutOrderNestedInput
+  salesReturns?: Prisma.SalesReturnUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateInput = {
@@ -560,6 +566,7 @@ export type OrderUncheckedUpdateInput = {
   pwaCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutOrderNestedInput
+  salesReturns?: Prisma.SalesReturnUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderCreateManyInput = {
@@ -889,6 +896,20 @@ export type OrderUncheckedUpdateManyWithoutPwaCustomerNestedInput = {
   deleteMany?: Prisma.OrderScalarWhereInput | Prisma.OrderScalarWhereInput[]
 }
 
+export type OrderCreateNestedOneWithoutSalesReturnsInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutSalesReturnsInput, Prisma.OrderUncheckedCreateWithoutSalesReturnsInput>
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutSalesReturnsInput
+  connect?: Prisma.OrderWhereUniqueInput
+}
+
+export type OrderUpdateOneRequiredWithoutSalesReturnsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrderCreateWithoutSalesReturnsInput, Prisma.OrderUncheckedCreateWithoutSalesReturnsInput>
+  connectOrCreate?: Prisma.OrderCreateOrConnectWithoutSalesReturnsInput
+  upsert?: Prisma.OrderUpsertWithoutSalesReturnsInput
+  connect?: Prisma.OrderWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrderUpdateToOneWithWhereWithoutSalesReturnsInput, Prisma.OrderUpdateWithoutSalesReturnsInput>, Prisma.OrderUncheckedUpdateWithoutSalesReturnsInput>
+}
+
 export type OrderCreateWithoutBusinessInput = {
   id?: string
   invoiceNumber: string
@@ -910,6 +931,7 @@ export type OrderCreateWithoutBusinessInput = {
   customer?: Prisma.CustomerCreateNestedOneWithoutOrdersInput
   pwaCustomer?: Prisma.PwaCustomerCreateNestedOneWithoutOrdersInput
   payments?: Prisma.PaymentCreateNestedManyWithoutOrderInput
+  salesReturns?: Prisma.SalesReturnCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutBusinessInput = {
@@ -933,6 +955,7 @@ export type OrderUncheckedCreateWithoutBusinessInput = {
   pwaCustomerId?: string | null
   items?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutOrderInput
+  salesReturns?: Prisma.SalesReturnUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutBusinessInput = {
@@ -1007,6 +1030,7 @@ export type OrderCreateWithoutItemsInput = {
   customer?: Prisma.CustomerCreateNestedOneWithoutOrdersInput
   pwaCustomer?: Prisma.PwaCustomerCreateNestedOneWithoutOrdersInput
   payments?: Prisma.PaymentCreateNestedManyWithoutOrderInput
+  salesReturns?: Prisma.SalesReturnCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutItemsInput = {
@@ -1030,6 +1054,7 @@ export type OrderUncheckedCreateWithoutItemsInput = {
   deletedAt?: Date | string | null
   pwaCustomerId?: string | null
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutOrderInput
+  salesReturns?: Prisma.SalesReturnUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutItemsInput = {
@@ -1069,6 +1094,7 @@ export type OrderUpdateWithoutItemsInput = {
   customer?: Prisma.CustomerUpdateOneWithoutOrdersNestedInput
   pwaCustomer?: Prisma.PwaCustomerUpdateOneWithoutOrdersNestedInput
   payments?: Prisma.PaymentUpdateManyWithoutOrderNestedInput
+  salesReturns?: Prisma.SalesReturnUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutItemsInput = {
@@ -1092,6 +1118,7 @@ export type OrderUncheckedUpdateWithoutItemsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   pwaCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutOrderNestedInput
+  salesReturns?: Prisma.SalesReturnUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderCreateWithoutPaymentsInput = {
@@ -1115,6 +1142,7 @@ export type OrderCreateWithoutPaymentsInput = {
   business: Prisma.BusinessCreateNestedOneWithoutOrdersInput
   customer?: Prisma.CustomerCreateNestedOneWithoutOrdersInput
   pwaCustomer?: Prisma.PwaCustomerCreateNestedOneWithoutOrdersInput
+  salesReturns?: Prisma.SalesReturnCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutPaymentsInput = {
@@ -1138,6 +1166,7 @@ export type OrderUncheckedCreateWithoutPaymentsInput = {
   deletedAt?: Date | string | null
   pwaCustomerId?: string | null
   items?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
+  salesReturns?: Prisma.SalesReturnUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutPaymentsInput = {
@@ -1177,6 +1206,7 @@ export type OrderUpdateWithoutPaymentsInput = {
   business?: Prisma.BusinessUpdateOneRequiredWithoutOrdersNestedInput
   customer?: Prisma.CustomerUpdateOneWithoutOrdersNestedInput
   pwaCustomer?: Prisma.PwaCustomerUpdateOneWithoutOrdersNestedInput
+  salesReturns?: Prisma.SalesReturnUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutPaymentsInput = {
@@ -1200,6 +1230,7 @@ export type OrderUncheckedUpdateWithoutPaymentsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   pwaCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
+  salesReturns?: Prisma.SalesReturnUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderCreateWithoutCustomerInput = {
@@ -1223,6 +1254,7 @@ export type OrderCreateWithoutCustomerInput = {
   business: Prisma.BusinessCreateNestedOneWithoutOrdersInput
   pwaCustomer?: Prisma.PwaCustomerCreateNestedOneWithoutOrdersInput
   payments?: Prisma.PaymentCreateNestedManyWithoutOrderInput
+  salesReturns?: Prisma.SalesReturnCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutCustomerInput = {
@@ -1246,6 +1278,7 @@ export type OrderUncheckedCreateWithoutCustomerInput = {
   pwaCustomerId?: string | null
   items?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutOrderInput
+  salesReturns?: Prisma.SalesReturnUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutCustomerInput = {
@@ -1295,6 +1328,7 @@ export type OrderCreateWithoutPwaCustomerInput = {
   business: Prisma.BusinessCreateNestedOneWithoutOrdersInput
   customer?: Prisma.CustomerCreateNestedOneWithoutOrdersInput
   payments?: Prisma.PaymentCreateNestedManyWithoutOrderInput
+  salesReturns?: Prisma.SalesReturnCreateNestedManyWithoutOrderInput
 }
 
 export type OrderUncheckedCreateWithoutPwaCustomerInput = {
@@ -1318,6 +1352,7 @@ export type OrderUncheckedCreateWithoutPwaCustomerInput = {
   deletedAt?: Date | string | null
   items?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutOrderInput
+  salesReturns?: Prisma.SalesReturnUncheckedCreateNestedManyWithoutOrderInput
 }
 
 export type OrderCreateOrConnectWithoutPwaCustomerInput = {
@@ -1344,6 +1379,118 @@ export type OrderUpdateWithWhereUniqueWithoutPwaCustomerInput = {
 export type OrderUpdateManyWithWhereWithoutPwaCustomerInput = {
   where: Prisma.OrderScalarWhereInput
   data: Prisma.XOR<Prisma.OrderUpdateManyMutationInput, Prisma.OrderUncheckedUpdateManyWithoutPwaCustomerInput>
+}
+
+export type OrderCreateWithoutSalesReturnsInput = {
+  id?: string
+  invoiceNumber: string
+  employeeId?: string | null
+  subtotal: number
+  discount: number
+  gstAmount: number
+  taxableAmount: number
+  roundOff: number
+  grandTotal: number
+  paymentStatus: string
+  paymentMethod: string
+  orderStatus: string
+  notes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  items?: Prisma.OrderItemCreateNestedManyWithoutOrderInput
+  business: Prisma.BusinessCreateNestedOneWithoutOrdersInput
+  customer?: Prisma.CustomerCreateNestedOneWithoutOrdersInput
+  pwaCustomer?: Prisma.PwaCustomerCreateNestedOneWithoutOrdersInput
+  payments?: Prisma.PaymentCreateNestedManyWithoutOrderInput
+}
+
+export type OrderUncheckedCreateWithoutSalesReturnsInput = {
+  id?: string
+  businessId: string
+  invoiceNumber: string
+  customerId?: string | null
+  employeeId?: string | null
+  subtotal: number
+  discount: number
+  gstAmount: number
+  taxableAmount: number
+  roundOff: number
+  grandTotal: number
+  paymentStatus: string
+  paymentMethod: string
+  orderStatus: string
+  notes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  pwaCustomerId?: string | null
+  items?: Prisma.OrderItemUncheckedCreateNestedManyWithoutOrderInput
+  payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutOrderInput
+}
+
+export type OrderCreateOrConnectWithoutSalesReturnsInput = {
+  where: Prisma.OrderWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrderCreateWithoutSalesReturnsInput, Prisma.OrderUncheckedCreateWithoutSalesReturnsInput>
+}
+
+export type OrderUpsertWithoutSalesReturnsInput = {
+  update: Prisma.XOR<Prisma.OrderUpdateWithoutSalesReturnsInput, Prisma.OrderUncheckedUpdateWithoutSalesReturnsInput>
+  create: Prisma.XOR<Prisma.OrderCreateWithoutSalesReturnsInput, Prisma.OrderUncheckedCreateWithoutSalesReturnsInput>
+  where?: Prisma.OrderWhereInput
+}
+
+export type OrderUpdateToOneWithWhereWithoutSalesReturnsInput = {
+  where?: Prisma.OrderWhereInput
+  data: Prisma.XOR<Prisma.OrderUpdateWithoutSalesReturnsInput, Prisma.OrderUncheckedUpdateWithoutSalesReturnsInput>
+}
+
+export type OrderUpdateWithoutSalesReturnsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  employeeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
+  discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  gstAmount?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxableAmount?: Prisma.FloatFieldUpdateOperationsInput | number
+  roundOff?: Prisma.FloatFieldUpdateOperationsInput | number
+  grandTotal?: Prisma.FloatFieldUpdateOperationsInput | number
+  paymentStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  paymentMethod?: Prisma.StringFieldUpdateOperationsInput | string
+  orderStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  items?: Prisma.OrderItemUpdateManyWithoutOrderNestedInput
+  business?: Prisma.BusinessUpdateOneRequiredWithoutOrdersNestedInput
+  customer?: Prisma.CustomerUpdateOneWithoutOrdersNestedInput
+  pwaCustomer?: Prisma.PwaCustomerUpdateOneWithoutOrdersNestedInput
+  payments?: Prisma.PaymentUpdateManyWithoutOrderNestedInput
+}
+
+export type OrderUncheckedUpdateWithoutSalesReturnsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  businessId?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  customerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  employeeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtotal?: Prisma.FloatFieldUpdateOperationsInput | number
+  discount?: Prisma.FloatFieldUpdateOperationsInput | number
+  gstAmount?: Prisma.FloatFieldUpdateOperationsInput | number
+  taxableAmount?: Prisma.FloatFieldUpdateOperationsInput | number
+  roundOff?: Prisma.FloatFieldUpdateOperationsInput | number
+  grandTotal?: Prisma.FloatFieldUpdateOperationsInput | number
+  paymentStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  paymentMethod?: Prisma.StringFieldUpdateOperationsInput | string
+  orderStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pwaCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  items?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
+  payments?: Prisma.PaymentUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderCreateManyBusinessInput = {
@@ -1388,6 +1535,7 @@ export type OrderUpdateWithoutBusinessInput = {
   customer?: Prisma.CustomerUpdateOneWithoutOrdersNestedInput
   pwaCustomer?: Prisma.PwaCustomerUpdateOneWithoutOrdersNestedInput
   payments?: Prisma.PaymentUpdateManyWithoutOrderNestedInput
+  salesReturns?: Prisma.SalesReturnUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutBusinessInput = {
@@ -1411,6 +1559,7 @@ export type OrderUncheckedUpdateWithoutBusinessInput = {
   pwaCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutOrderNestedInput
+  salesReturns?: Prisma.SalesReturnUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateManyWithoutBusinessInput = {
@@ -1476,6 +1625,7 @@ export type OrderUpdateWithoutCustomerInput = {
   business?: Prisma.BusinessUpdateOneRequiredWithoutOrdersNestedInput
   pwaCustomer?: Prisma.PwaCustomerUpdateOneWithoutOrdersNestedInput
   payments?: Prisma.PaymentUpdateManyWithoutOrderNestedInput
+  salesReturns?: Prisma.SalesReturnUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutCustomerInput = {
@@ -1499,6 +1649,7 @@ export type OrderUncheckedUpdateWithoutCustomerInput = {
   pwaCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutOrderNestedInput
+  salesReturns?: Prisma.SalesReturnUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateManyWithoutCustomerInput = {
@@ -1564,6 +1715,7 @@ export type OrderUpdateWithoutPwaCustomerInput = {
   business?: Prisma.BusinessUpdateOneRequiredWithoutOrdersNestedInput
   customer?: Prisma.CustomerUpdateOneWithoutOrdersNestedInput
   payments?: Prisma.PaymentUpdateManyWithoutOrderNestedInput
+  salesReturns?: Prisma.SalesReturnUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateWithoutPwaCustomerInput = {
@@ -1587,6 +1739,7 @@ export type OrderUncheckedUpdateWithoutPwaCustomerInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutOrderNestedInput
+  salesReturns?: Prisma.SalesReturnUncheckedUpdateManyWithoutOrderNestedInput
 }
 
 export type OrderUncheckedUpdateManyWithoutPwaCustomerInput = {
@@ -1618,11 +1771,13 @@ export type OrderUncheckedUpdateManyWithoutPwaCustomerInput = {
 export type OrderCountOutputType = {
   items: number
   payments: number
+  salesReturns: number
 }
 
 export type OrderCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   items?: boolean | OrderCountOutputTypeCountItemsArgs
   payments?: boolean | OrderCountOutputTypeCountPaymentsArgs
+  salesReturns?: boolean | OrderCountOutputTypeCountSalesReturnsArgs
 }
 
 /**
@@ -1647,6 +1802,13 @@ export type OrderCountOutputTypeCountItemsArgs<ExtArgs extends runtime.Types.Ext
  */
 export type OrderCountOutputTypeCountPaymentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.PaymentWhereInput
+}
+
+/**
+ * OrderCountOutputType without action
+ */
+export type OrderCountOutputTypeCountSalesReturnsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SalesReturnWhereInput
 }
 
 
@@ -1675,6 +1837,7 @@ export type OrderSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   customer?: boolean | Prisma.Order$customerArgs<ExtArgs>
   pwaCustomer?: boolean | Prisma.Order$pwaCustomerArgs<ExtArgs>
   payments?: boolean | Prisma.Order$paymentsArgs<ExtArgs>
+  salesReturns?: boolean | Prisma.Order$salesReturnsArgs<ExtArgs>
   _count?: boolean | Prisma.OrderCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["order"]>
 
@@ -1709,6 +1872,7 @@ export type OrderInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   customer?: boolean | Prisma.Order$customerArgs<ExtArgs>
   pwaCustomer?: boolean | Prisma.Order$pwaCustomerArgs<ExtArgs>
   payments?: boolean | Prisma.Order$paymentsArgs<ExtArgs>
+  salesReturns?: boolean | Prisma.Order$salesReturnsArgs<ExtArgs>
   _count?: boolean | Prisma.OrderCountOutputTypeDefaultArgs<ExtArgs>
 }
 
@@ -1720,6 +1884,7 @@ export type $OrderPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     customer: Prisma.$CustomerPayload<ExtArgs> | null
     pwaCustomer: Prisma.$PwaCustomerPayload<ExtArgs> | null
     payments: Prisma.$PaymentPayload<ExtArgs>[]
+    salesReturns: Prisma.$SalesReturnPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2086,6 +2251,7 @@ export interface Prisma__OrderClient<T, Null = never, ExtArgs extends runtime.Ty
   customer<T extends Prisma.Order$customerArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$customerArgs<ExtArgs>>): Prisma.Prisma__CustomerClient<runtime.Types.Result.GetResult<Prisma.$CustomerPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   pwaCustomer<T extends Prisma.Order$pwaCustomerArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$pwaCustomerArgs<ExtArgs>>): Prisma.Prisma__PwaCustomerClient<runtime.Types.Result.GetResult<Prisma.$PwaCustomerPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   payments<T extends Prisma.Order$paymentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$paymentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PaymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  salesReturns<T extends Prisma.Order$salesReturnsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Order$salesReturnsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SalesReturnPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2565,6 +2731,30 @@ export type Order$paymentsArgs<ExtArgs extends runtime.Types.Extensions.Internal
   take?: number
   skip?: number
   distinct?: Prisma.PaymentScalarFieldEnum | Prisma.PaymentScalarFieldEnum[]
+}
+
+/**
+ * Order.salesReturns
+ */
+export type Order$salesReturnsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SalesReturn
+   */
+  select?: Prisma.SalesReturnSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SalesReturn
+   */
+  omit?: Prisma.SalesReturnOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SalesReturnInclude<ExtArgs> | null
+  where?: Prisma.SalesReturnWhereInput
+  orderBy?: Prisma.SalesReturnOrderByWithRelationInput | Prisma.SalesReturnOrderByWithRelationInput[]
+  cursor?: Prisma.SalesReturnWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SalesReturnScalarFieldEnum | Prisma.SalesReturnScalarFieldEnum[]
 }
 
 /**
