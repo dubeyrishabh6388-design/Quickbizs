@@ -26,7 +26,7 @@ import {
   X
 } from "lucide-react";
 import { useBusiness } from "../context/BusinessContext";
-import { getCategoryFormConfig } from "../utils/categoryFormConfig";
+import { getCategoryFormConfig, formatCurrencyLabel } from "../utils/categoryFormConfig";
 
 interface Product {
   id: string;
@@ -1903,7 +1903,7 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
-                    {formConfig.priceLabel} <span className="text-red-500">*</span>
+                    {formatCurrencyLabel(formConfig.priceLabel)} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -1918,7 +1918,7 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
 
                 <div>
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
-                    {formConfig.costPriceLabel} <span className="text-red-500">*</span>
+                    {formatCurrencyLabel(formConfig.costPriceLabel)} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"

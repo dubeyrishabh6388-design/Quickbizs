@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { DynamicFieldRenderer } from "./DynamicFieldRenderer";
 import { CategoryBadge } from "./CategoryBadge";
 import type { VerticalDefinition, VerticalFieldSpec } from "../../types/verticalRegistry";
-import { getCategoryFormConfig } from "../../utils/categoryFormConfig";
+import { getCategoryFormConfig, formatCurrencyLabel } from "../../utils/categoryFormConfig";
 import { Layers, DollarSign, Package, Check, Sparkles, X, TrendingUp, ShieldCheck } from "lucide-react";
 
 export interface DynamicProductFormData {
@@ -141,7 +141,22 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
     "name", "category", "unit", "costPrice", "price", "stock", "minStock", "supplierName", "barcode"
   ]), []);
 
-  // Sections configuration
+  // Dynamic price tiers from vertical
+  const priceTiers = vertical?.priceTiers || [];
+
+  // Excluded keys from dynamic spec sections: core fields + configured price tiers
+  const excludedSectionFieldNames = useMemo(() => {
+    const set = new Set(CORE_FIELD_NAMES);
+    set.add("wholesalePrice");
+    if (priceTiers && Array.isArray(priceTiers)) {
+      priceTiers.forEach((tier: any) => {
+        if (tier.key) set.add(tier.key);
+      });
+    }
+    return set;
+  }, [CORE_FIELD_NAMES, priceTiers]);
+
+  // Sections configuration: filter out core fields and tier prices so sections like 'Pricing & Stock' don't duplicate
   const dynamicSections = useMemo(() => {
     let raw: { name: string; fields: VerticalFieldSpec[] }[] = [];
     if (vertical?.sections && Array.isArray(vertical.sections) && vertical.sections.length > 0) {
@@ -149,7 +164,7 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
     } else if (vertical?.fields && Array.isArray(vertical.fields) && vertical.fields.length > 0) {
       const map = new Map<string, VerticalFieldSpec[]>();
       for (const f of vertical.fields) {
-        if (CORE_FIELD_NAMES.has(f.name)) continue;
+        if (excludedSectionFieldNames.has(f.name)) continue;
         const sec = f.section || "Additional Specifications";
         if (!map.has(sec)) map.set(sec, []);
         map.get(sec)!.push(f);
@@ -160,17 +175,14 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
       }));
     }
 
-    // Filter out duplicate core fields from every section
+    // Filter out duplicate core fields and tier rates from every section
     return raw
       .map((sec: any) => ({
         ...sec,
-        fields: (sec.fields || []).filter((f: VerticalFieldSpec) => !CORE_FIELD_NAMES.has(f.name)),
+        fields: (sec.fields || []).filter((f: VerticalFieldSpec) => !excludedSectionFieldNames.has(f.name)),
       }))
       .filter((sec: any) => sec.fields.length > 0);
-  }, [vertical, CORE_FIELD_NAMES]);
-
-  // Dynamic price tiers from vertical
-  const priceTiers = vertical?.priceTiers || [];
+  }, [vertical, excludedSectionFieldNames]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -428,7 +440,7 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                    {formConfig.priceLabel} (₹) <span className="text-red-500">*</span>
+                    {formatCurrencyLabel(formConfig.priceLabel)} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -447,7 +459,7 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
 
                 <div>
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                    {formConfig.costPriceLabel} (₹)
+                    {formatCurrencyLabel(formConfig.costPriceLabel)}
                   </label>
                   <input
                     type="number"
@@ -521,7 +533,7 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
                     {priceTiers.map((tier: any) => (
                       <div key={tier.key}>
                         <label className="text-[10px] text-slate-600 dark:text-slate-400 font-bold block mb-0.5 truncate">
-                          {tier.label} (₹)
+                          {formatCurrencyLabel(tier.label)}
                         </label>
                         <input
                           type="number"

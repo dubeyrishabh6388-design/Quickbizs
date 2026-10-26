@@ -1019,15 +1019,36 @@ export function getCategoryFormConfig(verticalOrBusinessType?: any): CategoryFor
 }
 
 /**
+ * Normalizes any price/rate label so it ALWAYS ends with exactly one `(₹)`.
+ * Strips out duplicate or existing `(₹)`, `(Rs)`, `(INR)`, or trailing `₹`.
+ */
+export function formatCurrencyLabel(label?: string): string {
+  if (!label) return "";
+  const cleaned = label
+    .replace(/\s*\(\s*(?:₹|Rs\.?|INR)\s*\)/gi, "")
+    .replace(/\s*[₹]\s*$/g, "")
+    .trim();
+  return `${cleaned} (₹)`;
+}
+
+/**
  * If the vertical object has explicit field definitions for core fields,
  * merge their labels and placeholders over the static defaults.
  */
 function applyCustomFieldOverrides(base: CategoryFormSpec, verticalObj: any): CategoryFormSpec {
   if (!verticalObj || typeof verticalObj !== "object" || !Array.isArray(verticalObj.fields)) {
-    return base;
+    return {
+      ...base,
+      priceLabel: formatCurrencyLabel(base.priceLabel),
+      costPriceLabel: formatCurrencyLabel(base.costPriceLabel),
+    };
   }
 
-  const spec = { ...base };
+  const spec = { 
+    ...base,
+    priceLabel: formatCurrencyLabel(base.priceLabel),
+    costPriceLabel: formatCurrencyLabel(base.costPriceLabel),
+  };
 
   const nameField = verticalObj.fields.find((f: any) => f.name === "name");
   if (nameField) {
@@ -1037,13 +1058,13 @@ function applyCustomFieldOverrides(base: CategoryFormSpec, verticalObj: any): Ca
 
   const priceField = verticalObj.fields.find((f: any) => f.name === "price");
   if (priceField) {
-    if (priceField.label) spec.priceLabel = priceField.label;
+    if (priceField.label) spec.priceLabel = formatCurrencyLabel(priceField.label);
     if (priceField.placeholder) spec.pricePlaceholder = priceField.placeholder;
   }
 
   const costField = verticalObj.fields.find((f: any) => f.name === "costPrice");
   if (costField) {
-    if (costField.label) spec.costPriceLabel = costField.label;
+    if (costField.label) spec.costPriceLabel = formatCurrencyLabel(costField.label);
     if (costField.placeholder) spec.costPricePlaceholder = costField.placeholder;
   }
 
