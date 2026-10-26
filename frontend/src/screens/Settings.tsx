@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   Building, 
   Receipt, 
@@ -80,7 +80,7 @@ export const Settings: React.FC = () => {
   const user = userStr ? JSON.parse(userStr) : null;
   const businessId = user?.businessId;
 
-  const fetchBusinessProfile = async () => {
+  const fetchBusinessProfile = useCallback(async () => {
     if (!businessId) return;
     try {
       const res = await api.get(`/business/${businessId}`);
@@ -97,11 +97,11 @@ export const Settings: React.FC = () => {
     } catch (err) {
       console.error("Failed to load business settings profile:", err);
     }
-  };
+  }, [businessId]);
 
   useEffect(() => {
     fetchBusinessProfile();
-  }, [businessId]);
+  }, [fetchBusinessProfile]);
 
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 

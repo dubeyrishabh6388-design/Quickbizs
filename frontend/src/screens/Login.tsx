@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -36,7 +36,11 @@ import {
   Coffee,
   BookOpen,
   Search,
-  Star
+  Star,
+  Utensils,
+  Car,
+  HeartPulse,
+  Scissors
 } from "lucide-react";
 import logo from "../assets/logo.jpg";
 import customerImg from "../assets/groceries_customer.jpg";
@@ -86,6 +90,32 @@ const merchantRegisterSchema = z.object({
 
 // Set to true or add "?customer=true" to the URL when ready to re-enable Customer login & onboarding
 export const SHOW_CUSTOMER_PORTAL = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("customer") === "true";
+
+export const LOGIN_ICON_MAP: Record<string, React.ElementType> = {
+  ShoppingCart,
+  Wrench,
+  Zap,
+  Package,
+  Store,
+  Hammer,
+  Building,
+  Layers,
+  Truck,
+  Shirt,
+  Smartphone,
+  Tv,
+  Glasses,
+  Gem,
+  Pill,
+  Coffee,
+  Sparkles,
+  BookOpen,
+  Utensils,
+  Car,
+  HeartPulse,
+  Scissors,
+  ShieldCheck,
+};
 
 export const BUSINESS_CATEGORIES = [
   { id: "Grocery Store", label: "Grocery & Kirana", desc: "FMCG, Food & Provisions", icon: ShoppingCart },
@@ -283,9 +313,28 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
   const [businessType, setBusinessType] = useState("Grocery Store");
   const [sellingMode, setSellingMode] = useState("Retail Store");
   const [categorySearch, setCategorySearch] = useState("");
+  const [categoriesList, setCategoriesList] = useState<any[]>(BUSINESS_CATEGORIES);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.get("/auth/business-categories")
+      .then((res) => {
+        if (isMounted && res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+          const mapped = res.data.data.map((cat: any) => ({
+            ...cat,
+            icon: LOGIN_ICON_MAP[cat.icon] || Store,
+          }));
+          setCategoriesList(mapped);
+        }
+      })
+      .catch(() => {
+        // Fallback to static list
+      });
+    return () => { isMounted = false; };
+  }, []);
 
   const filteredCategories = useMemo(() => {
-    return BUSINESS_CATEGORIES.filter(c => {
+    return categoriesList.filter(c => {
       if (activeSector !== "ALL") {
         const sector = CATEGORY_SECTORS.find(s => s.id === activeSector);
         if (sector && !sector.matches.includes(c.id)) {
@@ -302,15 +351,15 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       }
       return true;
     });
-  }, [categorySearch, activeSector]);
+  }, [categoriesList, categorySearch, activeSector]);
 
   const selectedCategory = useMemo(() => {
-    return BUSINESS_CATEGORIES.find(c => c.id === businessType) || BUSINESS_CATEGORIES[0];
-  }, [businessType]);
+    return categoriesList.find(c => c.id === businessType) || categoriesList[0];
+  }, [categoriesList, businessType]);
 
   const selectedHighlight = useMemo(() => {
     return getCategoryHighlight(businessType);
-  }, [businessType]);
+  }, [categoriesList, businessType]);
 
   const SelectedCategoryIcon = selectedCategory?.icon || Store;
 
@@ -1017,14 +1066,14 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                   <form onSubmit={merchLoginForm.handleSubmit(onMerchantLogin)} className="space-y-4">
                     <div>
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                        Store Email or Phone
+                        Store Email, Mobile or Admin ID
                       </label>
                       <div className="relative">
                         <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
                         <input
                           type="text"
                           {...merchLoginForm.register("identifier")}
-                          placeholder="e.g. owner@quickbizs.com"
+                          placeholder="e.g. owner@quickbizs.com or admin"
                           disabled={isLoading}
                           className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
                         />

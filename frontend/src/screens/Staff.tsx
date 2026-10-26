@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { 
   UserCheck, 
   UserX, 
@@ -106,7 +106,7 @@ export const Staff: React.FC = () => {
   };
 
   // Fetch or generate whole-month attendance data
-  const fetchMonthlyAttendance = async () => {
+  const fetchMonthlyAttendance = useCallback(async () => {
     setIsLoadingMonthly(true);
     const token = localStorage.getItem("qb_token");
 
@@ -215,11 +215,11 @@ export const Staff: React.FC = () => {
       staff: staffList,
     });
     setIsLoadingMonthly(false);
-  };
+  }, [selectedMonth, selectedYear, employees]);
 
   useEffect(() => {
     fetchMonthlyAttendance();
-  }, [selectedMonth, selectedYear, employees]);
+  }, [fetchMonthlyAttendance]);
 
   // Handle manual date toggle on muster roll
   const handleDateStatusChange = async (employeeId: string, dateStr: string, currentStatus: "Present" | "Absent" | "Late" | "Off") => {

@@ -142,7 +142,7 @@ export const DynamicProductForm: React.FC<DynamicProductFormProps> = ({
   ]), []);
 
   // Dynamic price tiers from vertical
-  const priceTiers = vertical?.priceTiers || [];
+  const priceTiers = useMemo(() => vertical?.priceTiers || [], [vertical]);
 
   // Excluded keys from dynamic spec sections: core fields + configured price tiers
   const excludedSectionFieldNames = useMemo(() => {

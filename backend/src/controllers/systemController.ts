@@ -117,4 +117,64 @@ export class SystemController {
       next(error);
     }
   }
+
+  async getLogs(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      if (req.user!.role !== "SuperAdmin") {
+        return res.status(403).json({ success: false, message: "Super Admin privileges required." });
+      }
+
+      const { level, search, limit } = req.query;
+      const result = systemService.getSystemLogs({
+        level: level as string,
+        search: search as string,
+        limit: limit ? parseInt(limit as string, 10) : 200,
+      });
+
+      res.json({
+        success: true,
+        message: "System logs retrieved successfully.",
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async clearLogs(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      if (req.user!.role !== "SuperAdmin") {
+        return res.status(403).json({ success: false, message: "Super Admin privileges required." });
+      }
+
+      const result = systemService.clearSystemLogs();
+      res.json({
+        success: true,
+        message: "System logs cleared.",
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getDiagnostics(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      if (req.user!.role !== "SuperAdmin") {
+        return res.status(403).json({ success: false, message: "Super Admin privileges required." });
+      }
+
+      const result = await systemService.getDiagnostics();
+      res.json({
+        success: true,
+        message: "System platform diagnostics retrieved.",
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

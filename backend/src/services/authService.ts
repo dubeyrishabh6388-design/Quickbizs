@@ -100,14 +100,150 @@ export class AuthService {
     };
   }
 
+  async ensureAdminUser() {
+    try {
+      const adminEmail = "admin@quickbizs.com";
+      const adminPlainPassword = "Rishi24103";
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(adminPlainPassword, salt);
+
+      let user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: adminEmail },
+            { email: "admin" }
+          ]
+        },
+        include: {
+          roles: { include: { role: true } }
+        }
+      });
+
+      if (user) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            isActive: true,
+            isDeleted: false,
+          }
+        });
+        if (!user.passwordHash) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { passwordHash: hash }
+          });
+        }
+
+        const hasSuperAdmin = user.roles.some((ur) => ur.role?.name === "SuperAdmin");
+        if (!hasSuperAdmin) {
+          let role = await prisma.role.findFirst({
+            where: {
+              businessId: user.businessId,
+              name: "SuperAdmin"
+            }
+          });
+          if (!role) {
+            role = await prisma.role.create({
+              data: {
+                id: crypto.randomUUID(),
+                businessId: user.businessId,
+                name: "SuperAdmin"
+              }
+            });
+          }
+          await prisma.userRole.upsert({
+            where: {
+              userId_roleId: {
+                userId: user.id,
+                roleId: role.id
+              }
+            },
+            update: {},
+            create: {
+              userId: user.id,
+              roleId: role.id
+            }
+          });
+        }
+        console.log(`[Admin Seed] Master admin verified: ${user.email} (Role: SuperAdmin)`);
+        return;
+      }
+
+      let business = await prisma.business.findFirst({
+        orderBy: { createdAt: "asc" }
+      });
+
+      if (!business) {
+        business = await prisma.business.create({
+          data: {
+            id: crypto.randomUUID(),
+            name: "QuickBizs System Platform",
+            plan: "Enterprise",
+            status: "Active",
+          }
+        });
+      }
+
+      let superAdminRole = await prisma.role.findFirst({
+        where: {
+          businessId: business.id,
+          name: "SuperAdmin"
+        }
+      });
+
+      if (!superAdminRole) {
+        superAdminRole = await prisma.role.create({
+          data: {
+            id: crypto.randomUUID(),
+            businessId: business.id,
+            name: "SuperAdmin"
+          }
+        });
+      }
+
+      const newAdmin = await prisma.user.create({
+        data: {
+          id: crypto.randomUUID(),
+          businessId: business.id,
+          name: "Administrator",
+          email: adminEmail,
+          passwordHash: hash,
+          isActive: true,
+          isDeleted: false,
+        }
+      });
+
+      await prisma.userRole.create({
+        data: {
+          userId: newAdmin.id,
+          roleId: superAdminRole.id
+        }
+      });
+
+      console.log(`[Admin Seed] Master admin seeded successfully: ${adminEmail} (Role: SuperAdmin)`);
+    } catch (err) {
+      console.error("[Admin Seed] Error ensuring admin user:", err);
+    }
+  }
+
   async login(data: { email: string; passwordHash: string }) {
-    const user = await userRepository.findByEmail(data.email);
+    const inputClean = data.email.trim();
+    let user = await userRepository.findByEmail(inputClean);
+    if (!user && (inputClean.toLowerCase() === "admin" || inputClean.toLowerCase() === "admin@quickbizs.com")) {
+      user = (await userRepository.findByEmail("admin@quickbizs.com")) || (await userRepository.findByEmail("admin"));
+    }
     if (!user) {
       const err: any = new Error("Invalid email or password.");
       err.statusCode = 401;
       err.problem = "Authentication check failed.";
       err.reason = "No matching user credentials found.";
       err.solution = "Please verify your email and password entry.";
+      throw err;
+    }
+
+    if (user.isActive === false || user.isDeleted === true) {
+      const err: any = new Error("Account is suspended or inactive. Please contact administrator.");
+      err.statusCode = 403;
       throw err;
     }
 
@@ -121,7 +257,7 @@ export class AuthService {
       throw err;
     }
 
-    const activeRole = user.roles[0]?.role.name || "Owner";
+    const activeRole = user.roles.find((r: any) => r.role?.name === "SuperAdmin")?.role?.name || user.roles[0]?.role?.name || "Owner";
 
     const accessToken = generateAccessToken(user.id, user.businessId, activeRole);
     const refreshToken = generateRefreshToken(user.id);
@@ -575,14 +711,24 @@ export class AuthService {
     identifier: string;
     passwordHash: string;
   }) {
-    let user = await userRepository.findByEmail(data.identifier);
+    const idClean = data.identifier.trim();
+    let user = await userRepository.findByEmail(idClean);
+    if (!user && (idClean.toLowerCase() === "admin" || idClean.toLowerCase() === "admin@quickbizs.com")) {
+      user = (await userRepository.findByEmail("admin@quickbizs.com")) || (await userRepository.findByEmail("admin"));
+    }
     if (!user) {
-      user = await userRepository.findByPhone(data.identifier);
+      user = await userRepository.findByPhone(idClean);
     }
 
     if (!user) {
       const err: any = new Error("Invalid phone/email or password.");
       err.statusCode = 401;
+      throw err;
+    }
+
+    if (user.isActive === false || user.isDeleted === true) {
+      const err: any = new Error("Account is suspended or inactive. Please contact administrator.");
+      err.statusCode = 403;
       throw err;
     }
 
@@ -593,7 +739,7 @@ export class AuthService {
       throw err;
     }
 
-    const activeRole = user.roles[0]?.role.name || "Owner";
+    const activeRole = user.roles.find((r: any) => r.role?.name === "SuperAdmin")?.role?.name || user.roles[0]?.role?.name || "Owner";
     const accessToken = generateAccessToken(user.id, user.businessId, activeRole);
     const refreshToken = generateRefreshToken(user.id);
     const expiresAt = new Date();

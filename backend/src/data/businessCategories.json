@@ -1,0 +1,408 @@
+[
+  {
+    "id": "Grocery Store",
+    "label": "Grocery & Kirana",
+    "desc": "FMCG, Food & Provisions",
+    "icon": "ShoppingCart",
+    "defaultCategories": [
+      "Dairy",
+      "Snacks",
+      "Grocery",
+      "Drinks",
+      "Household",
+      "Personal Care"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Automobile Shop",
+    "label": "Auto Parts & Trade",
+    "desc": "Spares, OEM & Lubes",
+    "icon": "Wrench",
+    "defaultCategories": [
+      "Engine Parts",
+      "Brake & Clutch",
+      "Suspension & Steering",
+      "Electrical & Lighting",
+      "Filters & Lubricants",
+      "Body & Accessories"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Electrical Store",
+    "label": "Electrical & Lighting",
+    "desc": "Wires, MCBs, Switches",
+    "icon": "Zap",
+    "defaultCategories": [
+      "Lighting & Bulbs",
+      "Cables & Wires",
+      "Switches & Sockets",
+      "Circuit Breakers & MCBs",
+      "Fans & Appliances",
+      "Pipes & Fittings"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Hardware Store",
+    "label": "Hardware & Tools",
+    "desc": "Tools, Fasteners, Paints",
+    "icon": "Package",
+    "defaultCategories": [
+      "Power Tools",
+      "Hand Tools",
+      "Fasteners",
+      "Paints",
+      "Electricals",
+      "Safety Gear"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Plumbing Supplies",
+    "label": "Plumbing & Piping",
+    "desc": "CPVC, UPVC, Valves & Taps",
+    "icon": "Wrench",
+    "defaultCategories": [
+      "Pipes & Tubing",
+      "Fittings & Couplings",
+      "Valves & Cocks",
+      "Faucets & Sinks",
+      "Water Tanks"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Sanitaryware & Bath",
+    "label": "Sanitaryware & Bath",
+    "desc": "Commodes, Basins & Showers",
+    "icon": "Store",
+    "defaultCategories": [
+      "Commodes & Toilets",
+      "Wash Basins",
+      "Showers & Faucets",
+      "Bathroom Mirrors",
+      "Accessories"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Industrial Tools & Machinery",
+    "label": "Power & Hand Tools",
+    "desc": "Power Tools, Bits & Blades",
+    "icon": "Hammer",
+    "defaultCategories": [
+      "Power Drills",
+      "Angle Grinders",
+      "Blades & Discs",
+      "Hand Tools",
+      "Safety Equipment"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Building Materials & Cement",
+    "label": "Building Materials & Cement",
+    "desc": "Cement, TMT Steel & Bricks",
+    "icon": "Building",
+    "defaultCategories": [
+      "Cement",
+      "TMT Steel Rebars",
+      "Bricks & Blocks",
+      "Sand & Aggregates",
+      "Waterproofing"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Timber & Plywood",
+    "label": "Timber & Plywood",
+    "desc": "Plywood, Flush Doors & Sunmica",
+    "icon": "Layers",
+    "defaultCategories": [
+      "Commercial Plywood",
+      "Marine Plywood",
+      "Laminates & Sunmica",
+      "Flush Doors",
+      "Wood Beams"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Wholesale Trader",
+    "label": "Wholesale & Bulk Trade",
+    "desc": "Master Cartons & Pallets",
+    "icon": "Layers",
+    "defaultCategories": [
+      "Bulk Commodities",
+      "FMCG Master Cartons",
+      "Raw Materials",
+      "Industrial Supplies",
+      "Packaging"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Distributor",
+    "label": "Authorized Distributor",
+    "desc": "Channel Partner & Route Sales",
+    "icon": "Truck",
+    "defaultCategories": [
+      "Primary Stock",
+      "Secondary Dispatch",
+      "Returns & Replacements",
+      "Bulk Bundles"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "FMCG Distributor",
+    "label": "FMCG Super Stockist",
+    "desc": "Packaged CPG & Kirana Supply",
+    "icon": "ShoppingCart",
+    "defaultCategories": [
+      "Packaged Foods",
+      "Personal Care CPG",
+      "Cleaning Supplies",
+      "Beverages Cartons"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Authorized Dealer",
+    "label": "Dealership & Franchise",
+    "desc": "OEM Machinery & Equipment",
+    "icon": "ShieldCheck",
+    "defaultCategories": [
+      "Heavy Machinery",
+      "Spare Assemblies",
+      "Maintenance Kits",
+      "Certified Fluids"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Clothing Store",
+    "label": "Clothing & Fashion",
+    "desc": "Garments, Sizes & Fabrics",
+    "icon": "Shirt",
+    "defaultCategories": [
+      "Men's Wear",
+      "Women's Wear",
+      "Kids & Infants",
+      "Ethnic & Festive",
+      "Accessories"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Footwear Store",
+    "label": "Footwear & Shoes",
+    "desc": "Sizes, Soles & Box Stock",
+    "icon": "Package",
+    "defaultCategories": [
+      "Sports Shoes",
+      "Formal Shoes",
+      "Casual Sneakers",
+      "Sandals & Slippers",
+      "Kids Footwear"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Mobile Store",
+    "label": "Mobile Phones & Gadgets",
+    "desc": "IMEI, Handsets & Accessories",
+    "icon": "Smartphone",
+    "defaultCategories": [
+      "Smartphones",
+      "Feature Phones",
+      "Chargers & Cables",
+      "Cases & Covers",
+      "Audio & Earphones"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Electronics Store",
+    "label": "Electronics & Appliances",
+    "desc": "TVs, ACs & Serialized Items",
+    "icon": "Tv",
+    "defaultCategories": [
+      "Televisions",
+      "Air Conditioners",
+      "Refrigerators",
+      "Washing Machines",
+      "Microwaves & Kitchen"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Furniture Store",
+    "label": "Furniture & Decor",
+    "desc": "Wood, Metal & Modular Units",
+    "icon": "Store",
+    "defaultCategories": [
+      "Living Room",
+      "Bedroom Sets",
+      "Office Chairs & Desks",
+      "Dining Tables",
+      "Storage & Wardrobes"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Optical Store",
+    "label": "Optical & Eyewear",
+    "desc": "Frames, Power & Sunglasses",
+    "icon": "Glasses",
+    "defaultCategories": [
+      "Eyeglass Frames",
+      "Prescription Lenses",
+      "Sunglasses",
+      "Contact Lenses",
+      "Lens Solutions"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Jewellery Store",
+    "label": "Jewellery & Gold",
+    "desc": "Purity, Hallmarks & Rates",
+    "icon": "Gem",
+    "defaultCategories": [
+      "Gold Jewellery",
+      "Silver Ornaments",
+      "Diamond Rings",
+      "Coins & Bullion",
+      "Fashion Jewellery"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Pharmacy",
+    "label": "Pharmacy & Medical",
+    "desc": "Medicines & Health Supplies",
+    "icon": "Pill",
+    "defaultCategories": [
+      "Prescription Rx",
+      "OTC Medicines",
+      "Antibiotics",
+      "Surgical Goods",
+      "Wellness & Baby Care"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Dairy Store",
+    "label": "Dairy & Milk Parlour",
+    "desc": "Milk, Paneer, Curd & Ghee",
+    "icon": "Coffee",
+    "defaultCategories": [
+      "Fresh Milk Pouches",
+      "Paneer & Curd",
+      "Butter & Ghee",
+      "Flavoured Milk & Drinks",
+      "Ice Creams"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Bakery Store",
+    "label": "Bakery & Confectionery",
+    "desc": "Cakes, Bread, Buns & Cookies",
+    "icon": "Coffee",
+    "defaultCategories": [
+      "Breads & Buns",
+      "Cakes & Pastries",
+      "Cookies & Biscuits",
+      "Snacks & Savories",
+      "Baking Ingredients"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Sweet Shop",
+    "label": "Sweet & Mithai Shop",
+    "desc": "Mithai, Namkeen & Gift Boxes",
+    "icon": "Sparkles",
+    "defaultCategories": [
+      "Mawa Sweets",
+      "Dry Fruit Mithai",
+      "Bengali Sweets",
+      "Namkeen & Farsan",
+      "Festival Gift Boxes"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Stationery Store",
+    "label": "Stationery & Office",
+    "desc": "Paper, Pens, Registers & Office",
+    "icon": "BookOpen",
+    "defaultCategories": [
+      "Notebooks & Registers",
+      "Pens & Pencils",
+      "Office Files & Folders",
+      "Art & Craft Supplies",
+      "Desk Organizers"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Bookstore",
+    "label": "Bookstore & Publishing",
+    "desc": "ISBN, Titles & Academic Books",
+    "icon": "BookOpen",
+    "defaultCategories": [
+      "Fiction & Literature",
+      "Academic & Textbooks",
+      "Self-Help & Biographies",
+      "Children Books",
+      "Magazines"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Cosmetics Store",
+    "label": "Cosmetics & Beauty",
+    "desc": "Skincare, Makeup & Fragrances",
+    "icon": "Sparkles",
+    "defaultCategories": [
+      "Makeup & Cosmetics",
+      "Skincare & Lotions",
+      "Hair Care & Shampoos",
+      "Perfumes & Deos",
+      "Beauty Tools"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Paan & Convenience",
+    "label": "Paan & Convenience",
+    "desc": "Paan, Mints, Snacks & Drinks",
+    "icon": "Store",
+    "defaultCategories": [
+      "Paan & Betel",
+      "Mints & Mouth Fresheners",
+      "Cold Beverages",
+      "Snacks & Chips",
+      "Convenience Items"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Custom Business",
+    "label": "General Retail",
+    "desc": "Flexible Retail Setup",
+    "icon": "Store",
+    "defaultCategories": [
+      "General Merchandise",
+      "Fast Moving Items",
+      "Daily Essentials",
+      "Misc Goods"
+    ],
+    "isCustom": false
+  }
+]

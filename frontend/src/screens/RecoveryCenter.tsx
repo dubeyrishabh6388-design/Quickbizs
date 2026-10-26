@@ -1,5 +1,5 @@
 import { env } from "../config/env";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   ArrowLeft, 
   HandCoins, 
@@ -71,7 +71,7 @@ export const RecoveryCenter: React.FC<RecoveryCenterProps> = ({ setActiveScreen 
   const [actionNotes, setActionNotes] = useState("");
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async () => {
     const token = localStorage.getItem("qb_token");
     if (!token) return;
 
@@ -96,11 +96,11 @@ export const RecoveryCenter: React.FC<RecoveryCenterProps> = ({ setActiveScreen 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDashboard();
-  }, []);
+  }, [fetchDashboard]);
 
   const showToast = (msg: string) => {
     setSuccessMsg(msg);

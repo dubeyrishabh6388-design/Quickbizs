@@ -636,10 +636,12 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     },
     SuperAdmin: {
       pin: "9999",
-      label: "SaaS Super Admin",
-      description: "Platform tenants, automation engine & server health",
+      label: "Master Administrator",
+      description: "Full platform control, error diagnostics, users and store management",
       allowedModules: [
-        "superadmin", "automation"
+        "superadmin", "dashboard", "billing", "counter", "inventory", 
+        "customers", "suppliers", "staff", "reports", "recovery", 
+        "settings", "ai", "automation"
       ]
     },
     Employee: {

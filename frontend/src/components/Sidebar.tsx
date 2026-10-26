@@ -9,6 +9,7 @@ import {
   Sparkles,
   UserCheck,
   Shield,
+  ShieldCheck,
   Settings,
   HandCoins,
   Zap,
@@ -217,7 +218,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "reports", label: "Business Reports", icon: BarChart3 },
     { id: "ai", label: "AI Assistant", icon: Sparkles, highlight: true },
     { id: "settings", label: "Store Settings", icon: Settings },
-    { id: "superadmin", label: "Platform Stats", icon: Shield, highlight: true },
+    { id: "superadmin", label: "Admin Console", icon: ShieldCheck, highlight: true },
   ];
 
   // Dynamic modules permitted for the current department
@@ -225,7 +226,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const menuItems = allMenuItems
     .filter(item => allowedModules.includes(item.id))
     .filter(item => SHOW_INCOMING_ORDERS || item.id !== "incoming-orders")
-    .filter(item => item.id !== "customers");
+    .filter(item => item.id !== "customers")
+    .sort((a, b) => {
+      if (currentRole === "SuperAdmin") {
+        if (a.id === "superadmin") return -1;
+        if (b.id === "superadmin") return 1;
+      }
+      return 0;
+    });
 
   const activeRoleConfig = roleConfigs.find(r => r.id === currentRole) || roleConfigs[0];
   const ActiveRoleIcon = activeRoleConfig.icon;

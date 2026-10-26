@@ -39,4 +39,8 @@ router.post("/password/change", requireAuth, (req: Request, res: Response, next:
   controller.changePassword(req, res, next)
 );
 
+router.get("/business-categories", (req: Request, res: Response, next: NextFunction) =>
+  controller.getBusinessCategories(req, res, next)
+);
+
 export default router;

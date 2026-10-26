@@ -1,3 +1,4 @@
+import { businessCategoryService } from "../services/businessCategoryService";
 import { Request, Response, NextFunction } from "express";
 import { AuthService } from "../services/authService";
 
@@ -39,7 +40,8 @@ export class AuthController {
 
   async login(req: Request, res: Response, next: NextFunction) {
     try {
-      const { email, password } = req.body;
+      const email = req.body.email || req.body.identifier;
+      const { password } = req.body;
 
       if (!email || !password) {
         const err: any = new Error("Email and password inputs are required.");
@@ -301,6 +303,18 @@ export class AuthController {
       res.json({
         success: true,
         message: result.message,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  async getBusinessCategories(req: Request, res: Response, next: NextFunction) {
+    try {
+      const categories = await businessCategoryService.getAllCategories();
+      res.json({
+        success: true,
+        data: categories,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {

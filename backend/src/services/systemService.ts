@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { prisma } from "../config/prisma";
+import { logger } from "../utils/logger";
 
 export class SystemService {
   async getHealth() {
@@ -226,5 +227,65 @@ export class SystemService {
     });
 
     return true;
+  }
+
+  getSystemLogs(options?: { level?: string; search?: string; limit?: number }) {
+    const logs = logger.getLogs(options);
+    const stats = logger.getStats();
+    return {
+      logs,
+      stats,
+    };
+  }
+
+  clearSystemLogs() {
+    logger.clearLogs();
+    return { success: true, message: "Logs cleared successfully." };
+  }
+
+  async getDiagnostics() {
+    const startTime = performance.now();
+    let dbStatus = "Connected";
+    let dbLatencyMs = 0;
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      dbLatencyMs = Math.round((performance.now() - startTime) * 10) / 10;
+    } catch {
+      dbStatus = "Disconnected";
+      dbLatencyMs = -1;
+    }
+
+    const memory = process.memoryUsage();
+
+    const [businessCount, userCount, orderCount, productCount] = await Promise.all([
+      prisma.business.count(),
+      prisma.user.count({ where: { isDeleted: false } }),
+      prisma.order.count(),
+      prisma.product.count({ where: { isDeleted: false } }),
+    ]);
+
+    return {
+      status: dbStatus === "Connected" ? "Healthy" : "Degraded",
+      database: {
+        status: dbStatus,
+        latencyMs: dbLatencyMs,
+      },
+      uptime: process.uptime(),
+      nodeVersion: process.version,
+      platform: process.platform,
+      memory: {
+        rssMb: Math.round(memory.rss / 1024 / 1024),
+        heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
+        heapTotalMb: Math.round(memory.heapTotal / 1024 / 1024),
+      },
+      counts: {
+        businesses: businessCount,
+        users: userCount,
+        orders: orderCount,
+        products: productCount,
+      },
+      loggerStats: logger.getStats(),
+      timestamp: new Date().toISOString(),
+    };
   }
 }

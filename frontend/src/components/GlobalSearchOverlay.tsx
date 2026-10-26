@@ -1,5 +1,5 @@
 import { env } from "../config/env";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { 
   Search, 
   X, 
@@ -154,32 +154,7 @@ export const GlobalSearchOverlay: React.FC<GlobalSearchOverlayProps> = ({ isOpen
     }, 250);
   };
 
-  // Keyboard navigation handler
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setActiveIndex(prev => (prev < flatResults.length - 1 ? prev + 1 : 0));
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setActiveIndex(prev => (prev > 0 ? prev - 1 : flatResults.length - 1));
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        if (activeIndex >= 0 && flatResults[activeIndex]) {
-          handleSelectResult(flatResults[activeIndex]);
-        }
-      } else if (e.key === "Escape") {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, flatResults, activeIndex]);
-
-  const handleSelectResult = (item: SearchResult) => {
+  const handleSelectResult = useCallback((item: SearchResult) => {
     onClose();
     switch (item.action) {
       case "Open Product":
@@ -208,7 +183,32 @@ export const GlobalSearchOverlay: React.FC<GlobalSearchOverlayProps> = ({ isOpen
       default:
         setActiveScreen("dashboard");
     }
-  };
+  }, [onClose, setActiveScreen]);
+
+  // Keyboard navigation handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIndex(prev => (prev < flatResults.length - 1 ? prev + 1 : 0));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIndex(prev => (prev > 0 ? prev - 1 : flatResults.length - 1));
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (activeIndex >= 0 && flatResults[activeIndex]) {
+          handleSelectResult(flatResults[activeIndex]);
+        }
+      } else if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, flatResults, activeIndex, handleSelectResult, onClose]);
 
   const handleAddFavorite = async (item: SearchResult) => {
     const token = localStorage.getItem("qb_token");

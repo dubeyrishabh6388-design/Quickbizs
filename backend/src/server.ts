@@ -8,6 +8,7 @@ import { NotificationGateway } from "./gateways/notificationGateway";
 import { NotificationScheduler } from "./schedulers/notificationScheduler";
 import { CustomerReminderScheduler } from "./services/customerReminderScheduler";
 import { PaymentScheduler } from "./services/paymentScheduler";
+import { AuthService } from "./services/authService";
 
 const startServer = async () => {
   try {
@@ -16,6 +17,10 @@ const startServer = async () => {
     // Connect to database to verify credential validity
     await prisma.$connect();
     logger.info(`Database connection established successfully in [${env.nodeEnv}] mode.`);
+
+    // Ensure Master Admin account exists and credentials match
+    const authService = new AuthService();
+    await authService.ensureAdminUser();
 
     // Create HTTP wrapper for Socket.IO support
     const server = http.createServer(app);
@@ -50,6 +55,14 @@ const startServer = async () => {
     server.listen(PORT, HOST, () => {
       logger.info(`QuickBizs Backend Service initialized in [${env.nodeEnv}] mode.`);
       logger.info(`Server listening on ${HOST}:${PORT}`);
+    });
+
+    // Global error traps to record live errors into logging buffer
+    process.on("unhandledRejection", (reason: any) => {
+      logger.error("Unhandled Promise Rejection caught in server process:", reason);
+    });
+    process.on("uncaughtException", (error: any) => {
+      logger.error("Uncaught Process Exception caught in server process:", error);
     });
 
     // Graceful shutdown handling for Render container restarts

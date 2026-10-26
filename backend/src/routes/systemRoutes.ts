@@ -25,4 +25,16 @@ router.post("/restore", requireAuth, (req: Request, res: Response, next: NextFun
   controller.restoreBackup(req, res, next)
 );
 
+router.get("/logs", requireAuth, (req: Request, res: Response, next: NextFunction) =>
+  controller.getLogs(req, res, next)
+);
+
+router.post("/logs/clear", requireAuth, (req: Request, res: Response, next: NextFunction) =>
+  controller.clearLogs(req, res, next)
+);
+
+router.get("/diagnostics", requireAuth, (req: Request, res: Response, next: NextFunction) =>
+  controller.getDiagnostics(req, res, next)
+);
+
 export default router;
