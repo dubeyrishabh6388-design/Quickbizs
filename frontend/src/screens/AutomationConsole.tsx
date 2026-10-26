@@ -386,7 +386,7 @@ export const AutomationConsole: React.FC = () => {
       {/* Visual Rule Builder Modal Overlay */}
       <AnimatePresence>
         {isBuilderOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-fadeIn">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.6 }}
@@ -395,77 +395,88 @@ export const AutomationConsole: React.FC = () => {
               className="fixed inset-0 bg-black"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full relative z-10 space-y-4 shadow-2xl text-slate-900 dark:text-slate-200 font-semibold text-xs"
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-3xl lg:max-w-4xl w-full relative z-10 space-y-6 shadow-2xl text-slate-900 dark:text-slate-200 font-sans"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <Cpu className="h-5 w-5 text-brand-orange" />
-                  No-Code Automation Rule Builder
-                </h3>
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-brand-orange/10 text-brand-orange flex items-center justify-center font-black">
+                    <Cpu className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                      No-Code Automation Rule Builder
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">Create automated business workflows, triggers, and condition-action sequences.</p>
+                  </div>
+                </div>
                 <button
                   onClick={() => setIsBuilderOpen(false)}
-                  className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateRule} className="space-y-4 font-semibold text-xs text-slate-700 dark:text-slate-300">
-                {/* Rule Name */}
-                <div className="space-y-1">
-                  <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Workflow Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={ruleName}
-                    onChange={(e) => setRuleName(e.target.value)}
-                    placeholder="e.g. Critical stock level notification trigger"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-orange text-slate-900 dark:text-slate-200 font-bold"
-                  />
-                </div>
+              <form onSubmit={handleCreateRule} className="space-y-5 font-semibold text-xs text-slate-700 dark:text-slate-300">
+                {/* Rule Name & Trigger in 2-column layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] text-slate-500 uppercase font-black tracking-wider block">Workflow Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={ruleName}
+                      onChange={(e) => setRuleName(e.target.value)}
+                      placeholder="e.g. Critical stock level notification trigger"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:border-brand-orange text-slate-900 dark:text-slate-200 font-bold text-xs"
+                    />
+                  </div>
 
-                {/* Trigger */}
-                <div className="space-y-1">
-                  <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">1. Select Trigger Event</label>
-                  <select
-                    value={triggerEvent}
-                    onChange={(e) => {
-                      setTriggerEvent(e.target.value);
-                      if (e.target.value.includes("Stock")) {
-                        setConditionField("stock");
-                      } else if (e.target.value.includes("Expense") || e.target.value.includes("Invoice") || e.target.value.includes("Payment") || e.target.value.includes("Purchase")) {
-                        setConditionField("amount");
-                      }
-                    }}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none text-slate-700 dark:text-slate-300 font-bold cursor-pointer"
-                  >
-                    <option value="Stock Updated">Stock Updated</option>
-                    <option value="Low Stock">Low Stock</option>
-                    <option value="Out Of Stock">Out Of Stock</option>
-                    <option value="Invoice Created">Invoice Created</option>
-                    <option value="Invoice Cancelled">Invoice Cancelled</option>
-                    <option value="Payment Received">Payment Received</option>
-                    <option value="Payment Pending">Payment Pending</option>
-                    <option value="Purchase Created">Purchase Created</option>
-                    <option value="Purchase Approved">Purchase Approved</option>
-                    <option value="Expense Added">Expense Added</option>
-                    <option value="Expense Approved">Expense Approved</option>
-                  </select>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] text-slate-500 uppercase font-black tracking-wider block">1. Select Trigger Event</label>
+                    <select
+                      value={triggerEvent}
+                      onChange={(e) => {
+                        setTriggerEvent(e.target.value);
+                        if (e.target.value.includes("Stock")) {
+                          setConditionField("stock");
+                        } else if (e.target.value.includes("Expense") || e.target.value.includes("Invoice") || e.target.value.includes("Payment") || e.target.value.includes("Purchase")) {
+                          setConditionField("amount");
+                        }
+                      }}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:border-brand-orange text-slate-700 dark:text-slate-300 font-bold cursor-pointer text-xs"
+                    >
+                      <option value="Stock Updated">Stock Updated</option>
+                      <option value="Low Stock">Low Stock</option>
+                      <option value="Out Of Stock">Out Of Stock</option>
+                      <option value="Invoice Created">Invoice Created</option>
+                      <option value="Invoice Cancelled">Invoice Cancelled</option>
+                      <option value="Payment Received">Payment Received</option>
+                      <option value="Payment Pending">Payment Pending</option>
+                      <option value="Purchase Created">Purchase Created</option>
+                      <option value="Purchase Approved">Purchase Approved</option>
+                      <option value="Expense Added">Expense Added</option>
+                      <option value="Expense Approved">Expense Approved</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Condition */}
-                <div className="space-y-2 border border-slate-200 dark:border-slate-800 p-4 rounded-xl bg-slate-50 dark:bg-slate-950">
-                  <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">2. Configure Evaluation Condition (IF)</label>
-                  <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-3 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/70">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] text-brand-orange uppercase font-black tracking-wider block">2. Configure Evaluation Condition (IF)</label>
+                    <span className="text-[10px] text-slate-400 font-semibold">Rules execute automatically when conditions evaluate to true</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="space-y-1">
-                      <span className="text-[9px] text-slate-500 font-extrabold uppercase">Field</span>
+                      <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Field</span>
                       <select
                         value={conditionField}
                         onChange={(e) => setConditionField(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-2 focus:outline-none text-slate-700 dark:text-slate-300 font-bold cursor-pointer"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-orange text-slate-700 dark:text-slate-300 font-bold cursor-pointer text-xs"
                       >
                         <option value="stock">stock levels</option>
                         <option value="amount">amount / float</option>
@@ -477,11 +488,11 @@ export const AutomationConsole: React.FC = () => {
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[9px] text-slate-500 font-extrabold uppercase">Operator</span>
+                      <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Operator</span>
                       <select
                         value={conditionOperator}
                         onChange={(e) => setConditionOperator(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-2 focus:outline-none text-slate-700 dark:text-slate-300 font-bold cursor-pointer"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-orange text-slate-700 dark:text-slate-300 font-bold cursor-pointer text-xs"
                       >
                         <option value="Less Than">Less Than (&lt;)</option>
                         <option value="Greater Than">Greater Than (&gt;)</option>
@@ -493,30 +504,33 @@ export const AutomationConsole: React.FC = () => {
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[9px] text-slate-500 font-extrabold uppercase">Value / Threshold</span>
+                      <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Value / Threshold</span>
                       <input
                         type="text"
                         required
                         value={conditionValue}
                         onChange={(e) => setConditionValue(e.target.value)}
                         placeholder="e.g. 10 or 5000"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-2 focus:outline-none focus:ring-2 focus:ring-brand-orange text-slate-900 dark:text-slate-200 font-bold"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-brand-orange text-slate-900 dark:text-slate-200 font-bold text-xs"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="space-y-3 border border-slate-200 dark:border-slate-800 p-4 rounded-xl bg-slate-50 dark:bg-slate-950">
-                  <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">3. Define Automation Action (THEN)</label>
+                <div className="space-y-3 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/70">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] text-brand-orange uppercase font-black tracking-wider block">3. Define Automation Action (THEN)</label>
+                    <span className="text-[10px] text-slate-400 font-semibold">Immediate response executed on trigger match</span>
+                  </div>
                   
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <span className="text-[9px] text-slate-500 font-extrabold uppercase">Action Type</span>
+                      <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Action Type</span>
                       <select
                         value={actionType}
                         onChange={(e) => setActionType(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-2.5 focus:outline-none text-slate-700 dark:text-slate-300 font-bold cursor-pointer"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-orange text-slate-700 dark:text-slate-300 font-bold cursor-pointer text-xs"
                       >
                         <option value="Create Notification">Create Notification</option>
                         <option value="Block Transaction">Block Transaction</option>
@@ -529,44 +543,44 @@ export const AutomationConsole: React.FC = () => {
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[9px] text-slate-500 font-extrabold uppercase">Urgency Priority</span>
+                      <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Urgency Priority</span>
                       <select
                         value={actionPriority}
                         onChange={(e) => setActionPriority(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-2.5 focus:outline-none text-slate-700 dark:text-slate-300 font-bold cursor-pointer"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand-orange text-slate-700 dark:text-slate-300 font-bold cursor-pointer text-xs"
                       >
-                        <option value="Low">Low</option>
-                        <option value="Medium">Medium</option>
-                        <option value="High">High</option>
-                        <option value="Critical">Critical</option>
+                        <option value="Low">Low Priority</option>
+                        <option value="Medium">Medium Priority</option>
+                        <option value="High">High Priority</option>
+                        <option value="Critical">Critical Priority</option>
                       </select>
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-[9px] text-slate-500 font-extrabold uppercase">Automated Alert Message / Action parameters</span>
+                    <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Automated Alert Message / Action parameters</span>
                     <input
                       type="text"
                       value={actionMessage}
                       onChange={(e) => setActionMessage(e.target.value)}
                       placeholder="e.g. Danger! Shelf stock drops below threshold."
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-orange text-slate-900 dark:text-slate-200 font-medium"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-brand-orange text-slate-900 dark:text-slate-200 font-medium text-xs"
                     />
                   </div>
                 </div>
 
                 {/* Submits */}
-                <div className="flex gap-2 pt-2">
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                   <button
                     type="button"
                     onClick={() => setIsBuilderOpen(false)}
-                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-black rounded-xl cursor-pointer transition-colors"
+                    className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl cursor-pointer transition-colors text-xs"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 bg-brand-orange hover:bg-brand-orange-hover text-white font-black rounded-xl cursor-pointer shadow-xs transition-colors"
+                    className="px-8 py-3 bg-brand-orange hover:bg-brand-orange-hover text-white font-black rounded-xl cursor-pointer shadow-md transition-all active:scale-98 text-xs"
                   >
                     Deploy Workflow
                   </button>

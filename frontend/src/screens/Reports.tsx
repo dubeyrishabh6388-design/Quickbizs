@@ -363,69 +363,83 @@ export const Reports: React.FC<ReportsProps> = ({ setActiveScreen }) => {
 
       {/* Log Store Expense Modal */}
       {isLoggingExpense && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-xl lg:max-w-2xl w-full shadow-2xl space-y-6 transition-colors">
             
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-              <h3 className="font-black text-base text-slate-900 dark:text-white">Log Store Expense</h3>
-              <button onClick={() => setIsLoggingExpense(false)} className="text-slate-400 hover:text-slate-600 p-1">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <h3 className="font-black text-lg text-slate-900 dark:text-white leading-tight">Log Store Expense</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Record outgoing operational expenditure and overhead costs</p>
+              </div>
+              <button 
+                onClick={() => setIsLoggingExpense(false)} 
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleExpenseSubmit} className="space-y-3">
+            <form onSubmit={handleExpenseSubmit} className="space-y-5">
               <div>
-                <label className="text-xs font-bold text-slate-500 block mb-1">Description</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Expense Description <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
-                  placeholder="e.g. Electricity bill or Chai for staff"
+                  placeholder="e.g. Electricity bill, Chai for staff, Shop maintenance"
                   value={expDescription}
                   onChange={(e) => setExpDescription(e.target.value)}
                   required
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-500 block mb-1">Amount Paid (₹)</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 150"
-                  value={expAmount}
-                  onChange={(e) => setExpAmount(e.target.value)}
-                  required
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    Amount Paid (₹) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 150"
+                    value={expAmount}
+                    onChange={(e) => setExpAmount(e.target.value)}
+                    required
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-base font-black text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    Expense Category
+                  </label>
+                  <select
+                    value={expCategory}
+                    onChange={(e) => setExpCategory(e.target.value as any)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors cursor-pointer"
+                  >
+                    <option value="Tea/Snacks">Tea / Snacks</option>
+                    <option value="Electricity">Electricity Bill</option>
+                    <option value="Rent">Shop Rent</option>
+                    <option value="Salary">Staff Salary</option>
+                    <option value="Other">Other Expense</option>
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-500 block mb-1">Category</label>
-                <select
-                  value={expCategory}
-                  onChange={(e) => setExpCategory(e.target.value as any)}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold"
-                >
-                  <option value="Tea/Snacks">Tea / Snacks</option>
-                  <option value="Electricity">Electricity Bill</option>
-                  <option value="Rent">Shop Rent</option>
-                  <option value="Salary">Staff Salary</option>
-                  <option value="Other">Other Expense</option>
-                </select>
-              </div>
-
-              <div className="pt-3 flex gap-3">
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsLoggingExpense(false)}
-                  className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3 rounded-xl text-xs hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                  className="px-6 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-brand-orange hover:bg-brand-orange-hover text-white font-black py-3 rounded-xl text-xs shadow-md transition-colors"
+                  className="px-7 py-2.5 bg-brand-orange hover:bg-brand-orange-hover text-white font-extrabold rounded-xl text-sm shadow-md transition-colors cursor-pointer"
                 >
-                  Save Expense
+                  Save Store Expense
                 </button>
               </div>
             </form>

@@ -448,7 +448,7 @@ export const Tasks: React.FC = () => {
       {/* Create Task Modal Overlay */}
       <AnimatePresence>
         {isCreateOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.6 }}
@@ -457,43 +457,61 @@ export const Tasks: React.FC = () => {
               className="fixed inset-0 bg-black"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full relative z-10 space-y-4 shadow-2xl text-slate-900 dark:text-slate-200"
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-2xl lg:max-w-3xl w-full relative z-10 space-y-6 shadow-2xl text-slate-900 dark:text-slate-200 font-sans"
             >
-              <h3 className="text-base font-black text-slate-900 dark:text-white">Create New Workflow Request</h3>
-              <form onSubmit={handleCreateTask} className="space-y-4 text-xs font-semibold">
-                <div className="space-y-1">
-                  <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Request Title</label>
-                  <input
-                    type="text"
-                    required
-                    value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
-                    placeholder="e.g. Leave Request, Purchase Authorization"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-slate-900 dark:text-slate-200 focus:outline-none focus:border-brand-orange font-bold"
-                  />
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-brand-orange/10 text-brand-orange flex items-center justify-center font-black">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">Create New Workflow Request</h3>
+                    <p className="text-xs text-slate-500 font-medium">Submit multi-stage approval requests and assign trackable operational tasks.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsCreateOpen(false)}
+                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateTask} className="space-y-5 text-xs font-semibold">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] text-slate-500 uppercase font-black tracking-wider block">Request Title</label>
+                    <input
+                      type="text"
+                      required
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      placeholder="e.g. Leave Request, Purchase Authorization"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-200 focus:outline-none focus:border-brand-orange font-bold text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] text-slate-500 uppercase font-black tracking-wider block">Due Date (Optional)</label>
+                    <input
+                      type="date"
+                      value={newDueDate}
+                      onChange={(e) => setNewDueDate(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-200 focus:outline-none focus:border-brand-orange cursor-pointer font-bold text-xs"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Description</label>
-                  <textarea
-                    required
-                    value={newDesc}
-                    onChange={(e) => setNewDesc(e.target.value)}
-                    placeholder="Provide details about this approval request..."
-                    className="w-full h-20 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-200 focus:outline-none focus:border-brand-orange font-medium"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Request Type</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] text-slate-500 uppercase font-black tracking-wider block">Request Type</label>
                     <select
                       value={newType}
                       onChange={(e) => setNewType(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none text-slate-700 dark:text-slate-300 font-bold cursor-pointer"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:border-brand-orange text-slate-700 dark:text-slate-300 font-bold cursor-pointer text-xs"
                     >
                       <option value="Leave Request">Leave Request</option>
                       <option value="System Tasks">System Tasks</option>
@@ -501,42 +519,43 @@ export const Tasks: React.FC = () => {
                     </select>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Urgency / Priority</label>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] text-slate-500 uppercase font-black tracking-wider block">Urgency / Priority</label>
                     <select
                       value={newPriority}
                       onChange={(e) => setNewPriority(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none text-slate-700 dark:text-slate-300 font-bold cursor-pointer"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:border-brand-orange text-slate-700 dark:text-slate-300 font-bold cursor-pointer text-xs"
                     >
-                      <option value="Low">Low</option>
-                      <option value="Medium">Medium</option>
-                      <option value="High">High</option>
-                      <option value="Critical">Critical</option>
+                      <option value="Low">Low Priority</option>
+                      <option value="Medium">Medium Priority</option>
+                      <option value="High">High Priority</option>
+                      <option value="Critical">Critical Priority</option>
                     </select>
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Due Date (Optional)</label>
-                  <input
-                    type="date"
-                    value={newDueDate}
-                    onChange={(e) => setNewDueDate(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-slate-900 dark:text-slate-200 focus:outline-none focus:border-brand-orange cursor-pointer font-bold"
+                <div className="space-y-1.5">
+                  <label className="text-[11px] text-slate-500 uppercase font-black tracking-wider block">Description & Justification</label>
+                  <textarea
+                    required
+                    value={newDesc}
+                    onChange={(e) => setNewDesc(e.target.value)}
+                    placeholder="Provide full details and context for this workflow approval request..."
+                    className="w-full h-28 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-slate-900 dark:text-slate-200 focus:outline-none focus:border-brand-orange font-medium text-xs resize-none"
                   />
                 </div>
 
-                <div className="flex items-center gap-2 pt-2">
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                   <button
                     type="button"
                     onClick={() => setIsCreateOpen(false)}
-                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-black rounded-xl cursor-pointer transition-colors"
+                    className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl cursor-pointer transition-colors text-xs"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 bg-brand-orange hover:bg-brand-orange-hover text-white font-black rounded-xl cursor-pointer shadow-xs transition-colors"
+                    className="px-8 py-3 bg-brand-orange hover:bg-brand-orange-hover text-white font-black rounded-xl cursor-pointer shadow-md transition-all active:scale-98 text-xs"
                   >
                     Submit Request
                   </button>
@@ -705,7 +724,7 @@ export const Tasks: React.FC = () => {
       {/* Rejection Prompt Modal */}
       <AnimatePresence>
         {isRejectOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.6 }}
@@ -714,31 +733,49 @@ export const Tasks: React.FC = () => {
               className="fixed inset-0 bg-black"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full relative z-10 space-y-4 shadow-2xl text-slate-200"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-lg w-full relative z-10 space-y-4 shadow-2xl text-slate-900 dark:text-slate-200"
             >
-              <h3 className="text-sm font-bold text-white">Rejection Remarks</h3>
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                    <X className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">Workflow Rejection Remarks</h3>
+                    <p className="text-[11px] text-slate-400 font-medium">State the operational reason for rejecting this workflow task.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsRejectOpen(false)}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
               <textarea
                 required
                 value={rejectionRemarks}
                 onChange={(e) => setRejectionRemarks(e.target.value)}
-                placeholder="State the reason for rejection..."
-                className="w-full h-24 bg-slate-950 border border-slate-850 rounded-xl p-3 text-xs focus:outline-none focus:border-brand-orange text-slate-200"
+                placeholder="State the reason for rejection (e.g., budget exceeded, invalid documentation)..."
+                className="w-full h-28 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 text-xs focus:outline-none focus:border-rose-500 text-slate-900 dark:text-slate-200 resize-none font-medium"
               />
-              <div className="flex gap-2">
+
+              <div className="flex gap-2.5 pt-1">
                 <button
                   onClick={() => setIsRejectOpen(false)}
-                  className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl cursor-pointer"
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => handleReject(selectedTask.id)}
-                  className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl cursor-pointer"
+                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl cursor-pointer shadow-md transition-all active:scale-98"
                 >
-                  Confirm Reject
+                  Confirm Rejection
                 </button>
               </div>
             </motion.div>

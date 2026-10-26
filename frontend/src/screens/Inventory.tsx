@@ -252,8 +252,8 @@ export const Inventory: React.FC = () => {
 
       {/* Add Product Modal with Dynamic UI Engine */}
       {isAddOpen && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 sm:p-4 z-50">
-          <div className="bg-white dark:bg-slate-800 w-full max-w-2xl max-h-[90dvh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl space-y-3 sm:space-y-4">
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] max-h-[92vh] h-auto rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col no-scrollbar">
             <DynamicProductForm
               vertical={productSchema}
               onSubmit={async (data) => {

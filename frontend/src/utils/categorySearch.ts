@@ -4,6 +4,8 @@
  * directly derived from the Vertical Registry configuration.
  */
 
+import { getCategoryFormConfig } from "./categoryFormConfig";
+
 export interface AttributeBadge {
   key: string;
   label: string;
@@ -17,69 +19,11 @@ export interface AttributeBadge {
  */
 export function getCategorySearchPlaceholder(productSchema?: any): string {
   if (!productSchema) {
-    return "Search product by name or barcode...";
+    return "Search product by name, brand or barcode...";
   }
 
-  const vId = (productSchema.verticalId || productSchema.id || "").toUpperCase();
-  const bType = (productSchema.businessType || "").toLowerCase();
-
-  if (vId === "AUTO_PARTS" || bType.includes("auto")) {
-    return "Search by part number, OEM number, vehicle or brand...";
-  }
-
-  if (vId === "ELECTRICAL" || bType.includes("electr")) {
-    return "Search by product, brand, wattage or model...";
-  }
-
-  if (vId === "CLOTHING" || bType.includes("cloth") || bType.includes("apparel") || bType.includes("fashion")) {
-    return "Search by product, size, colour or SKU...";
-  }
-
-  if (vId === "FOOTWEAR" || bType.includes("footwear") || bType.includes("shoes")) {
-    return "Search by product, shoe size, brand or colour...";
-  }
-
-  if (vId === "MOBILE" || vId === "ELECTRONICS" || bType.includes("mobile") || bType.includes("electronic")) {
-    return "Search by product, model, serial number or barcode...";
-  }
-
-  if (vId === "HARDWARE" || bType.includes("hardw")) {
-    return "Search by product, size, material or specification...";
-  }
-
-  if (vId === "PLUMBING" || vId === "SANITARY" || bType.includes("plumb") || bType.includes("sanitary")) {
-    return "Search by product, diameter, material or model...";
-  }
-
-  if (vId === "TOOLS" || bType.includes("tool") || bType.includes("machinery")) {
-    return "Search by tool name, model, power rating or brand...";
-  }
-
-  if (vId === "BUILDING_MATERIAL" || vId === "TIMBER" || bType.includes("cement") || bType.includes("timber") || bType.includes("plywood")) {
-    return "Search by product, grade, thickness or dimensions...";
-  }
-
-  if (vId === "WHOLESALE" || vId === "DISTRIBUTOR" || vId === "FMCG_DISTRIBUTOR" || bType.includes("wholesale") || bType.includes("distributor")) {
-    return "Search by product, brand, pack size or MOQ...";
-  }
-
-  if (vId === "PHARMACY" || bType.includes("pharm") || bType.includes("medic")) {
-    return "Search by medicine name, salt composition or batch...";
-  }
-
-  if (vId === "BOOKSTORE" || bType.includes("book")) {
-    return "Search by title, author, ISBN or publisher...";
-  }
-
-  // If the vertical declares searchable fields, synthesize a clean placeholder
-  if (productSchema.searchableFields && Array.isArray(productSchema.searchableFields) && productSchema.searchableFields.length > 0) {
-    const fieldLabels = productSchema.searchableFields
-      .slice(0, 3)
-      .map((f: string) => f.replace(/([A-Z])/g, " $1").toLowerCase().trim());
-    return `Search by product, ${fieldLabels.join(", ")} or barcode...`;
-  }
-
-  return "Search product by name or barcode...";
+  const formConfig = getCategoryFormConfig(productSchema);
+  return formConfig.searchPlaceholder;
 }
 
 /**

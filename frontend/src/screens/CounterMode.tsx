@@ -22,9 +22,11 @@ import {
   Merge,
   Ban,
   Scale,
-  Hash
+  Hash,
+  X
 } from "lucide-react";
 import { useBusiness } from "../context/BusinessContext";
+import { getCategoryFormConfig } from "../utils/categoryFormConfig";
 
 interface Product {
   id: string;
@@ -100,7 +102,11 @@ class WeightMachineAdapter {
 const scaleAdapter = new WeightMachineAdapter();
 
 export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => {
-  const { products, productSchema } = useBusiness();
+  const { products, productSchema, storeProfile } = useBusiness();
+  const userStr = typeof window !== "undefined" ? localStorage.getItem("qb_user") : null;
+  const cachedUser = userStr ? JSON.parse(userStr) : null;
+  const effectiveShopName = storeProfile?.name || cachedUser?.businessName || cachedUser?.shopName || "My Store";
+  const formConfig = React.useMemo(() => getCategoryFormConfig(productSchema), [productSchema]);
   const [data, setData] = useState<CounterHomeData | null>(null);
 
   // Available categories derived dynamically from vertical schema or existing products
@@ -1151,6 +1157,9 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
             </div>
             
             <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-brand-orange block mb-1">
+                {effectiveShopName}
+              </span>
               <h3 className="text-base font-black text-slate-900 dark:text-white">Sale Completed!</h3>
               <p className="text-[11px] text-slate-400 font-bold block mt-1">Cleared via {checkoutResult.paymentMethod}</p>
             </div>
@@ -1183,7 +1192,7 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
                     <Share2 className="h-4 w-4 text-emerald-500" /> Copy
                   </button>
                   <button 
-                    onClick={() => { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`QuickBizs Receipt: ₹${checkoutResult.total}`)}`, "_blank"); }}
+                    onClick={() => { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${effectiveShopName} Receipt: ₹${checkoutResult.total}`)}`, "_blank"); }}
                     className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-850 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-[10px] font-black rounded-xl flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <MessageSquare className="h-4 w-4 text-brand-orange" /> WhatsApp
@@ -1823,35 +1832,53 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
 
       {/* Quick Add Product Modal */}
       {isAddProductOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 w-full max-w-md p-6 rounded-3xl shadow-2xl relative">
-            <h3 className="text-sm font-black text-slate-900 dark:text-white mb-4">
-              Add New Product (Quick Counter Entry)
-            </h3>
-            
-            <form onSubmit={handleCreateProduct} className="space-y-3.5">
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-2xl lg:max-w-3xl p-6 sm:p-8 rounded-3xl shadow-2xl relative space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Product Name *</label>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                  Quick Add {formConfig.displayName} Item
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  Fast counter registration to immediately bill items without leaving POS
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddProductOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreateProduct} className="space-y-5">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  {formConfig.nameLabel} <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Buffalo Milk 1L, Marie Biscuit"
+                  placeholder={formConfig.quickAddPlaceholder}
                   value={newProdName}
                   onChange={(e) => setNewProdName(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-850 dark:text-white outline-none focus:border-brand-orange"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Category *</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    {formConfig.categoryLabel} <span className="text-red-500">*</span>
+                  </label>
                   <select
                     value={newProdCategory}
                     onChange={(e) => setNewProdCategory(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-850 dark:text-white outline-none focus:border-brand-orange cursor-pointer"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-orange cursor-pointer transition-colors"
                   >
                     {availableCategories.map((cat) => (
-                      <option key={cat} value={cat}>
+                      <option key={cat} value={cat} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                         {cat}
                       </option>
                     ))}
@@ -1859,80 +1886,93 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Supplier *</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    {formConfig.supplierLabel} <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
+                    placeholder={formConfig.supplierPlaceholder}
                     value={newProdSupplier}
                     onChange={(e) => setNewProdSupplier(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-850 dark:text-white outline-none focus:border-brand-orange"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Selling Price (₹) *</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    {formConfig.priceLabel} <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     required
-                    placeholder="0.00"
+                    placeholder={`e.g. ${formConfig.pricePlaceholder}`}
                     value={newProdPrice}
                     onChange={(e) => setNewProdPrice(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-850 dark:text-white outline-none focus:border-brand-orange"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Cost Price (₹) *</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    {formConfig.costPriceLabel} <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     required
-                    placeholder="0.00"
+                    placeholder={`e.g. ${formConfig.costPricePlaceholder}`}
                     value={newProdCostPrice}
                     onChange={(e) => setNewProdCostPrice(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-white outline-none focus:border-brand-orange"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Initial Stock</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    {formConfig.stockLabel}
+                  </label>
                   <input
                     type="number"
+                    placeholder={`e.g. ${formConfig.stockPlaceholder}`}
                     value={newProdStock}
                     onChange={(e) => setNewProdStock(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-850 dark:text-white outline-none focus:border-brand-orange"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Min Stock Warning</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    {formConfig.minStockLabel}
+                  </label>
                   <input
                     type="number"
+                    placeholder={`e.g. ${formConfig.minStockPlaceholder}`}
                     value={newProdMinStock}
                     onChange={(e) => setNewProdMinStock(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-850 dark:text-white outline-none focus:border-brand-orange"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-4">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsAddProductOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 text-xs font-bold rounded-xl cursor-pointer"
+                  className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 text-sm font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-brand-orange hover:bg-brand-orange/90 text-white text-xs font-black rounded-xl cursor-pointer shadow-md"
+                  className="px-7 py-2.5 bg-brand-orange hover:bg-brand-orange-hover text-white text-sm font-extrabold rounded-xl shadow-md transition-colors cursor-pointer"
                 >
-                  Save Product
+                  Save & Add to Register
                 </button>
               </div>
             </form>

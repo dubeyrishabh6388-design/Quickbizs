@@ -1962,46 +1962,46 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
 
       {/* 8. QUICK INLINE STORE EXPENSE MODAL */}
       {isExpenseModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 transition-colors">
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-xl lg:max-w-2xl w-full shadow-2xl space-y-6 transition-colors">
             
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="h-9 w-9 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center font-black">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center font-black">
                   <Wallet className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-base text-slate-900 dark:text-white">Record Store Expense</h3>
-                  <span className="text-[10px] text-slate-400 font-bold">Instantly log operational store costs</span>
+                  <h3 className="font-black text-lg text-slate-900 dark:text-white leading-tight">Record Store Expense</h3>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Instantly log operational store costs and daily outflows</span>
                 </div>
               </div>
               <button
                 onClick={() => setIsExpenseModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer"
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleExpenseSubmit} className="space-y-4">
+            <form onSubmit={handleExpenseSubmit} className="space-y-5">
               <div>
-                <label className="text-xs font-black text-slate-600 dark:text-slate-400 block mb-1">
-                  Expense Description *
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Expense Description <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Evening staff tea & snacks, packaging bags"
+                  placeholder="e.g. Evening staff tea & snacks, packaging bags, shop delivery"
                   value={expDescription}
                   onChange={(e) => setExpDescription(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white focus:outline-hidden focus:border-brand-orange"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-black text-slate-600 dark:text-slate-400 block mb-1">
-                    Amount (₹) *
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    Amount (₹) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -2011,18 +2011,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                     placeholder="e.g. 150"
                     value={expAmount}
                     onChange={(e) => setExpAmount(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white focus:outline-hidden focus:border-brand-orange"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-base font-black text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-black text-slate-600 dark:text-slate-400 block mb-1">
-                    Category
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    Expense Category
                   </label>
                   <select
                     value={expCategory}
                     onChange={(e) => setExpCategory(e.target.value as any)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white focus:outline-hidden focus:border-brand-orange"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors cursor-pointer"
                   >
                     <option value="Tea/Snacks">Tea/Snacks</option>
                     <option value="Electricity">Electricity</option>
@@ -2033,19 +2033,37 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-2">
+              {/* Quick Category Presets */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {["Tea/Snacks", "Electricity", "Rent", "Salary", "Other"].map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setExpCategory(cat as any)}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      expCategory === cat
+                        ? "bg-rose-500 text-white shadow-xs"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsExpenseModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-black bg-brand-orange hover:bg-brand-orange-hover text-white shadow-md cursor-pointer"
+                  className="px-7 py-2.5 rounded-xl text-sm font-black bg-brand-orange hover:bg-brand-orange-hover text-white shadow-md transition-colors cursor-pointer"
                 >
-                  Save Expense
+                  Save Store Expense
                 </button>
               </div>
             </form>

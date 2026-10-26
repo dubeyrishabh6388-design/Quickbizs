@@ -150,6 +150,16 @@ export interface ReadinessTask {
   completed: boolean;
 }
 
+export interface StoreProfile {
+  id?: string;
+  name?: string;
+  phone?: string;
+  address?: string;
+  gstNumber?: string;
+  businessType?: string;
+  openingHours?: string;
+}
+
 interface BusinessContextType {
   products: Product[];
   customers: Customer[];
@@ -235,6 +245,8 @@ interface BusinessContextType {
   updateRolePin: (role: UserRole, newPin: string) => void;
   verifyRolePin: (role: UserRole, enteredPin: string) => boolean;
   getRoleAllowedModules: (role: UserRole) => ScreenType[];
+  storeProfile: StoreProfile;
+  fetchStoreProfile: () => Promise<void>;
 }
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
@@ -248,6 +260,53 @@ export const useBusiness = () => {
 };
 
 export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Store Profile State (Shop Name, Address, Phone, GSTIN)
+  const [storeProfile, setStoreProfile] = useState<StoreProfile>(() => {
+    try {
+      const cached = localStorage.getItem("qb_store_profile");
+      if (cached) return JSON.parse(cached);
+      const userStr = localStorage.getItem("qb_user");
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        if (u.businessName) return { name: u.businessName, phone: u.phone };
+      }
+    } catch {}
+    return {};
+  });
+
+  const fetchStoreProfile = async () => {
+    try {
+      const userStr = localStorage.getItem("qb_user");
+      const user = userStr ? JSON.parse(userStr) : null;
+      const businessId = user?.businessId;
+      if (!businessId) return;
+
+      const res = await api.get(`/business/${businessId}`);
+      if (res.data?.success && res.data?.data) {
+        const b = res.data.data;
+        const profile: StoreProfile = {
+          id: b.id,
+          name: b.name || user?.businessName || "",
+          phone: b.phone || "",
+          address: b.address || "",
+          gstNumber: b.gstNumber || "",
+          businessType: b.businessType || "",
+          openingHours: b.openingHours || ""
+        };
+        setStoreProfile(profile);
+        localStorage.setItem("qb_store_profile", JSON.stringify(profile));
+      }
+    } catch (err) {
+      console.warn("Failed to fetch store profile:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchStoreProfile();
+    window.addEventListener("auth-success", fetchStoreProfile);
+    return () => window.removeEventListener("auth-success", fetchStoreProfile);
+  }, []);
+
   // Products Database State
   const [products, setProducts] = useState<Product[]>([]);
 
@@ -1470,7 +1529,9 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateRoleModules,
         updateRolePin,
         verifyRolePin,
-        getRoleAllowedModules
+        getRoleAllowedModules,
+        storeProfile,
+        fetchStoreProfile
       }}
     >
       {children}

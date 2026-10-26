@@ -36,8 +36,15 @@ interface BillingProps {
 }
 
 export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
-  const { products, customers, addOrder, addCustomer, addProduct, productSchema, businessPreferences } = useBusiness();
+  const { products, customers, addOrder, addCustomer, addProduct, productSchema, businessPreferences, storeProfile } = useBusiness();
   const [protectionCustomer, setProtectionCustomer] = useState<any | null>(null);
+
+  const userStr = typeof window !== "undefined" ? localStorage.getItem("qb_user") : null;
+  const cachedUser = userStr ? JSON.parse(userStr) : null;
+  const effectiveShopName = storeProfile?.name || cachedUser?.businessName || cachedUser?.shopName || "My Store";
+  const effectiveShopAddress = storeProfile?.address || "";
+  const effectiveShopPhone = storeProfile?.phone || cachedUser?.phone || "";
+  const effectiveShopGst = storeProfile?.gstNumber || "";
 
   const getProductWarranty = (prod: Product): string | undefined => {
     if (!prod.customFields) return undefined;
@@ -258,6 +265,10 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
 
   const [invoiceReceipt, setInvoiceReceipt] = useState<{
     id: string;
+    shopName?: string;
+    shopPhone?: string;
+    shopAddress?: string;
+    shopGst?: string;
     customerName: string;
     customerType: string;
     subtotal: number;
@@ -451,6 +462,10 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
 
     setInvoiceReceipt({
       id: `INV-${Date.now().toString().slice(-4)}`,
+      shopName: effectiveShopName,
+      shopPhone: effectiveShopPhone,
+      shopAddress: effectiveShopAddress,
+      shopGst: effectiveShopGst,
       customerName: custName,
       customerType: customerGroup,
       subtotal: cartSubtotal,
@@ -533,7 +548,16 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       ? `*Round Off:* ₹${invoiceReceipt.roundOff.toLocaleString()}\n` 
       : "";
 
-    const msgText = `🧾 *QUICKBIZS STORE INVOICE*\n` +
+    const currentShopName = invoiceReceipt.shopName || effectiveShopName || "Store";
+    const shopHeading = currentShopName.toUpperCase();
+    const addressLine = (invoiceReceipt.shopAddress || effectiveShopAddress) ? `📍 ${invoiceReceipt.shopAddress || effectiveShopAddress}\n` : "";
+    const phoneLine = (invoiceReceipt.shopPhone || effectiveShopPhone) ? `📞 Phone: ${invoiceReceipt.shopPhone || effectiveShopPhone}\n` : "";
+    const gstLine = (invoiceReceipt.shopGst || effectiveShopGst) ? `📋 GSTIN: ${invoiceReceipt.shopGst || effectiveShopGst}\n` : "";
+
+    const msgText = `🧾 *${shopHeading}*\n` +
+      addressLine +
+      phoneLine +
+      gstLine +
       `---------------------------------------\n` +
       `*Invoice:* ${invoiceReceipt.id}\n` +
       `*Date:* ${invoiceReceipt.date}\n` +
@@ -581,8 +605,11 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       <body>
         <div class="invoice-card">
           <div class="header">
-            <div class="logo">QuickBizs Store</div>
-            <div class="meta">Tax Invoice Ledger - ${invoiceReceipt.id}</div>
+            <div class="logo">${invoiceReceipt.shopName || effectiveShopName}</div>
+            ${(invoiceReceipt.shopAddress || effectiveShopAddress) ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">${invoiceReceipt.shopAddress || effectiveShopAddress}</div>` : ""}
+            ${(invoiceReceipt.shopPhone || effectiveShopPhone) ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">Phone: ${invoiceReceipt.shopPhone || effectiveShopPhone}</div>` : ""}
+            ${(invoiceReceipt.shopGst || effectiveShopGst) ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">GSTIN: ${invoiceReceipt.shopGst || effectiveShopGst}</div>` : ""}
+            <div class="meta" style="font-size:13px;color:#475569;margin-top:6px;font-weight:700;">Tax Invoice Ledger - ${invoiceReceipt.id}</div>
           </div>
           <div class="details-grid">
             <span class="details-label">Customer:</span>
@@ -669,7 +696,10 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       <body>
         <div class="invoice-card">
           <div class="header">
-            <div class="logo">QuickBizs Store</div>
+            <div class="logo">${invoiceReceipt.shopName || effectiveShopName}</div>
+            ${(invoiceReceipt.shopAddress || effectiveShopAddress) ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${invoiceReceipt.shopAddress || effectiveShopAddress}</div>` : ""}
+            ${(invoiceReceipt.shopPhone || effectiveShopPhone) ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">Phone: ${invoiceReceipt.shopPhone || effectiveShopPhone}</div>` : ""}
+            ${(invoiceReceipt.shopGst || effectiveShopGst) ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">GSTIN: ${invoiceReceipt.shopGst || effectiveShopGst}</div>` : ""}
             <div class="meta">Tax Invoice - ${invoiceReceipt.id}</div>
           </div>
           <div class="details-grid">
@@ -722,7 +752,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
 
   const handleSharePDF = async () => {
     if (!invoiceReceipt) return;
-    const shareText = `QuickBizs Invoice ${invoiceReceipt.id} for ₹${invoiceReceipt.total}`;
+    const currentShopName = invoiceReceipt.shopName || effectiveShopName || "Store";
+    const shareText = `${currentShopName} Invoice ${invoiceReceipt.id} for ₹${invoiceReceipt.total}`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -1266,63 +1297,86 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       {/* Modal: Add Customer Dialog */}
       <AnimatePresence>
         {isAddingCustomer && (
-          <div className="fixed inset-0 z-55 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-55 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 text-slate-800 dark:text-slate-100">
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-sm p-5 border border-slate-100 shadow-2xl relative text-slate-700"
+              exit={{ scale: 0.96, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl lg:max-w-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-900 dark:text-white"
             >
-              <button
-                onClick={() => { setIsAddingCustomer(false); setDuplicatePhoneWarning(null); }}
-                className="absolute top-4 right-4 p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-              <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-1.5">
-                <UserPlus className="h-5 w-5 text-brand-orange" />
-                Add Customer Profile
-              </h4>
-              <form onSubmit={handleCreateCustomer} className="space-y-4">
-                <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                    Customer Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newCustName}
-                    onChange={(e) => setNewCustName(e.target.value)}
-                    placeholder="e.g. Ramesh Kumar"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none"
-                  />
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-brand-orange/10 border border-brand-orange/20 flex items-center justify-center text-brand-orange">
+                    <UserPlus className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-lg text-slate-900 dark:text-white leading-tight">
+                      Add Customer Profile
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      Create customer for instant billing checkout and khata credit
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={newCustPhone}
-                    onChange={(e) => setNewCustPhone(e.target.value)}
-                    placeholder="e.g. +91 9876543210"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700 focus:outline-none"
-                  />
+                <button
+                  onClick={() => { setIsAddingCustomer(false); setDuplicatePhoneWarning(null); }}
+                  className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateCustomer} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                      Customer Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newCustName}
+                      onChange={(e) => setNewCustName(e.target.value)}
+                      placeholder="e.g. Ramesh Kumar"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={newCustPhone}
+                      onChange={(e) => setNewCustPhone(e.target.value)}
+                      placeholder="e.g. +91 9876543210"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
+                    />
+                  </div>
                 </div>
 
                 {duplicatePhoneWarning && (
-                  <div className="bg-rose-50 border border-rose-100 p-2.5 rounded-lg text-[10px] font-bold text-rose-600 leading-normal">
+                  <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 p-3 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 leading-normal">
                     {duplicatePhoneWarning}
                   </div>
                 )}
 
-                <button
-                  type="submit"
-                  className="w-full py-2.5 bg-brand-navy hover:bg-brand-navy-light text-white text-xs font-bold rounded-xl cursor-pointer"
-                >
-                  Save Profile
-                </button>
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setIsAddingCustomer(false); setDuplicatePhoneWarning(null); }}
+                    className="px-6 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-7 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-brand-orange dark:hover:bg-brand-orange-hover text-white text-sm font-extrabold rounded-xl shadow-md transition-colors cursor-pointer"
+                  >
+                    Save & Select Customer
+                  </button>
+                </div>
               </form>
             </motion.div>
           </div>
@@ -1343,8 +1397,11 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
                 <div className="h-12 w-12 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-2">
                   <CheckCircle2 className="h-6 w-6" />
                 </div>
-                <h3 className="font-extrabold text-lg text-slate-800">Bill Saved Successfully!</h3>
-                <p className="text-xs text-brand-paragraph mt-1">Invoice {invoiceReceipt.id} printed & cached.</p>
+                <span className="text-xs font-black uppercase tracking-wider text-brand-orange">
+                  {invoiceReceipt.shopName || effectiveShopName}
+                </span>
+                <h3 className="font-extrabold text-lg text-slate-800 mt-0.5">Bill Saved Successfully!</h3>
+                <p className="text-xs text-brand-paragraph mt-0.5">Tax Invoice {invoiceReceipt.id} generated & cached.</p>
               </div>
 
               {/* Receipt details */}
@@ -1457,20 +1514,13 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       {/* Modal: Add Product to Catalog */}
       <AnimatePresence>
         {isAddingProduct && (
-          <div className="fixed inset-0 z-55 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 text-slate-700">
+          <div className="fixed inset-0 z-55 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8 text-slate-800 dark:text-slate-100">
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-2xl p-5 border border-slate-100 shadow-2xl relative text-slate-700 font-sans max-h-[85vh] overflow-y-auto"
+              exit={{ scale: 0.96, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-800 dark:text-slate-100 font-sans max-h-[92vh] h-auto flex flex-col overflow-hidden no-scrollbar"
             >
-              <button
-                onClick={() => setIsAddingProduct(false)}
-                className="absolute top-4 right-4 p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors z-10"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
               <DynamicProductForm
                 vertical={productSchema}
                 onSubmit={async (data) => {

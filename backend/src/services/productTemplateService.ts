@@ -39,7 +39,7 @@ export class ProductTemplateService {
     const rawKey = (businessType || "").trim();
     const vertical = verticalRegistry.resolve(rawKey);
 
-    if (vertical && vertical.id !== "GENERIC_RETAIL") {
+    if (vertical) {
       // Group fields into ordered sections according to vertical specifications
       const sectionMap = new Map<string, typeof vertical.fields>();
       const sectionOrders = new Map<string, number>();

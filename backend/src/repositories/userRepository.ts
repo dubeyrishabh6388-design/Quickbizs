@@ -6,6 +6,7 @@ export class UserRepository {
     return prisma.user.findUnique({
       where: { email },
       include: {
+        business: true,
         roles: {
           include: {
             role: true
@@ -19,6 +20,7 @@ export class UserRepository {
     return prisma.user.findFirst({
       where: { phone, isDeleted: false },
       include: {
+        business: true,
         roles: {
           include: {
             role: true
@@ -32,6 +34,7 @@ export class UserRepository {
     return prisma.user.findUnique({
       where: { id },
       include: {
+        business: true,
         roles: {
           include: {
             role: true

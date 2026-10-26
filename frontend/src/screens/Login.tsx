@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -34,7 +34,9 @@ import {
   Truck,
   Building,
   Coffee,
-  BookOpen
+  BookOpen,
+  Search,
+  Star
 } from "lucide-react";
 import logo from "../assets/logo.jpg";
 import customerImg from "../assets/groceries_customer.jpg";
@@ -117,6 +119,155 @@ export const BUSINESS_CATEGORIES = [
   { id: "Custom Business", label: "General Retail", desc: "Flexible Retail Setup", icon: Store },
 ];
 
+const getCategoryHighlight = (id: string) => {
+  const customMap: Record<string, { tag: string; highlights: string[]; badge: string }> = {
+    "Grocery Store": {
+      tag: "FMCG, Food & Provisions",
+      highlights: [
+        "Weight scale integration & loose item pricing",
+        "Batch & Expiry alerts with automated FEFO",
+        "Customer Khata with instant WhatsApp balance"
+      ],
+      badge: "Grocery & FMCG Engine"
+    },
+    "Automobile Shop": {
+      tag: "Spares, OEM & Lubes",
+      highlights: [
+        "Part Number & OEM cross-referencing",
+        "Vehicle Make, Model & Year fitment search",
+        "Serial number tracking & warranty management"
+      ],
+      badge: "Auto Spares & OEM"
+    },
+    "Electrical Store": {
+      tag: "Wires, MCBs & Switches",
+      highlights: [
+        "Wattage, Voltage & Brand attributes",
+        "High-value serial & warranty management",
+        "Fractional wire coil cut billing & meters"
+      ],
+      badge: "Electrical & Lighting"
+    },
+    "Hardware Store": {
+      tag: "Tools, Fasteners & Paints",
+      highlights: [
+        "Dimensional & gauge measurement units",
+        "Volume contractor pricing & tiered discounts",
+        "Mixed retail & contractor Khata credit"
+      ],
+      badge: "Hardware & Construction"
+    },
+    "Mobile Store": {
+      tag: "IMEI, Handsets & Gadgets",
+      highlights: [
+        "Dual-SIM IMEI validation with Luhn check",
+        "Unit-level device serial & warranty lifecycle",
+        "Instant barcode scan & rapid digital receipt"
+      ],
+      badge: "Mobile & IMEI Tracking"
+    },
+    "Electronics Store": {
+      tag: "Appliances & Devices",
+      highlights: [
+        "Serial numbers & extended warranty cards",
+        "Delivery, installation & technician tracking",
+        "Brand model number fast search"
+      ],
+      badge: "Electronics & Appliances"
+    },
+    "Pharmacy": {
+      tag: "Medicines & Health Supplies",
+      highlights: [
+        "Drug Schedule H / H1 regulatory tagging",
+        "Batch-level FEFO automated shelf allocation",
+        "Strip and tablet box subdivision pricing"
+      ],
+      badge: "Pharma Compliance Ready"
+    },
+    "Clothing Store": {
+      tag: "Garments, Sizes & Fabrics",
+      highlights: [
+        "Size & Color variant matrix (S/M/L/XL/XXL)",
+        "Single barcode lookup across variant matrix",
+        "Seasonal discounts & clearance pricing"
+      ],
+      badge: "Apparel & Fashion Retail"
+    },
+    "Footwear Store": {
+      tag: "Sizes, Soles & Box Stock",
+      highlights: [
+        "UK / EU shoe size matrix management",
+        "Fast box barcode scanning & rack finder",
+        "Gender & style categorization"
+      ],
+      badge: "Footwear & Shoes"
+    },
+    "Wholesale Trader": {
+      tag: "Bulk B2B Trade & Cartons",
+      highlights: [
+        "Master carton to unit split conversions",
+        "Multi-tier customer wholesale pricing",
+        "Credit limit enforcement & balance alerts"
+      ],
+      badge: "Wholesale & Distribution"
+    }
+  };
+
+  const found = customMap[id];
+  if (found) return found;
+
+  const catObj = BUSINESS_CATEGORIES.find(c => c.id === id);
+  return {
+    tag: catObj?.desc || "Retail & Trade Platform",
+    highlights: [
+      "Custom product attributes & fast search",
+      "Instant barcode POS with thermal receipts",
+      "Customer Khata ledger & automated stock alerts"
+    ],
+    badge: "Smart Retail Operating System"
+  };
+};
+
+export const CATEGORY_SECTORS = [
+  { id: "ALL", label: "All Trades", icon: Sparkles, matches: [] },
+  { 
+    id: "RETAIL", 
+    label: "Grocery & Food", 
+    icon: ShoppingCart, 
+    matches: ["Grocery Store", "Dairy Store", "Bakery Store", "Sweet Shop", "Paan & Convenience", "Stationery Store", "Bookstore", "Cosmetics Store", "Custom Business"] 
+  },
+  { 
+    id: "SPARES", 
+    label: "Spares & Hardware", 
+    icon: Wrench, 
+    matches: ["Automobile Shop", "Electrical Store", "Hardware Store", "Plumbing Supplies", "Sanitaryware & Bath", "Industrial Tools & Machinery", "Building Materials & Cement", "Timber & Plywood"] 
+  },
+  { 
+    id: "TECH", 
+    label: "Mobile & Tech", 
+    icon: Smartphone, 
+    matches: ["Mobile Store", "Electronics Store", "Optical Store", "Jewellery Store"] 
+  },
+  { 
+    id: "FASHION", 
+    label: "Fashion & Lifestyle", 
+    icon: Shirt, 
+    matches: ["Clothing Store", "Footwear Store"] 
+  },
+  { 
+    id: "TRADE", 
+    label: "Wholesale & B2B", 
+    icon: Truck, 
+    matches: ["Wholesale Trader", "Distributor", "FMCG Distributor", "Authorized Dealer"] 
+  },
+  { 
+    id: "PHARMA", 
+    label: "Pharmacy & Health", 
+    icon: Pill, 
+    matches: ["Pharmacy"] 
+  }
+];
+
 interface LoginProps {
   onAuthSuccess: (userData: any) => void;
 }
@@ -124,11 +275,44 @@ interface LoginProps {
 export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
   const [role, setRole] = useState<"CUSTOMER" | "MERCHANT" | null>(() => SHOW_CUSTOMER_PORTAL ? null : "MERCHANT");
   const [mode, setMode] = useState<"LOGIN" | "REGISTER">("LOGIN");
+  const [registerStep, setRegisterStep] = useState<1 | 2>(1);
+  const [activeSector, setActiveSector] = useState("ALL");
   const [isLoading, setIsLoading] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [businessType, setBusinessType] = useState("Grocery Store");
   const [sellingMode, setSellingMode] = useState("Retail Store");
+  const [categorySearch, setCategorySearch] = useState("");
+
+  const filteredCategories = useMemo(() => {
+    return BUSINESS_CATEGORIES.filter(c => {
+      if (activeSector !== "ALL") {
+        const sector = CATEGORY_SECTORS.find(s => s.id === activeSector);
+        if (sector && !sector.matches.includes(c.id)) {
+          return false;
+        }
+      }
+      if (categorySearch.trim()) {
+        const q = categorySearch.toLowerCase();
+        return (
+          c.label.toLowerCase().includes(q) || 
+          c.desc.toLowerCase().includes(q) ||
+          c.id.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [categorySearch, activeSector]);
+
+  const selectedCategory = useMemo(() => {
+    return BUSINESS_CATEGORIES.find(c => c.id === businessType) || BUSINESS_CATEGORIES[0];
+  }, [businessType]);
+
+  const selectedHighlight = useMemo(() => {
+    return getCategoryHighlight(businessType);
+  }, [businessType]);
+
+  const SelectedCategoryIcon = selectedCategory?.icon || Store;
 
   // Forms setup
   const custLoginForm = useForm({ resolver: zodResolver(customerLoginSchema) });
@@ -142,6 +326,9 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
     merchLoginForm.reset();
     merchRegisterForm.reset();
     setErrorDetails(null);
+    setRegisterStep(1);
+    setActiveSector("ALL");
+    setCategorySearch("");
   };
 
   const handleRoleSelect = (selectedRole: "CUSTOMER" | "MERCHANT") => {
@@ -575,7 +762,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
             </div>
           </header>
 
-          <main className="w-full max-w-md mx-auto my-auto py-8">
+          <main className={`w-full mx-auto my-auto py-6 sm:py-8 transition-all duration-500 ${role === "MERCHANT" && mode === "REGISTER" ? "max-w-7xl" : "max-w-md"}`}>
             <AnimatePresence mode="wait">
               {role === "CUSTOMER" && (
                 <motion.div
@@ -794,9 +981,10 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                 </motion.div>
               )}
 
-              {role === "MERCHANT" && (
+              {/* MERCHANT LOGIN MODE */}
+              {role === "MERCHANT" && mode === "LOGIN" && (
                 <motion.div
-                  key="merchant-auth"
+                  key="merchant-login"
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
@@ -814,7 +1002,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                         Merchant Store Portal
                       </span>
                       <h3 className="text-md font-black text-white leading-tight">
-                        {mode === "LOGIN" ? "Merchant Login" : "Register Business Store"}
+                        Merchant Login
                       </h3>
                     </div>
                   </div>
@@ -826,287 +1014,627 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                     </div>
                   )}
 
-                  {mode === "LOGIN" ? (
-                    <form onSubmit={merchLoginForm.handleSubmit(onMerchantLogin)} className="space-y-4">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                          Store Email or Phone
-                        </label>
-                        <div className="relative">
-                          <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                          <input
-                            type="text"
-                            {...merchLoginForm.register("identifier")}
-                            placeholder="e.g. owner@quickbizs.com"
-                            disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                          />
-                        </div>
-                        {merchLoginForm.formState.errors.identifier && (
-                          <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchLoginForm.formState.errors.identifier.message)}</p>
-                        )}
+                  <form onSubmit={merchLoginForm.handleSubmit(onMerchantLogin)} className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                        Store Email or Phone
+                      </label>
+                      <div className="relative">
+                        <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                        <input
+                          type="text"
+                          {...merchLoginForm.register("identifier")}
+                          placeholder="e.g. owner@quickbizs.com"
+                          disabled={isLoading}
+                          className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                        />
                       </div>
+                      {merchLoginForm.formState.errors.identifier && (
+                        <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchLoginForm.formState.errors.identifier.message)}</p>
+                      )}
+                    </div>
 
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                          Password
-                        </label>
-                        <div className="relative">
-                          <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            {...merchLoginForm.register("password")}
-                            placeholder="••••••••"
-                            disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-3.5 text-slate-500 hover:text-slate-300"
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        </div>
-                        {merchLoginForm.formState.errors.password && (
-                          <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchLoginForm.formState.errors.password.message)}</p>
-                        )}
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                        Password
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          {...merchLoginForm.register("password")}
+                          placeholder="••••••••"
+                          disabled={isLoading}
+                          className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-3.5 text-slate-500 hover:text-slate-300 cursor-pointer"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
                       </div>
+                      {merchLoginForm.formState.errors.password && (
+                        <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchLoginForm.formState.errors.password.message)}</p>
+                      )}
+                    </div>
 
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full py-3.5 bg-brand-emerald hover:bg-emerald-600 text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-lg active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
-                      >
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Sign In & Manage</span>}
-                      </button>
-                    </form>
-                  ) : (
-                    <form onSubmit={merchRegisterForm.handleSubmit(onMerchantRegister)} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                            Owner Name
-                          </label>
-                          <div className="relative">
-                            <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                            <input
-                              type="text"
-                              {...merchRegisterForm.register("ownerName")}
-                              placeholder="e.g. Rishi"
-                              disabled={isLoading}
-                              className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                            />
-                          </div>
-                          {merchRegisterForm.formState.errors.ownerName && (
-                            <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.ownerName.message)}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                            Business Name
-                          </label>
-                          <input
-                            type="text"
-                            {...merchRegisterForm.register("businessName")}
-                            placeholder="e.g. Verma Grocery"
-                            disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl px-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                          />
-                          {merchRegisterForm.formState.errors.businessName && (
-                            <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.businessName.message)}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                          Store Phone
-                        </label>
-                        <div className="relative">
-                          <Phone className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                          <input
-                            type="text"
-                            {...merchRegisterForm.register("phone")}
-                            placeholder="e.g. 9876543210"
-                            disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                          />
-                        </div>
-                        {merchRegisterForm.formState.errors.phone && (
-                          <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.phone.message)}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                          Store Email
-                        </label>
-                        <div className="relative">
-                          <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                          <input
-                            type="email"
-                            {...merchRegisterForm.register("email")}
-                            placeholder="e.g. verma@example.com"
-                            disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                          />
-                        </div>
-                        {merchRegisterForm.formState.errors.email && (
-                          <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.email.message)}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                          Business Address
-                        </label>
-                        <div className="relative">
-                          <MapPin className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                          <input
-                            type="text"
-                            {...merchRegisterForm.register("address")}
-                            placeholder="e.g. JB Nagar Metro, Andheri East, Mumbai"
-                            disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                          />
-                        </div>
-                        {merchRegisterForm.formState.errors.address && (
-                          <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.address.message)}</p>
-                        )}
-                      </div>
-
-                      {/* Category Selection */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                            Business Category
-                          </label>
-                          <span className="text-[10px] font-semibold text-brand-emerald">Configures Dynamic Fields</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                          {BUSINESS_CATEGORIES.map(cat => {
-                            const Icon = cat.icon;
-                            const isSelected = businessType === cat.id;
-                            return (
-                              <button
-                                type="button"
-                                key={cat.id}
-                                onClick={() => setBusinessType(cat.id)}
-                                className={`flex items-start gap-2.5 p-2 rounded-xl border text-left transition-all ${
-                                  isSelected 
-                                    ? "bg-brand-emerald/15 border-brand-emerald text-white shadow-sm ring-1 ring-brand-emerald" 
-                                    : "bg-slate-900/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300"
-                                }`}
-                              >
-                                <div className={`p-1.5 rounded-lg shrink-0 ${isSelected ? "bg-brand-emerald text-white" : "bg-slate-800 text-slate-400"}`}>
-                                  <Icon className="h-3.5 w-3.5" />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-[11px] font-bold leading-tight truncate">{cat.label}</p>
-                                  <p className="text-[9px] text-slate-500 line-clamp-1">{cat.desc}</p>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Selling Mode Selector */}
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-                          Operating Mode
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[
-                            { id: "Retail Store", label: "Retail (B2C)" },
-                            { id: "Wholesale", label: "Wholesale (B2B)" },
-                            { id: "Mixed Mode", label: "Mixed Store" }
-                          ].map(modeOpt => (
-                            <button
-                              type="button"
-                              key={modeOpt.id}
-                              onClick={() => setSellingMode(modeOpt.id)}
-                              className={`py-2 px-1 text-center rounded-xl border text-[11px] font-bold transition-all ${
-                                sellingMode === modeOpt.id
-                                  ? "bg-brand-emerald/15 border-brand-emerald text-brand-emerald shadow-sm ring-1 ring-brand-emerald"
-                                  : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
-                              }`}
-                            >
-                              {modeOpt.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                            Password
-                          </label>
-                          <div className="relative">
-                            <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                            <input
-                              type={showPassword ? "text" : "password"}
-                              {...merchRegisterForm.register("password")}
-                              placeholder="••••••••"
-                              disabled={isLoading}
-                              className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-4 top-3.5 text-slate-500 hover:text-slate-300"
-                            >
-                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
-                          </div>
-                          {merchRegisterForm.formState.errors.password && (
-                            <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.password.message)}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                            Confirm Password
-                          </label>
-                          <div className="relative">
-                            <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                            <input
-                              type={showPassword ? "text" : "password"}
-                              {...merchRegisterForm.register("confirmPassword")}
-                              placeholder="••••••••"
-                              disabled={isLoading}
-                              className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                            />
-                          </div>
-                          {merchRegisterForm.formState.errors.confirmPassword && (
-                            <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.confirmPassword.message)}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full py-3 bg-brand-emerald hover:bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
-                      >
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Register Business & Sign In</span>}
-                      </button>
-                    </form>
-                  )}
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full py-3.5 bg-brand-emerald hover:bg-emerald-600 text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-lg active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+                    >
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Sign In & Manage</span>}
+                    </button>
+                  </form>
 
                   <div className="text-center pt-2 border-t border-slate-900/60">
                     <button
                       onClick={() => {
-                        setMode(mode === "LOGIN" ? "REGISTER" : "LOGIN");
+                        setMode("REGISTER");
                         setErrorDetails(null);
                       }}
                       className="text-xs text-brand-emerald hover:underline font-bold cursor-pointer"
                     >
-                      {mode === "LOGIN" ? "Register new store? Setup Wizard" : "Already registered? Sign In"}
+                      Register new store? Setup Wizard
                     </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* MERCHANT REGISTER MODE (WIDESCREEN 2-COLUMN SHOWCASE & SPATIOUS LAYOUT) */}
+              {role === "MERCHANT" && mode === "REGISTER" && (
+                <motion.div
+                  key="merchant-register"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full"
+                >
+                  {/* Left Column: Interactive Store Preview & Value Proposition (Desktop Only) */}
+                  <div className="hidden lg:flex lg:col-span-5 flex-col gap-6 sticky top-8">
+                    {/* Ambient Glassmorphism Showcase Card */}
+                    <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/50 backdrop-blur-xl p-8 shadow-2xl space-y-6">
+                      {/* Decorative Background Glows */}
+                      <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+                      <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-brand-orange/15 rounded-full blur-3xl pointer-events-none" />
+
+                      {/* Header Badge */}
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[11px] font-bold tracking-wide">
+                          <Sparkles className="h-3.5 w-3.5" />
+                          {selectedHighlight.badge}
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-500 tracking-wide uppercase">
+                          QuickBizs OS
+                        </span>
+                      </div>
+
+                      {/* Dynamic Store Headline */}
+                      <div className="space-y-2">
+                        <h2 className="text-2xl font-black text-white leading-tight">
+                          Built specifically for your <span className="text-brand-emerald">{selectedCategory.label}</span>.
+                        </h2>
+                        <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                          {selectedHighlight.tag}. Customized POS shortcuts, specialized attributes, and automated GST billing out of the box.
+                        </p>
+                      </div>
+
+                      {/* Live Store Feature Spotlight */}
+                      <motion.div 
+                        key={businessType}
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.25 }}
+                        className="p-5 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 shadow-inner space-y-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-11 w-11 rounded-xl bg-brand-emerald/20 border border-brand-emerald/40 text-brand-emerald flex items-center justify-center shrink-0 shadow-lg">
+                            <SelectedCategoryIcon className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-black text-white truncate">{selectedCategory.label}</h4>
+                            <p className="text-[10px] text-brand-emerald font-semibold">{sellingMode} Active</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2.5 pt-2 border-t border-emerald-900/40">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Features Enabled for This Store:</p>
+                          {selectedHighlight.highlights.map((feat, idx) => (
+                            <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-300 font-medium">
+                              <span className="h-4.5 w-4.5 rounded-full bg-emerald-500/20 text-brand-emerald flex items-center justify-center shrink-0 border border-emerald-500/30">
+                                <Check className="h-2.5 w-2.5 stroke-[3]" />
+                              </span>
+                              <span className="truncate">{feat}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+
+                      {/* Quick Metrics Bar */}
+                      <div className="grid grid-cols-3 gap-3 pt-1">
+                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-center">
+                          <p className="text-brand-emerald font-black text-sm">0.3s</p>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Express POS</p>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-center">
+                          <p className="text-brand-orange font-black text-sm">100%</p>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Offline Ready</p>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-center">
+                          <p className="text-teal-400 font-black text-sm">GST</p>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Ready Invoices</p>
+                        </div>
+                      </div>
+
+                      {/* Trust & Rating Footnote */}
+                      <div className="flex items-center gap-3 pt-3 border-t border-slate-800/80">
+                        <div className="flex -space-x-2 overflow-hidden">
+                          <div className="inline-block h-7 w-7 rounded-full ring-2 ring-slate-900 bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white">R</div>
+                          <div className="inline-block h-7 w-7 rounded-full ring-2 ring-slate-900 bg-brand-orange flex items-center justify-center text-[10px] font-bold text-white">V</div>
+                          <div className="inline-block h-7 w-7 rounded-full ring-2 ring-slate-900 bg-teal-600 flex items-center justify-center text-[10px] font-bold text-white">M</div>
+                        </div>
+                        <div className="text-[11px] text-slate-400 font-medium">
+                          <div className="flex items-center gap-1 text-amber-400">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className="h-3 w-3 fill-amber-400" />
+                            ))}
+                          </div>
+                          <span>Trusted by 10,000+ merchants in India</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Spacious & Structured Registration Form */}
+                  <div className="lg:col-span-7 bg-slate-950 border border-slate-800/90 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6 relative">
+                    
+                    {/* Stepper Tabs Bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={handleBackToRole}
+                          className="p-2.5 border border-slate-800 hover:bg-slate-900 text-slate-400 hover:text-white rounded-xl transition-colors cursor-pointer"
+                        >
+                          <ArrowLeft className="h-4 w-4" />
+                        </button>
+                        <div>
+                          <span className="text-[10px] text-brand-emerald font-bold uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-brand-emerald animate-pulse" />
+                            Merchant Store Setup
+                          </span>
+                          <h3 className="text-xl font-black text-white leading-tight mt-0.5">
+                            {registerStep === 1 ? "Select Business Category" : "Store & Owner Account"}
+                          </h3>
+                        </div>
+                      </div>
+
+                      {/* Visual 2-Step Stepper */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setRegisterStep(1)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                            registerStep === 1 
+                              ? "bg-brand-emerald/15 text-brand-emerald border border-brand-emerald/40 shadow-sm"
+                              : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          <span className={`h-5 w-5 rounded-full text-[10px] font-black flex items-center justify-center ${
+                            registerStep === 1 ? "bg-brand-emerald text-slate-950" : "bg-slate-800 text-slate-300"
+                          }`}>
+                            1
+                          </span>
+                          <span>1. Trade Category</span>
+                        </button>
+
+                        <div className={`h-0.5 w-3 sm:w-6 rounded transition-all ${registerStep === 2 ? "bg-brand-emerald" : "bg-slate-800"}`} />
+
+                        <button
+                          type="button"
+                          onClick={() => setRegisterStep(2)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                            registerStep === 2 
+                              ? "bg-brand-emerald/15 text-brand-emerald border border-brand-emerald/40 shadow-sm"
+                              : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          <span className={`h-5 w-5 rounded-full text-[10px] font-black flex items-center justify-center ${
+                            registerStep === 2 ? "bg-brand-emerald text-slate-950" : "bg-slate-800 text-slate-300"
+                          }`}>
+                            2
+                          </span>
+                          <span>2. Store Details</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {errorDetails && (
+                      <div className="bg-rose-950/40 border border-rose-800/80 p-4 rounded-2xl flex gap-3 text-xs text-rose-200 leading-relaxed">
+                        <AlertCircle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
+                        <span>{errorDetails}</span>
+                      </div>
+                    )}
+
+                    {/* STEP 1: DEDICATED BUSINESS CATEGORY & OPERATING MODE SECTION */}
+                    {registerStep === 1 && (
+                      <motion.div
+                        key="step-category"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        transition={{ duration: 0.25 }}
+                        className="space-y-6"
+                      >
+                        {/* Sector Filter Bar */}
+                        <div className="space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                            <div>
+                              <h4 className="text-sm font-black text-slate-200">Browse by Industry Sector</h4>
+                              <p className="text-[11px] text-slate-400">Select your trade to load specialized custom fields and POS configurations</p>
+                            </div>
+
+                            {/* Quick Search */}
+                            <div className="relative w-full sm:w-60">
+                              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-500" />
+                              <input
+                                type="text"
+                                value={categorySearch}
+                                onChange={(e) => setCategorySearch(e.target.value)}
+                                placeholder="Search 28+ categories..."
+                                className="w-full bg-slate-900/90 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-8 pr-3 py-2 text-[11px] text-slate-200 placeholder-slate-500 focus:outline-none transition-colors"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Sector Filter Pills */}
+                          <div className="flex items-center gap-2 overflow-x-auto pb-1.5 custom-scrollbar">
+                            {CATEGORY_SECTORS.map((sector) => {
+                              const SectorIcon = sector.icon;
+                              const isActive = activeSector === sector.id;
+                              return (
+                                <button
+                                  type="button"
+                                  key={sector.id}
+                                  onClick={() => setActiveSector(sector.id)}
+                                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold shrink-0 flex items-center gap-1.5 transition-all cursor-pointer ${
+                                    isActive
+                                      ? "bg-brand-emerald text-slate-950 border-brand-emerald font-black shadow-md shadow-emerald-500/20"
+                                      : "bg-slate-900/90 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                                  }`}
+                                >
+                                  <SectorIcon className="h-3.5 w-3.5" />
+                                  <span>{sector.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Category Cards Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[340px] overflow-y-auto pr-2 custom-scrollbar p-0.5">
+                          {filteredCategories.length > 0 ? (
+                            filteredCategories.map((cat) => {
+                              const Icon = cat.icon;
+                              const isSelected = businessType === cat.id;
+                              return (
+                                <button
+                                  type="button"
+                                  key={cat.id}
+                                  onClick={() => setBusinessType(cat.id)}
+                                  className={`flex items-start gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative group ${
+                                    isSelected
+                                      ? "bg-emerald-500/15 border-brand-emerald text-white shadow-lg ring-1 ring-brand-emerald"
+                                      : "bg-slate-900/70 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200 hover:bg-slate-900"
+                                  }`}
+                                >
+                                  <div className={`p-2 rounded-xl shrink-0 transition-transform group-hover:scale-105 ${
+                                    isSelected ? "bg-brand-emerald text-slate-950 font-bold" : "bg-slate-800 text-slate-400"
+                                  }`}>
+                                    <Icon className="h-4 w-4" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-xs font-bold leading-tight truncate">{cat.label}</p>
+                                      {isSelected && <Check className="h-3.5 w-3.5 text-brand-emerald shrink-0 ml-1" />}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 line-clamp-1 mt-1">{cat.desc}</p>
+                                  </div>
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <div className="col-span-full py-8 text-center text-xs text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800">
+                              No categories found in this sector matching "{categorySearch}".
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Operating Mode Selector */}
+                        <div className="space-y-3 pt-4 border-t border-slate-900">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider">Choose Operating Mode</h4>
+                            <span className="text-[10px] font-semibold text-brand-emerald">B2C • B2B • Mixed</span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                            {[
+                              { id: "Retail Store", label: "Retail (B2C)", desc: "Counter POS & Barcodes" },
+                              { id: "Wholesale", label: "Wholesale (B2B)", desc: "Bulk Cartons & Credit Khata" },
+                              { id: "Mixed Mode", label: "Mixed Store", desc: "B2C Retail & B2B Wholesale" }
+                            ].map((modeOpt) => (
+                              <button
+                                type="button"
+                                key={modeOpt.id}
+                                onClick={() => setSellingMode(modeOpt.id)}
+                                className={`py-3 px-3.5 text-left rounded-xl border transition-all cursor-pointer ${
+                                  sellingMode === modeOpt.id
+                                    ? "bg-brand-emerald/15 border-brand-emerald text-white shadow-sm ring-1 ring-brand-emerald"
+                                    : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-bold">{modeOpt.label}</p>
+                                  {sellingMode === modeOpt.id && <Check className="h-3.5 w-3.5 text-brand-emerald" />}
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-0.5">{modeOpt.desc}</p>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Step 1 Action Bar */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-slate-800/80">
+                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                            <span className="text-slate-500 font-medium">Selected Trade:</span>
+                            <span className="font-bold text-white bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-1.5">
+                              <SelectedCategoryIcon className="h-3.5 w-3.5 text-brand-emerald" />
+                              {selectedCategory.label} • {sellingMode}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setRegisterStep(2)}
+                            className="px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_-5px_rgba(16,185,129,0.4)] active:scale-[0.98] transition-all cursor-pointer group"
+                          >
+                            <span>Continue to Store Setup</span>
+                            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* STEP 2: DEDICATED STORE DETAILS & OWNER ACCOUNT FORM */}
+                    {registerStep === 2 && (
+                      <motion.div
+                        key="step-details"
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.25 }}
+                        className="space-y-6"
+                      >
+                        {/* Selected Category Summary Banner */}
+                        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-brand-emerald/20 border border-brand-emerald/40 text-brand-emerald flex items-center justify-center shrink-0">
+                              <SelectedCategoryIcon className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-black text-white">{selectedCategory.label}</p>
+                                <span className="text-[10px] font-bold text-brand-emerald bg-brand-emerald/10 px-2 py-0.5 rounded-full border border-brand-emerald/20">
+                                  {sellingMode}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 mt-0.5">Dynamic attributes & tax rules automatically configured</p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setRegisterStep(1)}
+                            className="text-xs font-bold text-brand-emerald hover:underline cursor-pointer px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 transition-colors"
+                          >
+                            Change Category
+                          </button>
+                        </div>
+
+                        <form onSubmit={merchRegisterForm.handleSubmit(onMerchantRegister)} className="space-y-5">
+                          {/* Owner & Business Name */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                                Owner Name *
+                              </label>
+                              <div className="relative">
+                                <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                                <input
+                                  type="text"
+                                  {...merchRegisterForm.register("ownerName")}
+                                  placeholder="e.g. Rishi Verma"
+                                  disabled={isLoading}
+                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                />
+                              </div>
+                              {merchRegisterForm.formState.errors.ownerName && (
+                                <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.ownerName.message)}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                                Business / Store Name *
+                              </label>
+                              <div className="relative">
+                                <Store className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                                <input
+                                  type="text"
+                                  {...merchRegisterForm.register("businessName")}
+                                  placeholder="e.g. Verma Retail & Spares"
+                                  disabled={isLoading}
+                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                />
+                              </div>
+                              {merchRegisterForm.formState.errors.businessName && (
+                                <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.businessName.message)}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Phone & Email */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                                Store Phone (10 Digits) *
+                              </label>
+                              <div className="relative">
+                                <Phone className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                                <input
+                                  type="text"
+                                  {...merchRegisterForm.register("phone")}
+                                  placeholder="e.g. 9876543210"
+                                  disabled={isLoading}
+                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                />
+                              </div>
+                              {merchRegisterForm.formState.errors.phone && (
+                                <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.phone.message)}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                                Store Email *
+                              </label>
+                              <div className="relative">
+                                <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                                <input
+                                  type="email"
+                                  {...merchRegisterForm.register("email")}
+                                  placeholder="e.g. store@verma.com"
+                                  disabled={isLoading}
+                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                />
+                              </div>
+                              {merchRegisterForm.formState.errors.email && (
+                                <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.email.message)}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Business Address */}
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                              Business Address *
+                            </label>
+                            <div className="relative">
+                              <MapPin className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                              <input
+                                type="text"
+                                {...merchRegisterForm.register("address")}
+                                placeholder="e.g. Shop #4, Metro Market, Andheri East, Mumbai"
+                                disabled={isLoading}
+                                className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                              />
+                            </div>
+                            {merchRegisterForm.formState.errors.address && (
+                              <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.address.message)}</p>
+                            )}
+                          </div>
+
+                          {/* Password & Confirm Password */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                                Password (Min 6 Characters) *
+                              </label>
+                              <div className="relative">
+                                <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                                <input
+                                  type={showPassword ? "text" : "password"}
+                                  {...merchRegisterForm.register("password")}
+                                  placeholder="••••••••"
+                                  disabled={isLoading}
+                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-4 top-3.5 text-slate-500 hover:text-slate-300 cursor-pointer"
+                                >
+                                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                              </div>
+                              {merchRegisterForm.formState.errors.password && (
+                                <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.password.message)}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                                Confirm Password *
+                              </label>
+                              <div className="relative">
+                                <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                                <input
+                                  type={showPassword ? "text" : "password"}
+                                  {...merchRegisterForm.register("confirmPassword")}
+                                  placeholder="••••••••"
+                                  disabled={isLoading}
+                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                />
+                              </div>
+                              {merchRegisterForm.formState.errors.confirmPassword && (
+                                <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.confirmPassword.message)}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action Buttons: Back and Submit */}
+                          <div className="flex items-center gap-3 pt-3">
+                            <button
+                              type="button"
+                              onClick={() => setRegisterStep(1)}
+                              className="py-4 px-5 border border-slate-800 hover:bg-slate-900 text-slate-300 hover:text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                            >
+                              <ArrowLeft className="h-4 w-4" />
+                              <span>Back to Category</span>
+                            </button>
+
+                            <button
+                              type="submit"
+                              disabled={isLoading}
+                              className="flex-1 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 shadow-[0_0_25px_-5px_rgba(16,185,129,0.4)] active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer group"
+                            >
+                              {isLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <span>Register Business & Launch Store</span>
+                                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </form>
+                      </motion.div>
+                    )}
+
+                    <div className="text-center pt-3 border-t border-slate-900/80">
+                      <button
+                        onClick={() => {
+                          setMode("LOGIN");
+                          setErrorDetails(null);
+                        }}
+                        className="text-xs text-brand-emerald hover:underline font-bold cursor-pointer"
+                      >
+                        Already have a registered store? Sign In
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               )}

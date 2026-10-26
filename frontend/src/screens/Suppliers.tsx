@@ -10,9 +10,11 @@ import {
 } from "lucide-react";
 import { useBusiness } from "../context/BusinessContext";
 import type { Supplier } from "../context/BusinessContext";
+import { getCategoryFormConfig } from "../utils/categoryFormConfig";
 
 export const Suppliers: React.FC = () => {
-  const { suppliers, addSupplier, settleSupplierDues } = useBusiness();
+  const { suppliers, addSupplier, settleSupplierDues, productSchema } = useBusiness();
+  const formConfig = React.useMemo(() => getCategoryFormConfig(productSchema), [productSchema]);
   const [searchQuery, setSearchQuery] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -199,65 +201,88 @@ export const Suppliers: React.FC = () => {
 
       {/* Add Supplier Modal */}
       {isAddingSupplier && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 border border-slate-200 dark:border-slate-800">
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl lg:max-w-3xl rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 border border-slate-200 dark:border-slate-800">
             
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="font-black text-base text-slate-900 dark:text-white">Add New Supplier</h3>
-              <button onClick={() => setIsAddingSupplier(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-brand-orange/10 border border-brand-orange/20 flex items-center justify-center text-brand-orange">
+                  <Truck className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-slate-900 dark:text-white leading-tight">
+                    Add New {formConfig.displayName} Supplier
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Configure authorized distributor, stockist, and procurement contact
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsAddingSupplier(false)} 
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddSubmit} className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-slate-500 block mb-1">Supplier Business Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Kirana Wholesale Traders"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-orange"
-                />
+            <form onSubmit={handleAddSubmit} className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    Supplier / Distributor Business Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={formConfig.supplierPlaceholder}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    Phone / Helpline Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="e.g. 9876543210"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                    Account Manager / Contact Person (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Sanjay Shah (Sales Area Manager)"
+                    value={contactPerson}
+                    onChange={(e) => setContactPerson(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-500 block mb-1">Phone Number</label>
-                <input
-                  type="tel"
-                  placeholder="e.g. 9876543210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-orange"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-500 block mb-1">Contact Person Name (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Sanjay Shah"
-                  value={contactPerson}
-                  onChange={(e) => setContactPerson(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-orange"
-                />
-              </div>
-
-              <div className="pt-3 flex gap-3">
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsAddingSupplier(false)}
-                  className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3 rounded-xl text-xs cursor-pointer transition-colors"
+                  className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-sm transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-brand-orange hover:bg-brand-orange-hover text-white font-black py-3 rounded-xl text-xs shadow-md cursor-pointer transition-colors"
+                  className="px-7 py-2.5 bg-brand-orange hover:bg-brand-orange-hover text-white font-extrabold rounded-xl text-sm shadow-md transition-colors cursor-pointer"
                 >
-                  Save Supplier
+                  Save Supplier Profile
                 </button>
               </div>
             </form>
@@ -268,22 +293,36 @@ export const Suppliers: React.FC = () => {
 
       {/* Pay Supplier Modal */}
       {settlingSupplier && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 border border-slate-200 dark:border-slate-800">
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg lg:max-w-xl rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 border border-slate-200 dark:border-slate-800">
             
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
               <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase block">{settlingSupplier.name}</span>
-                <h3 className="font-black text-base text-slate-900 dark:text-white">Record Payment to Supplier</h3>
+                <span className="text-[11px] font-black tracking-wider text-slate-400 dark:text-slate-500 uppercase block">
+                  Supplier Settlement: {settlingSupplier.name}
+                </span>
+                <h3 className="font-black text-xl text-slate-900 dark:text-white mt-0.5">
+                  Record Procurement Payment
+                </h3>
               </div>
-              <button onClick={() => setSettlingSupplier(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer">
+              <button 
+                onClick={() => setSettlingSupplier(null)} 
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSettleSubmit} className="space-y-3">
+            <form onSubmit={handleSettleSubmit} className="space-y-5">
               <div>
-                <label className="text-xs font-bold text-slate-500 block mb-1">Enter Amount Paid (₹)</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                    Enter Amount Paid (₹) <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-xs font-extrabold text-brand-orange">
+                    Outstanding Due: ₹{settlingSupplier.pendingDues}
+                  </span>
+                </div>
                 <input
                   type="number"
                   placeholder={`Max ₹${settlingSupplier.pendingDues}`}
@@ -292,21 +331,47 @@ export const Suppliers: React.FC = () => {
                   max={settlingSupplier.pendingDues}
                   required
                   autoFocus
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-3 text-lg font-black text-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3.5 text-2xl font-black text-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors"
                 />
+
+                {/* Quick percentage chips */}
+                {settlingSupplier.pendingDues > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2.5">
+                    {[0.25, 0.5, 0.75].map((pct) => {
+                      const val = Math.round(settlingSupplier.pendingDues * pct);
+                      return (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => setSettleAmount(String(val))}
+                          className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                        >
+                          {pct * 100}% (₹{val})
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setSettleAmount(String(settlingSupplier.pendingDues))}
+                      className="px-3 py-1 rounded-lg bg-brand-orange/10 text-brand-orange text-xs font-black border border-brand-orange/30 hover:bg-brand-orange/20 transition-colors cursor-pointer"
+                    >
+                      Clear Full Balance: ₹{settlingSupplier.pendingDues}
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <div className="pt-3 flex gap-3">
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setSettlingSupplier(null)}
-                  className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3 rounded-xl text-xs cursor-pointer transition-colors"
+                  className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-sm transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-brand-orange hover:bg-brand-orange-hover text-white font-black py-3 rounded-xl text-xs shadow-md cursor-pointer transition-colors"
+                  className="px-7 py-2.5 bg-brand-orange hover:bg-brand-orange-hover text-white font-black rounded-xl text-sm shadow-md transition-colors cursor-pointer"
                 >
                   Confirm Payment
                 </button>

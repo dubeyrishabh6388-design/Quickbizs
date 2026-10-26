@@ -350,7 +350,7 @@ export class DynamicProductTemplateService {
     const vertical = verticalRegistry.resolve(raw);
 
     // If vertical is registered and has fields, construct dynamic sections directly from registry configuration!
-    if (vertical && vertical.id !== "GENERIC_RETAIL" && vertical.fields.length > 0) {
+    if (vertical && vertical.fields.length > 0) {
       return verticalRegistry.toFormConfig(vertical);
     }
 
