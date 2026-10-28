@@ -110,22 +110,31 @@ export class ProductController {
         images,
       } = req.body;
 
-      if (!name || !category || price === undefined || costPrice === undefined || stock === undefined || minStock === undefined || !supplierName) {
+      if (!name || price === undefined || price === null || price === "") {
         const err: any = new Error("Required product parameters missing.");
         err.statusCode = 400;
         err.problem = "Input validation failed.";
-        err.reason = "Product name, category, price, costPrice, stock, minStock, and supplierName are mandatory.";
+        err.reason = "Product name and selling price are mandatory.";
         throw err;
       }
 
+      const parsedPrice = parseFloat(price);
+      const parsedCostPrice = costPrice !== undefined && costPrice !== null && costPrice !== "" 
+        ? parseFloat(costPrice) 
+        : (parsedPrice * 0.8 > 0 ? Number((parsedPrice * 0.8).toFixed(2)) : 0);
+      const parsedStock = stock !== undefined && stock !== null && stock !== "" ? parseInt(stock, 10) : 0;
+      const parsedMinStock = minStock !== undefined && minStock !== null && minStock !== "" ? parseInt(minStock, 10) : 5;
+      const resolvedSupplier = supplierName && String(supplierName).trim() ? String(supplierName).trim() : "Direct / Retail Inward";
+      const resolvedCategory = category && String(category).trim() ? String(category).trim() : "General";
+
       const result = await productService.createProduct(businessId, {
-        name,
-        category,
-        price: parseFloat(price),
-        costPrice: parseFloat(costPrice),
-        stock: parseInt(stock, 10),
-        minStock: parseInt(minStock, 10),
-        supplierName,
+        name: String(name).trim(),
+        category: resolvedCategory,
+        price: parsedPrice,
+        costPrice: parsedCostPrice,
+        stock: parsedStock,
+        minStock: parsedMinStock,
+        supplierName: resolvedSupplier,
         barcode: barcode || undefined,
         customFields: customFields || undefined,
         sku: sku || undefined,

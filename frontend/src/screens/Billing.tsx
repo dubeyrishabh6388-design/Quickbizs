@@ -1519,7 +1519,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
               initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.96, opacity: 0 }}
-              className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-800 dark:text-slate-100 font-sans max-h-[92vh] h-auto flex flex-col overflow-hidden no-scrollbar"
+              className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl w-full max-w-xl sm:max-w-2xl border border-slate-200 dark:border-slate-800 shadow-2xl relative text-slate-800 dark:text-slate-100 font-sans max-h-[92vh] h-auto flex flex-col overflow-hidden no-scrollbar"
             >
               <DynamicProductForm
                 vertical={productSchema}

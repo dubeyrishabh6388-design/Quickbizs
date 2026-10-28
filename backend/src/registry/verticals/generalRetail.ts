@@ -18,15 +18,15 @@ export const GROCERY_VERTICAL: VerticalDefinition = {
   units: ["Kg", "Gram", "Litre", "ml", "Packet", "Piece", "Box"],
   fields: [
     { name: "name", label: "Item Name", type: "text", required: true, placeholder: "e.g. Aashirvaad Sharbati Atta 5kg", section: "Basic Details", sectionOrder: 1, order: 1 },
-    { name: "brand", label: "Brand", type: "text", required: true, placeholder: "e.g. ITC, Tata, Nestle, Fortune", section: "Basic Details", sectionOrder: 1, order: 2 },
+    { name: "brand", label: "Brand", type: "text", required: false, placeholder: "e.g. ITC, Tata, Nestle, Fortune", section: "Basic Details", sectionOrder: 1, order: 2 },
     { name: "category", label: "Category", type: "select", required: true, options: ["Dairy & Eggs", "Staples & Grains", "Snacks & Namkeen", "Beverages & Drinks", "Spices & Edible Oils", "Household & Cleaning", "Personal Care"], section: "Basic Details", sectionOrder: 1, order: 3 },
     { name: "unit", label: "Unit", type: "select", required: true, options: ["Kg", "Gram", "Litre", "ml", "Packet", "Piece", "Box"], section: "Basic Details", sectionOrder: 1, order: 4 },
     { name: "weight", label: "Net Weight / Volume", type: "text", required: false, placeholder: "e.g. 500g, 1L, 5kg", section: "Basic Details", sectionOrder: 1, order: 5 },
-    { name: "costPrice", label: "Purchase Price (₹)", type: "number", required: true, placeholder: "e.g. 210", section: "Pricing & Stock", sectionOrder: 2, order: 1 },
+    { name: "costPrice", label: "Purchase Price (₹)", type: "number", required: false, placeholder: "e.g. 210", section: "Pricing & Stock", sectionOrder: 2, order: 1 },
     { name: "price", label: "Selling Price / MRP (₹)", type: "number", required: true, placeholder: "e.g. 245", section: "Pricing & Stock", sectionOrder: 2, order: 2 },
     { name: "wholesalePrice", label: "Wholesale / Khata Price (₹)", type: "number", required: false, placeholder: "e.g. 230", section: "Pricing & Stock", sectionOrder: 2, order: 3 },
     { name: "stock", label: "Shelf Stock", type: "number", required: true, placeholder: "e.g. 50", section: "Pricing & Stock", sectionOrder: 2, order: 4 },
-    { name: "minStock", label: "Reorder Threshold", type: "number", required: true, placeholder: "e.g. 10", section: "Pricing & Stock", sectionOrder: 2, order: 5 },
+    { name: "minStock", label: "Reorder Threshold", type: "number", required: false, placeholder: "e.g. 10", section: "Pricing & Stock", sectionOrder: 2, order: 5 },
     { name: "rack", label: "Aisle / Shelf Location", type: "text", required: false, placeholder: "e.g. Aisle 2 - Top Shelf", section: "Inventory", sectionOrder: 3, order: 1 }
   ],
   searchableFields: ["brand", "name", "barcode", "sku", "weight"],
@@ -90,15 +90,15 @@ export const DAIRY_VERTICAL: VerticalDefinition = {
   units: ["Litre", "ml", "Kg", "Gram", "Pouch", "Piece"],
   fields: [
     { name: "name", label: "Product Name", type: "text", required: true, placeholder: "e.g. Full Cream Milk 500ml", section: "Dairy Specs", sectionOrder: 1, order: 1 },
-    { name: "brand", label: "Brand / Dairy Co-op", type: "text", required: true, placeholder: "e.g. Amul, Mother Dairy, Nandini, Saras", section: "Dairy Specs", sectionOrder: 1, order: 2 },
+    { name: "brand", label: "Brand / Dairy Co-op", type: "text", required: false, placeholder: "e.g. Amul, Mother Dairy, Nandini, Saras", section: "Dairy Specs", sectionOrder: 1, order: 2 },
     { name: "category", label: "Category", type: "select", required: true, options: ["Fresh Milk", "Curd & Buttermilk", "Paneer & Tofu", "Ghee & Butter", "Sweets & Desserts", "Bread & Eggs"], section: "Dairy Specs", sectionOrder: 1, order: 3 },
     { name: "fatContent", label: "Fat Percentage (%)", type: "text", required: false, placeholder: "e.g. 6.0% (Full Cream), 3.0% (Toned)", section: "Dairy Specs", sectionOrder: 1, order: 4 },
     { name: "shiftTime", label: "Delivery Shift", type: "select", required: false, options: ["Morning Shift", "Evening Shift", "All Day"], section: "Dairy Specs", sectionOrder: 1, order: 5 },
-    { name: "costPrice", label: "Procurement Cost (₹)", type: "number", required: true, placeholder: "e.g. 30", section: "Pricing & Stock", sectionOrder: 2, order: 1 },
+    { name: "costPrice", label: "Procurement Cost (₹)", type: "number", required: false, placeholder: "e.g. 30", section: "Pricing & Stock", sectionOrder: 2, order: 1 },
     { name: "price", label: "Retail Rate (₹)", type: "number", required: true, placeholder: "e.g. 34", section: "Pricing & Stock", sectionOrder: 2, order: 2 },
     { name: "catererPrice", label: "Caterer / Hotel Rate (₹)", type: "number", required: false, placeholder: "e.g. 31", section: "Pricing & Stock", sectionOrder: 2, order: 3 },
     { name: "stock", label: "Crater / Pouch Stock", type: "number", required: true, placeholder: "e.g. 100", section: "Pricing & Stock", sectionOrder: 2, order: 4 },
-    { name: "minStock", label: "Safety Alert Level", type: "number", required: true, placeholder: "e.g. 20", section: "Pricing & Stock", sectionOrder: 2, order: 5 }
+    { name: "minStock", label: "Safety Alert Level", type: "number", required: false, placeholder: "e.g. 20", section: "Pricing & Stock", sectionOrder: 2, order: 5 }
   ],
   searchableFields: ["brand", "name", "fatContent"],
   priceTiers: [
