@@ -19,6 +19,14 @@ export interface Environment {
   dbConnectionLimit?: number;
   groqApiKey?: string;
   groqModel?: string;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpPass: string;
+  smtpFrom: string;
+  smtpFromName: string;
+  payloadEncryptionKey: string;
+  payloadEncryptionEnabled: boolean;
 }
 
 // Ensure database configuration exists (either DATABASE_URL or decomposed DB variables)
@@ -64,6 +72,14 @@ export const env: Environment = {
   dbConnectionLimit: process.env.DB_CONNECTION_LIMIT ? parseInt(process.env.DB_CONNECTION_LIMIT, 10) : 10,
   groqApiKey: process.env.GROQ_API_KEY || "",
   groqModel: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
+  smtpHost: process.env.SMTP_HOST || "smtp-relay.brevo.com",
+  smtpPort: parseInt(process.env.SMTP_PORT || "587", 10),
+  smtpUser: process.env.SMTP_USER || "c0514a001@smtp-brevo.com",
+  smtpPass: process.env.SMTP_PASS || "",
+  smtpFrom: process.env.SMTP_FROM || process.env.SMTP_USER || "c0514a001@smtp-brevo.com",
+  smtpFromName: process.env.SMTP_FROM_NAME || "QuickBizs",
+  payloadEncryptionKey: process.env.PAYLOAD_ENCRYPTION_KEY || "QuickBizs_Secure_AES256_Payload_Key_2026_Enterprise!",
+  payloadEncryptionEnabled: process.env.ENABLE_PAYLOAD_ENCRYPTION !== "false",
 };
 
 /**

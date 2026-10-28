@@ -34,13 +34,43 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { env } from "./config/env";
+import { api } from "./config/api";
 
 function AppContent() {
-  const [activeScreen, setActiveScreen] = useState<ScreenType>("dashboard");
+  const [activeScreen, setActiveScreen] = useState<ScreenType>(() => {
+    try {
+      const userStr = localStorage.getItem("qb_user");
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        if (u.role === "SuperAdmin") return "superadmin";
+      }
+      const saved = localStorage.getItem("qb_active_screen");
+      if (saved) return saved as ScreenType;
+    } catch {}
+    return "dashboard";
+  });
+
+  useEffect(() => {
+    if (activeScreen) {
+      localStorage.setItem("qb_active_screen", activeScreen);
+    }
+  }, [activeScreen]);
+
   const { products, customers, currentRole, setCurrentRole, getRoleAllowedModules } = useBusiness();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      return !!(localStorage.getItem("qb_token") && localStorage.getItem("qb_user"));
+    } catch {
+      return false;
+    }
+  });
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(() => {
+    try {
+      return !(localStorage.getItem("qb_token") && localStorage.getItem("qb_user"));
+    } catch {
+      return true;
+    }
+  });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isPWAInstallForced, setIsPWAInstallForced] = useState(false);
 
@@ -128,28 +158,34 @@ function AppContent() {
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        // Pre-apply user role immediately so UI never flashes wrong role on load
+        if (user.role) {
+          setCurrentRole(user.role as UserRole);
+          if (user.role === "SuperAdmin") setActiveScreen("superadmin");
+        }
 
-        fetch(`${env.apiUrl}/api/v1/auth/session`, {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal,
-        })
-          .then((res) => res.json())
-          .then((json) => {
-            clearTimeout(timeoutId);
-            if (json.success) {
-              setCurrentRole(user.role as UserRole);
+        api
+          .get("/auth/session")
+          .then((res) => {
+            if (res.data?.success) {
+              const verified = res.data.data?.user || res.data.user;
+              const finalRole = (verified?.role || user.role) as UserRole;
+              setCurrentRole(finalRole);
+              if (finalRole === "SuperAdmin") setActiveScreen("superadmin");
               setIsAuthenticated(true);
             } else {
               handleLogout();
             }
           })
-          .catch(() => {
-            clearTimeout(timeoutId);
-            // Fallback to cached user credentials if network times out
-            setCurrentRole(user.role as UserRole);
-            setIsAuthenticated(true);
+          .catch((err) => {
+            // Only log out if explicit 401 Unauthorized from backend
+            if (err?.response?.status === 401) {
+              handleLogout();
+            } else {
+              // Retain local session on network latency or temporary glitch
+              if (user.role === "SuperAdmin") setActiveScreen("superadmin");
+              setIsAuthenticated(true);
+            }
           })
           .finally(() => {
             setIsAuthLoading(false);
@@ -200,7 +236,14 @@ function AppContent() {
 
   const isAllowed = getRoleAllowedModules(currentRole).includes(activeScreen);
 
+  const isSuperAdmin = currentRole === "SuperAdmin" || activeScreen === "superadmin" || !!(localStorage.getItem("qb_user")?.includes('"SuperAdmin"'));
+
   const renderScreen = () => {
+    // SuperAdmin is the Root Platform Administrator - always render the Admin console directly, never show Access Restricted or Merchant UI!
+    if (isSuperAdmin) {
+      return <SuperAdmin />;
+    }
+
     if (!isAllowed) {
       return (
         <div className="flex-1 flex items-center justify-center p-8 bg-slate-50 dark:bg-slate-900 h-screen text-slate-700 dark:text-slate-200">
@@ -216,11 +259,11 @@ function AppContent() {
             </p>
             <button
               onClick={() => {
-                if (currentRole === "SuperAdmin") setActiveScreen("superadmin");
-                else if (currentRole === "Owner") setActiveScreen("dashboard");
+                if (currentRole === "Owner") setActiveScreen("dashboard");
                 else if (currentRole === "Cashier") setActiveScreen("billing");
                 else if (currentRole === "Accountant") setActiveScreen("reports");
                 else if (currentRole === "Warehouse") setActiveScreen("inventory");
+                else setActiveScreen("dashboard");
               }}
               className="w-full py-3 bg-brand-navy hover:bg-brand-navy-light text-white text-xs font-bold rounded-xl cursor-pointer shadow-md"
             >
@@ -252,8 +295,6 @@ function AppContent() {
         return <AIAssistantScreen />;
       case "staff":
         return <Staff />;
-      case "superadmin":
-        return <SuperAdmin />;
       case "settings":
         return <Settings />;
       case "tasks":
@@ -284,7 +325,7 @@ function AppContent() {
       
       {/* Sidebar Drawer backdrop overlay for mobile screen sizes */}
       <AnimatePresence>
-        {isSidebarOpen && (
+        {isSidebarOpen && !isSuperAdmin && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.5 }}
@@ -295,31 +336,33 @@ function AppContent() {
         )}
       </AnimatePresence>
 
-      {/* Sidebar Navigation (Collapsible on Desktop & Mobile) */}
-      <div 
-        className={`fixed lg:static inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out shrink-0 ${
-          isSidebarOpen 
-            ? "translate-x-0 w-72" 
-            : "-translate-x-full lg:-ml-72 w-72 pointer-events-none"
-        }`}
-      >
-        <Sidebar
-          activeScreen={activeScreen}
-          setActiveScreen={(screen) => {
-            setActiveScreen(screen);
-            if (window.innerWidth < 1024) {
-              setIsSidebarOpen(false); // close drawer on mobile tap only
-            }
-          }}
-          onClose={() => setIsSidebarOpen(false)}
-          onLogout={handleLogout}
-          lowStockCount={lowStockCount}
-          pendingDuesCount={pendingDuesCount}
-        />
-      </div>
+      {/* Sidebar Navigation (Hidden completely for SuperAdmin - Full Width Experience) */}
+      {!isSuperAdmin && (
+        <div 
+          className={`fixed lg:static inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out shrink-0 ${
+            isSidebarOpen 
+              ? "translate-x-0 w-72" 
+              : "-translate-x-full lg:-ml-72 w-72 pointer-events-none"
+          }`}
+        >
+          <Sidebar
+            activeScreen={activeScreen}
+            setActiveScreen={(screen) => {
+              setActiveScreen(screen);
+              if (window.innerWidth < 1024) {
+                setIsSidebarOpen(false); // close drawer on mobile tap only
+              }
+            }}
+            onClose={() => setIsSidebarOpen(false)}
+            onLogout={handleLogout}
+            lowStockCount={lowStockCount}
+            pendingDuesCount={pendingDuesCount}
+          />
+        </div>
+      )}
 
       {/* Main Content Area */}
-      <main className="flex-1 h-screen overflow-hidden flex flex-col relative pb-20 lg:pb-0 bg-slate-50 dark:bg-slate-950 transition-all duration-300">
+      <main className={`flex-1 h-screen overflow-hidden flex flex-col relative ${isSuperAdmin ? "pb-0" : "pb-20 lg:pb-0"} bg-slate-50 dark:bg-slate-950 transition-all duration-300`}>
         
         {/* Unified Responsive Header */}
         <Header 
@@ -339,7 +382,8 @@ function AppContent() {
       </main>
 
       {/* Native Mobile App Floating Dock Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 px-3 pt-1 pb-[max(env(safe-area-inset-bottom),6px)] shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
+      {currentRole !== "SuperAdmin" && (
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 px-3 pt-1 pb-[max(env(safe-area-inset-bottom),6px)] shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-around max-w-md mx-auto relative">
           {[
             { id: "dashboard", label: "Home", icon: LayoutDashboard },
@@ -396,6 +440,7 @@ function AppContent() {
           })}
         </div>
       </nav>
+      )}
 
       {/* Floating AI Panel Nudge */}
       {currentRole === "Owner" && <AIAssistPanel />}

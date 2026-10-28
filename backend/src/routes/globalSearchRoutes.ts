@@ -1,11 +1,12 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { globalSearchController } from "../controllers/globalSearchController";
 import { requireAuth } from "../middlewares/auth";
+import { searchLimiter } from "../middlewares/rateLimiter";
 
 const router = Router();
 
 // GET /api/search?q=
-router.get("/", requireAuth, (req: Request, res: Response, next: NextFunction) =>
+router.get("/", requireAuth, searchLimiter, (req: Request, res: Response, next: NextFunction) =>
   globalSearchController.search(req, res, next)
 );
 

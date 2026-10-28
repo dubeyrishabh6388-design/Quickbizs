@@ -1,34 +1,59 @@
 import { prisma } from "../config/prisma";
+import { encryptDbField, decryptDbField } from "../utils/dbEncryption";
+
+export function decryptPwaCustomer<T extends Record<string, any> | null | undefined>(cust: T): T {
+  if (!cust) return cust;
+  return {
+    ...cust,
+    name: cust.name ? (decryptDbField(cust.name) as string) : cust.name,
+    phone: cust.phone ? (decryptDbField(cust.phone) as string) : cust.phone,
+    email: cust.email ? (decryptDbField(cust.email) as string) : cust.email,
+  };
+}
 
 export class PwaCustomerRepository {
   async findByPhone(phone: string) {
-    return prisma.pwaCustomer.findFirst({
-      where: { phone, isDeleted: false },
+    const encPhone = encryptDbField(phone) || phone;
+    const cust = await prisma.pwaCustomer.findFirst({
+      where: {
+        isDeleted: false,
+        OR: [{ phone }, { phone: encPhone }],
+      },
       include: { trustScore: true, addresses: true },
     });
+    return decryptPwaCustomer(cust);
   }
 
   async findById(id: string) {
-    return prisma.pwaCustomer.findFirst({
+    const cust = await prisma.pwaCustomer.findFirst({
       where: { id, isDeleted: false },
       include: { trustScore: true, addresses: true },
     });
+    return decryptPwaCustomer(cust);
   }
 
   async findByEmail(email: string) {
-    return prisma.pwaCustomer.findFirst({
-      where: { email, isDeleted: false },
+    const encEmail = encryptDbField(email) || email;
+    const cust = await prisma.pwaCustomer.findFirst({
+      where: {
+        isDeleted: false,
+        OR: [{ email }, { email: encEmail }],
+      },
       include: { trustScore: true, addresses: true },
     });
+    return decryptPwaCustomer(cust);
   }
 
   async create(data: { name: string; phone: string; email?: string; passwordHash?: string }) {
-    return prisma.pwaCustomer.create({
+    const encData = {
+      name: encryptDbField(data.name) || data.name,
+      phone: encryptDbField(data.phone) || data.phone,
+      email: data.email ? encryptDbField(data.email) : data.email,
+      passwordHash: data.passwordHash,
+    };
+    const created = await prisma.pwaCustomer.create({
       data: {
-        name: data.name,
-        phone: data.phone,
-        email: data.email,
-        passwordHash: data.passwordHash,
+        ...encData,
         trustScore: {
           create: {
             score: 100,
@@ -39,14 +64,21 @@ export class PwaCustomerRepository {
       },
       include: { trustScore: true },
     });
+    return decryptPwaCustomer(created);
   }
 
   async update(id: string, data: any) {
-    return prisma.pwaCustomer.update({
+    const encData = { ...data };
+    if (encData.name) encData.name = encryptDbField(encData.name);
+    if (encData.phone) encData.phone = encryptDbField(encData.phone);
+    if (encData.email) encData.email = encryptDbField(encData.email);
+
+    const updated = await prisma.pwaCustomer.update({
       where: { id },
-      data,
+      data: encData,
       include: { trustScore: true },
     });
+    return decryptPwaCustomer(updated);
   }
 
   async delete(id: string) {

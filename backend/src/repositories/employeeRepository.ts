@@ -1,32 +1,64 @@
 import { prisma } from "../config/prisma";
+import { encryptDbField, decryptDbField } from "../utils/dbEncryption";
+
+export function decryptEmployee<T extends Record<string, any> | null | undefined>(emp: T): T {
+  if (!emp) return emp;
+  return {
+    ...emp,
+    firstName: emp.firstName ? (decryptDbField(emp.firstName) as string) : emp.firstName,
+    lastName: emp.lastName ? (decryptDbField(emp.lastName) as string) : emp.lastName,
+    mobile: emp.mobile ? (decryptDbField(emp.mobile) as string) : emp.mobile,
+    email: emp.email ? (decryptDbField(emp.email) as string) : emp.email,
+  };
+}
+
+export function decryptEmployees<T extends Record<string, any>>(list: T[]): T[] {
+  return list.map(decryptEmployee);
+}
 
 export class EmployeeRepository {
   async findEmployees(businessId: string) {
-    return prisma.employee.findMany({
+    const list = await prisma.employee.findMany({
       where: { businessId, deletedAt: null },
       orderBy: { createdAt: "desc" },
     });
+    return decryptEmployees(list);
   }
 
   async findEmployeeById(businessId: string, id: string) {
-    return prisma.employee.findFirst({
+    const emp = await prisma.employee.findFirst({
       where: { id, businessId, deletedAt: null },
     });
+    return decryptEmployee(emp);
   }
 
   async createEmployee(businessId: string, data: any) {
-    return prisma.employee.create({
+    const encData = {
+      ...data,
+      firstName: data.firstName ? encryptDbField(data.firstName) : data.firstName,
+      lastName: data.lastName ? encryptDbField(data.lastName) : data.lastName,
+      mobile: data.mobile ? encryptDbField(data.mobile) : data.mobile,
+      email: data.email ? encryptDbField(data.email) : data.email,
+    };
+    const created = await prisma.employee.create({
       data: {
         businessId,
-        ...data,
+        ...encData,
       },
     });
+    return decryptEmployee(created);
   }
 
   async updateEmployee(businessId: string, id: string, data: any) {
+    const encData = { ...data };
+    if (encData.firstName) encData.firstName = encryptDbField(encData.firstName);
+    if (encData.lastName) encData.lastName = encryptDbField(encData.lastName);
+    if (encData.mobile) encData.mobile = encryptDbField(encData.mobile);
+    if (encData.email) encData.email = encryptDbField(encData.email);
+
     return prisma.employee.updateMany({
       where: { id, businessId, deletedAt: null },
-      data,
+      data: encData,
     });
   }
 

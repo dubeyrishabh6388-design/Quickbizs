@@ -280,7 +280,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ handleLogo
               </div>
               <div>
                 <h2 className="text-lg font-black text-slate-900 dark:text-white leading-tight">Welcome, {profile.name}</h2>
-                <p className="text-xs text-slate-500 font-medium">Browse hyperlocal stores and collect orders instantly without queues.</p>
+                <p className="text-xs text-slate-500 font-medium">Browse verified stores and collect orders instantly without queues.</p>
               </div>
             </div>
 

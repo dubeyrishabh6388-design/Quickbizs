@@ -40,7 +40,20 @@ import {
   Utensils,
   Car,
   HeartPulse,
-  Scissors
+  Scissors,
+  CheckCircle2,
+  RefreshCw,
+  TrendingUp,
+  Receipt,
+  Clock,
+  CreditCard,
+  Play,
+  Pause,
+  Scan,
+  Share2,
+  X,
+  ChevronRight,
+  Printer
 } from "lucide-react";
 import logo from "../assets/logo.jpg";
 import customerImg from "../assets/groceries_customer.jpg";
@@ -369,6 +382,207 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
   const merchLoginForm = useForm({ resolver: zodResolver(merchantLoginSchema) });
   const merchRegisterForm = useForm({ resolver: zodResolver(merchantRegisterSchema) });
 
+  // Auth Method (Password vs Email OTP)
+  const [merchantAuthMethod, setMerchantAuthMethod] = useState<"PASSWORD" | "EMAIL_OTP">("PASSWORD");
+  const [customerAuthMethod, setCustomerAuthMethod] = useState<"PASSWORD" | "EMAIL_OTP">("PASSWORD");
+
+  // Email OTP State for Login
+  const [otpEmail, setOtpEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpSuccessMsg, setOtpSuccessMsg] = useState<string | null>(null);
+
+  // Email Verification State for Registration
+  const [regEmailVerified, setRegEmailVerified] = useState(false);
+  const [regOtpSent, setRegOtpSent] = useState(false);
+  const [regOtpCode, setRegOtpCode] = useState("");
+  const [isSendingRegOtp, setIsSendingRegOtp] = useState(false);
+  const [isVerifyingRegOtp, setIsVerifyingRegOtp] = useState(false);
+  const [regOtpCountdown, setRegOtpCountdown] = useState(0);
+  const [regOtpSuccessMsg, setRegOtpSuccessMsg] = useState<string | null>(null);
+
+  // Dynamic live clock for simulated POS terminal
+  const [currentTime, setCurrentTime] = useState(() => 
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  );
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Dynamic Product Video & Motion Simulation State
+  const [activeSimTab, setActiveSimTab] = useState(0);
+  const [isSimPlaying, setIsSimPlaying] = useState(true);
+  const [showVideoTourModal, setShowVideoTourModal] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+
+  // Auto-advance simulation scenes every 5.5s
+  useEffect(() => {
+    if (!isSimPlaying) return;
+    const interval = setInterval(() => {
+      setActiveSimTab((prev) => (prev + 1) % 3);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [isSimPlaying]);
+
+  // OTP Resend Countdown Timers
+  useEffect(() => {
+    let timer: any = null;
+    if (otpCountdown > 0) {
+      timer = setInterval(() => {
+        setOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [otpCountdown]);
+
+  useEffect(() => {
+    let timer: any = null;
+    if (regOtpCountdown > 0) {
+      timer = setInterval(() => {
+        setRegOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [regOtpCountdown]);
+
+  const resetOtpStates = () => {
+    setOtpEmail("");
+    setOtpCode("");
+    setOtpSent(false);
+    setOtpCountdown(0);
+    setOtpSuccessMsg(null);
+    setRegEmailVerified(false);
+    setRegOtpSent(false);
+    setRegOtpCode("");
+    setRegOtpCountdown(0);
+    setRegOtpSuccessMsg(null);
+  };
+
+  const handleSendOtp = async (targetEmail: string, roleType: "MERCHANT" | "CUSTOMER") => {
+    const emailToUse = (targetEmail || "").trim();
+    if (!emailToUse || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToUse)) {
+      setErrorDetails("Please enter a valid email address.");
+      return;
+    }
+    setIsSendingOtp(true);
+    setErrorDetails(null);
+    setOtpSuccessMsg(null);
+    try {
+      const res = await api.post("/auth/otp/send", {
+        email: emailToUse,
+        type: roleType,
+      });
+      if (res.data?.success) {
+        setOtpSent(true);
+        setOtpCountdown(60);
+        setOtpSuccessMsg(res.data.message || `Verification code sent to ${emailToUse}`);
+      } else {
+        setErrorDetails(res.data?.message || "Failed to send verification code.");
+      }
+    } catch (err: any) {
+      setErrorDetails(err.response?.data?.message || "Failed to send verification code. Please try again.");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async (targetEmail: string, code: string, roleType: "MERCHANT" | "CUSTOMER") => {
+    const emailToUse = (targetEmail || "").trim();
+    const codeToUse = (code || "").trim();
+    if (!emailToUse || !codeToUse || codeToUse.length < 6) {
+      setErrorDetails("Please enter the complete 6-digit verification code.");
+      return;
+    }
+    setIsVerifyingOtp(true);
+    setErrorDetails(null);
+    try {
+      const res = await api.post("/auth/otp/verify", {
+        email: emailToUse,
+        otp: codeToUse,
+        type: roleType,
+      });
+      if (res.data?.success && res.data?.data) {
+        if (res.data.data.isExistingUser && res.data.data.accessToken) {
+          onAuthSuccess(res.data.data);
+        } else {
+          setErrorDetails("No active account found for this email. Please register below.");
+        }
+      } else {
+        setErrorDetails(res.data?.message || "Invalid verification code.");
+      }
+    } catch (err: any) {
+      setErrorDetails(err.response?.data?.message || "Invalid or expired verification code.");
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleSendRegOtp = async (targetEmail: string) => {
+    const emailToUse = (targetEmail || "").trim();
+    if (!emailToUse || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToUse)) {
+      setErrorDetails("Please enter a valid store email address before requesting verification.");
+      return;
+    }
+    setIsSendingRegOtp(true);
+    setErrorDetails(null);
+    setRegOtpSuccessMsg(null);
+    try {
+      const res = await api.post("/auth/otp/send", {
+        email: emailToUse,
+        type: "MERCHANT",
+      });
+      if (res.data?.success) {
+        setRegOtpSent(true);
+        setRegOtpCountdown(60);
+        setRegOtpSuccessMsg(`Verification code sent to ${emailToUse}`);
+      } else {
+        setErrorDetails(res.data?.message || "Failed to send verification code.");
+      }
+    } catch (err: any) {
+      setErrorDetails(err.response?.data?.message || "Failed to send verification code.");
+    } finally {
+      setIsSendingRegOtp(false);
+    }
+  };
+
+  const handleVerifyRegOtp = async (targetEmail: string, code: string) => {
+    const emailToUse = (targetEmail || "").trim();
+    const codeToUse = (code || "").trim();
+    if (!codeToUse || codeToUse.length < 6) {
+      setErrorDetails("Please enter the 6-digit code.");
+      return;
+    }
+    setIsVerifyingRegOtp(true);
+    setErrorDetails(null);
+    try {
+      const res = await api.post("/auth/otp/verify", {
+        email: emailToUse,
+        otp: codeToUse,
+        type: "MERCHANT",
+      });
+      if (res.data?.success) {
+        setRegEmailVerified(true);
+        setRegOtpSuccessMsg("Email verified successfully! ✓");
+      } else {
+        setErrorDetails(res.data?.message || "Invalid verification code.");
+      }
+    } catch (err: any) {
+      setErrorDetails(err.response?.data?.message || "Invalid or expired verification code.");
+    } finally {
+      setIsVerifyingRegOtp(false);
+    }
+  };
+
   const resetForms = () => {
     custLoginForm.reset();
     custRegisterForm.reset();
@@ -378,6 +592,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
     setRegisterStep(1);
     setActiveSector("ALL");
     setCategorySearch("");
+    resetOtpStates();
   };
 
   const handleRoleSelect = (selectedRole: "CUSTOMER" | "MERCHANT") => {
@@ -438,6 +653,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       setIsLoading(false);
     }
   };
+  void onCustomerRegister;
 
   // --- Merchant Login Submit ---
   const onMerchantLogin = async (data: any) => {
@@ -515,7 +731,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                   Quick<span className="text-brand-orange">Bizs</span>
                 </h1>
                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                  Local Commerce Platform
+                  Business Management Software
                 </span>
               </div>
             </motion.div>
@@ -526,7 +742,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-800/80 rounded-full text-[10px] text-slate-300 font-bold shadow-sm backdrop-blur-sm"
             >
-              <span className="text-brand-orange">★</span> Trusted by 5000+ stores
+              <span className="text-brand-orange">★</span> Trusted by 5000+ businesses
               <div className="flex -space-x-2 overflow-hidden ml-1">
                 <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Avatar 1" />
                 <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="Avatar 2" />
@@ -545,10 +761,10 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
               className="text-center space-y-3 max-w-2xl mx-auto"
             >
               <h2 className="text-4xl md:text-5xl font-black text-white leading-tight tracking-tight">
-                Powering <span className="text-brand-orange">Local</span>. Delivering <span className="text-brand-orange">Trust</span>.
+                Powering <span className="text-brand-orange">Every</span> Business. Big or <span className="text-brand-orange">Small</span>.
               </h2>
               <p className="text-xs sm:text-sm text-slate-400 font-semibold max-w-md mx-auto leading-relaxed">
-                One platform for seamless ordering, inventory, and local commerce.
+                Complete all-in-one software for POS billing, real-time inventory, GST invoicing, and customer ledger khata.
               </p>
               <div className="text-[11px] text-slate-500 font-bold uppercase tracking-widest pt-2">
                 Choose your account type to continue
@@ -789,89 +1005,593 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
             </motion.div>
 
             <div className="text-center text-[10px] text-slate-600 font-bold">
-              © 2026 QuickBizs Hyperlocal Commerce Group. All rights reserved.
+              © 2026 QuickBizs Technologies. Smart Business Management Software.
             </div>
           </footer>
         </div>
-      ) : (
-        // --- ORIGINAL LOGIN FORM CARD (KEPT EXACTLY AS-IS) ---
-        <div className="flex-1 flex flex-col justify-between p-6 sm:p-12 z-10 min-h-screen">
+      ) : mode === "LOGIN" ? (
+        // =========================================================================
+        // LUXURY EDGE-TO-EDGE SPLIT SCREEN FOR LOGIN (ZERO VOIDS, 100% VIEWPORT)
+        // =========================================================================
+        <div className="w-full min-h-screen flex flex-col lg:flex-row relative z-10 overflow-x-hidden">
           
-          <header className="flex items-center justify-between w-full max-w-7xl mx-auto">
-            <div className="flex items-center gap-3">
-              <img src={logo} alt="QuickBizs Logo" className="h-9 w-9 rounded-xl object-cover shadow-lg" />
-              <div>
-                <h1 className="text-xl font-extrabold text-white tracking-tight">
-                  Quick<span className="text-brand-orange">Bizs</span>
-                </h1>
-                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                  Local Commerce Platform
+          {/* LEFT PANE (58%): ENTERPRISE PRODUCT SHOWCASE & REALTIME POS SIMULATION */}
+          <div className="w-full lg:w-[56%] xl:w-[58%] min-h-screen flex flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-14 border-b lg:border-b-0 lg:border-r border-slate-800/80 bg-slate-950/70 backdrop-blur-xl relative overflow-hidden">
+            {/* Ambient Multi-Hue Lighting Mesh */}
+            <div className="absolute -top-32 -left-32 w-96 h-96 bg-brand-orange/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute top-1/2 -right-32 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-32 left-1/3 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Fine Precision Grid Background */}
+            <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:24px_24px] opacity-25 pointer-events-none" />
+
+            {/* Top Brand Header & Live Engine Status */}
+            <div className="relative z-10 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <img src={logo} alt="QuickBizs Logo" className="h-10 w-10 rounded-2xl object-cover shadow-xl ring-1 ring-white/10" />
+                <div>
+                  <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                    Quick<span className="text-brand-orange">Bizs</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-emerald/15 text-brand-emerald border border-brand-emerald/30 uppercase tracking-wider">
+                      OS 2.4
+                    </span>
+                  </h1>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                    Business Management Software
+                  </span>
+                </div>
+              </div>
+
+              {/* Dynamic Live Status Indicator */}
+              <div className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-[11px] font-semibold text-slate-300 shadow-md backdrop-blur-md">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                 </span>
+                <span>Ledger Engine Active</span>
+                <span className="text-slate-500 font-mono text-[10px] pl-1 border-l border-slate-800">99.98% Uptime</span>
               </div>
             </div>
-          </header>
 
-          <main className={`w-full mx-auto my-auto py-6 sm:py-8 transition-all duration-500 ${role === "MERCHANT" && mode === "REGISTER" ? "max-w-7xl" : "max-w-md"}`}>
-            <AnimatePresence mode="wait">
-              {role === "CUSTOMER" && (
-                <motion.div
-                  key="customer-auth"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  className="bg-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6"
-                >
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={handleBackToRole}
-                      className="p-2 border border-slate-800 hover:bg-slate-900 text-slate-400 hover:text-white rounded-xl transition-colors cursor-pointer"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </button>
-                    <div>
-                      <span className="text-[9px] text-brand-orange font-bold uppercase tracking-wider">
-                        Customer PWA Account
-                      </span>
-                      <h3 className="text-md font-black text-white leading-tight">
-                        {mode === "LOGIN" ? "Sign In to Checkout" : "Create Customer Profile"}
-                      </h3>
-                    </div>
+            {/* Center Area: Hero Showcase & Simulated Terminal */}
+            <div className="relative z-10 my-auto py-6 sm:py-8 space-y-6 max-w-2xl">
+              {role === "CUSTOMER" ? (
+                // CUSTOMER SHOWCASE
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-xs font-bold tracking-wide">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      QuickBizs Shopper Portal
+                    </span>
+                    <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white leading-tight tracking-tight">
+                      Shop Faster from Your <span className="text-brand-orange">Trusted</span> Local Stores.
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
+                      No more waiting in billing lines. Pre-order groceries, auto-track digital receipts, earn loyalty reward cashback and maintain a transparent digital Khata ledger with verified neighborhood shops.
+                    </p>
                   </div>
 
-                  {errorDetails && (
-                    <div className="bg-rose-950/40 border border-rose-800/80 p-3.5 rounded-2xl flex gap-2.5 text-[11px] text-rose-200 leading-relaxed">
-                      <AlertCircle className="h-4.5 w-4.5 text-rose-400 shrink-0 mt-0.5" />
-                      <span>{errorDetails}</span>
+                  <div className="grid grid-cols-2 gap-3.5 pt-2">
+                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/80 space-y-2">
+                      <div className="h-9 w-9 rounded-xl bg-brand-orange/15 text-brand-orange flex items-center justify-center">
+                        <Zap className="h-4.5 w-4.5" />
+                      </div>
+                      <h4 className="text-xs font-bold text-white">Express Counter Pickup</h4>
+                      <p className="text-[11px] text-slate-400 leading-snug">Order ahead from your phone; your packed bag is ready at counter.</p>
                     </div>
-                  )}
 
-                  {mode === "LOGIN" ? (
+                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/80 space-y-2">
+                      <div className="h-9 w-9 rounded-xl bg-brand-emerald/15 text-brand-emerald flex items-center justify-center">
+                        <CheckCircle2 className="h-4.5 w-4.5" />
+                      </div>
+                      <h4 className="text-xs font-bold text-white">Digital Paperless Bills</h4>
+                      <p className="text-[11px] text-slate-400 leading-snug">All your purchase receipts safely archived in your pocket app.</p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/80 space-y-2">
+                      <div className="h-9 w-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
+                        <Star className="h-4.5 w-4.5" />
+                      </div>
+                      <h4 className="text-xs font-bold text-white">Loyalty & Cashback</h4>
+                      <p className="text-[11px] text-slate-400 leading-snug">Earn reward points on every transaction and redeem on next visit.</p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/80 space-y-2">
+                      <div className="h-9 w-9 rounded-xl bg-sky-500/15 text-sky-400 flex items-center justify-center">
+                        <BookOpen className="h-4.5 w-4.5" />
+                      </div>
+                      <h4 className="text-xs font-bold text-white">Transparent Khata</h4>
+                      <p className="text-[11px] text-slate-400 leading-snug">Live balance ledger, zero disputes, and easy UPI payment settlement.</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // ENTERPRISE MERCHANT SHOWCASE
+                <>
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-orange/10 border border-brand-orange/30 text-brand-orange text-xs font-bold tracking-wide">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Complete Business Management Platform
+                      </div>
+
+                      {/* Interactive Video Tour Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowVideoTourModal(true);
+                          setTourStep(0);
+                        }}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-emerald/15 hover:bg-brand-emerald/25 border border-brand-emerald/30 text-brand-emerald text-xs font-bold transition-all shadow-sm cursor-pointer group hover:scale-102"
+                      >
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <Play className="h-3 w-3 fill-current group-hover:translate-x-0.5 transition-transform" />
+                        <span>Watch 60s App Tour</span>
+                      </button>
+                    </div>
+
+                    <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white leading-tight tracking-tight">
+                      Manage Every Aspect of Your{" "}
+                      <span className="bg-gradient-to-r from-brand-orange via-amber-400 to-brand-emerald bg-clip-text text-transparent">
+                        Business.
+                      </span>{" "}
+                      Big or Small.
+                    </h2>
+
+                    <p className="text-xs sm:text-sm text-slate-300 font-normal leading-relaxed">
+                      Chhote kirana dukaan se lekar multi-outlet supermarket & wholesale networks tak — express barcode billing, real-time inventory, GST invoices aur customer khata ek hi powerful platform par.
+                    </p>
+                  </div>
+
+                  {/* ========================================================================= */}
+                  {/* INTERACTIVE VIDEO & MOTION SIMULATOR (BASED ON REAL APPLICATION WORKFLOW) */}
+                  {/* ========================================================================= */}
+                  <div className="p-4 sm:p-5 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-2xl backdrop-blur-xl space-y-4 relative overflow-hidden group">
+                    {/* Background Visual Texture with Merchant Context */}
+                    <div 
+                      className="absolute inset-0 bg-cover bg-center opacity-10 pointer-events-none mix-blend-overlay"
+                      style={{ backgroundImage: `url(${merchantImg})` }}
+                    />
+
+                    {/* Simulator Video Header Bar */}
+                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3 relative z-10">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="h-2.5 w-2.5 rounded-full bg-rose-500/80" />
+                          <span className="h-2.5 w-2.5 rounded-full bg-amber-500/80" />
+                          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
+                        </div>
+                        <span className="text-[11px] font-mono font-bold text-slate-300 uppercase tracking-wider ml-1">
+                          COUNTER #01 • LIVE APP SIMULATOR
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {/* Play / Pause Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => setIsSimPlaying(!isSimPlaying)}
+                          title={isSimPlaying ? "Pause Video Motion" : "Resume Video Motion"}
+                          className="flex items-center gap-1 text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
+                        >
+                          {isSimPlaying ? (
+                            <>
+                              <Pause className="h-3 w-3 text-amber-400" />
+                              <span className="hidden sm:inline">PAUSE</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-3 w-3 text-emerald-400 fill-current" />
+                              <span className="hidden sm:inline">RESUME</span>
+                            </>
+                          )}
+                        </button>
+
+                        <div className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-800/50">
+                          <Clock className="h-3 w-3" />
+                          <span>{currentTime}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Interactive Video Story Tabs with Active Progress Bar */}
+                    <div className="grid grid-cols-3 gap-2 relative z-10">
+                      {[
+                        { id: 0, label: "0.3s Express POS", icon: Zap, color: "text-brand-orange" },
+                        { id: 1, label: "Stock & FEFO Expiry", icon: Package, color: "text-brand-emerald" },
+                        { id: 2, label: "Customer Khata & UPI", icon: BookOpen, color: "text-sky-400" },
+                      ].map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = activeSimTab === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => {
+                              setActiveSimTab(tab.id);
+                              setIsSimPlaying(false);
+                            }}
+                            className={`relative p-2 rounded-xl text-left border transition-all cursor-pointer overflow-hidden ${
+                              isActive 
+                                ? "bg-slate-800/90 border-slate-700 shadow-md" 
+                                : "bg-slate-950/40 border-slate-800/80 hover:border-slate-700/80 text-slate-400"
+                            }`}
+                          >
+                            {/* Animated Auto-Advance Progress Bar for Active Tab */}
+                            {isActive && isSimPlaying && (
+                              <motion.div
+                                key={activeSimTab}
+                                initial={{ width: "0%" }}
+                                animate={{ width: "100%" }}
+                                transition={{ duration: 5.5, ease: "linear" }}
+                                className="absolute top-0 left-0 bottom-0 bg-brand-orange/15 pointer-events-none"
+                              />
+                            )}
+                            <div className="flex items-center gap-1.5 relative z-10">
+                              <Icon className={`h-3.5 w-3.5 ${tab.color} shrink-0`} />
+                              <span className={`text-[11px] font-bold truncate ${isActive ? "text-white" : "text-slate-400"}`}>
+                                {tab.label}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Simulated Screen Stage (Interactive Dynamic Motion Scenes) */}
+                    <div className="relative min-h-[175px] rounded-2xl bg-slate-950/90 border border-slate-800 p-4 overflow-hidden z-10">
+                      <AnimatePresence mode="wait">
+                        {/* SCENE 0: EXPRESS BARCODE SCANNING & INSTANT THERMAL BILLING */}
+                        {activeSimTab === 0 && (
+                          <motion.div
+                            key="scene-pos"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.35 }}
+                            className="space-y-3"
+                          >
+                            {/* Animated Red Laser Scanning Beam */}
+                            <motion.div
+                              animate={{ y: [0, 95, 0] }}
+                              transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
+                              className="absolute left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-rose-500 to-transparent shadow-[0_0_12px_#f43f5e] pointer-events-none opacity-80"
+                            />
+
+                            <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 border-b border-slate-800/80 pb-1.5">
+                              <span className="flex items-center gap-1 text-brand-orange font-bold">
+                                <Scan className="h-3 w-3" /> BARCODE SCANNER ACTIVE
+                              </span>
+                              <span className="text-slate-500">USB AUTO-FEED</span>
+                            </div>
+
+                            {/* Scanned Items Stream */}
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/60">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                  <span className="font-semibold text-slate-200">Fortune Sunlite Oil 1L</span>
+                                  <span className="text-[10px] font-mono text-slate-500">[Batch: #FO-24]</span>
+                                </div>
+                                <span className="font-bold font-mono text-white">₹165.00</span>
+                              </div>
+
+                              <div className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/60">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                  <span className="font-semibold text-slate-200">Tata Salt Vacuum Evaporated 1kg</span>
+                                  <span className="text-[10px] font-mono text-slate-500">[Batch: #TS-91]</span>
+                                </div>
+                                <span className="font-bold font-mono text-white">₹28.00</span>
+                              </div>
+
+                              <div className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/60">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                  <span className="font-semibold text-slate-200">Amul Butter 500g</span>
+                                  <span className="text-[10px] font-mono text-slate-500">[Cold Rack]</span>
+                                </div>
+                                <span className="font-bold font-mono text-white">₹275.00</span>
+                              </div>
+                            </div>
+
+                            {/* Animated Bill Total & Instant Print Slip */}
+                            <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                              <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-800/40">
+                                <Printer className="h-3 w-3" />
+                                <span>Thermal Slip Cut in 0.28s</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-400 uppercase mr-1.5">Total:</span>
+                                <span className="text-sm font-black text-white font-mono">₹468.00</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* SCENE 1: SMART STOCK & FEFO EXPIRY AUTOMATION */}
+                        {activeSimTab === 1 && (
+                          <motion.div
+                            key="scene-stock"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.35 }}
+                            className="space-y-3"
+                          >
+                            <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 border-b border-slate-800/80 pb-1.5">
+                              <span className="flex items-center gap-1 text-brand-emerald font-bold">
+                                <Package className="h-3 w-3" /> FEFO BATCH & EXPIRY TELEMETRY
+                              </span>
+                              <span className="text-emerald-400 font-semibold">99.4% HEALTHY</span>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="p-2 rounded-xl bg-slate-900/60 border border-amber-500/30 space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-bold text-white">Basmati Rice Premium 25kg</span>
+                                  <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-800/40">
+                                    Expires in 18 Days
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400">
+                                  Batch #BR-2024 • Smart Auto-discount (10% off) applied for priority clearance.
+                                </p>
+                              </div>
+
+                              <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-bold text-white">Maggi 2-Min Noodles (70g)</span>
+                                  <span className="text-[10px] font-mono font-bold text-rose-400 bg-rose-950/40 px-2 py-0.5 rounded-md border border-rose-800/40">
+                                    Low Stock (4 pcs left)
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between pt-0.5 text-[10px]">
+                                  <span className="text-slate-400">Threshold: 20 pcs</span>
+                                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                                    <Check className="h-3 w-3" /> PO Auto-Sent to Distributor
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* SCENE 2: CUSTOMER KHATA & WHATSAPP UPI SETTLEMENT */}
+                        {activeSimTab === 2 && (
+                          <motion.div
+                            key="scene-khata"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.35 }}
+                            className="space-y-3"
+                          >
+                            <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 border-b border-slate-800/80 pb-1.5">
+                              <span className="flex items-center gap-1 text-sky-400 font-bold">
+                                <BookOpen className="h-3 w-3" /> DIGITAL KHATA & UPI LEDGER
+                              </span>
+                              <span className="text-slate-500">AUTO-WHATSAPP</span>
+                            </div>
+
+                            <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+                              <div className="flex items-center justify-between text-xs">
+                                <div>
+                                  <h6 className="font-bold text-white">Ramesh Kumar (Regular Store Shopper)</h6>
+                                  <p className="text-[10px] text-slate-400">Account #KH-8802 • Khata Ledger</p>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-[10px] text-slate-400 uppercase block">Udhar Balance</span>
+                                  <span className="text-sm font-black font-mono text-rose-400">₹3,450.00</span>
+                                </div>
+                              </div>
+
+                              <div className="p-2 rounded-lg bg-emerald-950/30 border border-emerald-800/40 flex items-center justify-between text-[11px] text-emerald-300">
+                                <div className="flex items-center gap-2">
+                                  <Share2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                                  <span>WhatsApp Payment QR Dispatched</span>
+                                </div>
+                                <span className="font-mono text-[10px] bg-emerald-900/40 px-2 py-0.5 rounded text-emerald-200">
+                                  DELIVERED
+                                </span>
+                              </div>
+
+                              <div className="p-2 rounded-lg bg-sky-950/30 border border-sky-800/40 flex items-center justify-between text-[11px] text-sky-300">
+                                <div className="flex items-center gap-1.5">
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-sky-400 shrink-0" />
+                                  <span>Payment Received via PhonePe / UPI</span>
+                                </div>
+                                <span className="font-black font-mono text-emerald-400">₹0 BAL</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* 4 Live Store Metrics Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 relative z-10">
+                      <div className="p-2.5 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-0.5">
+                        <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 uppercase">
+                          <span>Today's Sales</span>
+                          <TrendingUp className="h-3 w-3 text-emerald-400" />
+                        </div>
+                        <p className="text-base font-black text-white tracking-tight">₹48,250</p>
+                        <p className="text-[9px] text-emerald-400 font-semibold flex items-center gap-1">
+                          <span>+18.4%</span> today
+                        </p>
+                      </div>
+
+                      <div className="p-2.5 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-0.5">
+                        <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 uppercase">
+                          <span>Invoices Cut</span>
+                          <Receipt className="h-3 w-3 text-brand-orange" />
+                        </div>
+                        <p className="text-base font-black text-white tracking-tight">184</p>
+                        <p className="text-[9px] text-slate-400 font-medium">Avg ₹262/bill</p>
+                      </div>
+
+                      <div className="p-2.5 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-0.5">
+                        <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 uppercase">
+                          <span>Khata In</span>
+                          <CreditCard className="h-3 w-3 text-sky-400" />
+                        </div>
+                        <p className="text-base font-black text-white tracking-tight">₹12,400</p>
+                        <p className="text-[9px] text-sky-400 font-semibold">98.2% on-time</p>
+                      </div>
+
+                      <div className="p-2.5 rounded-2xl bg-slate-950/70 border border-slate-800/90 space-y-0.5">
+                        <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 uppercase">
+                          <span>Stock Health</span>
+                          <Package className="h-3 w-3 text-purple-400" />
+                        </div>
+                        <p className="text-base font-black text-white tracking-tight">99.4%</p>
+                        <p className="text-[9px] text-purple-300 font-semibold">0 stockout alerts</p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Bottom Trust & Verification Row */}
+            <div className="relative z-10 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-400 text-xs">
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-2">
+                  <span className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-950 bg-brand-orange text-[9px] font-bold text-white flex items-center justify-center">R</span>
+                  <span className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-950 bg-emerald-600 text-[9px] font-bold text-white flex items-center justify-center">S</span>
+                  <span className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-950 bg-sky-600 text-[9px] font-bold text-white flex items-center justify-center">M</span>
+                </div>
+                <div>
+                  <span className="font-bold text-white">10,000+ Stores</span>
+                  <span className="text-slate-500 text-[11px] ml-1.5">• 4.9 ★★★★★ Rating</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-[11px] font-medium text-slate-400">
+                <span className="inline-flex items-center gap-1">
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> ISO 27001
+                </span>
+                <span>•</span>
+                <span>256-bit SSL</span>
+                <span>•</span>
+                <span>GST Ready</span>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT PANE (42%): FOCUSED LUXURY AUTH SUITE */}
+          <div className="w-full lg:w-[44%] xl:w-[42%] min-h-screen flex flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-14 bg-slate-950/95 backdrop-blur-2xl relative">
+            {/* Top Role Header */}
+            <div className="flex items-center justify-end">
+              <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400">
+                {role === "CUSTOMER" ? "Customer Portal" : "Merchant Store Portal"}
+              </span>
+            </div>
+
+            {/* Center Authentication Card */}
+            <div className="my-auto py-8 sm:py-10 max-w-md w-full mx-auto space-y-6">
+              <div className="space-y-1.5">
+                <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  {role === "CUSTOMER" ? "Welcome Shopper 👋" : "Welcome Back 👋"}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                  {role === "CUSTOMER" 
+                    ? "Sign in to track orders, digital bills and earn cashback."
+                    : "Sign in to access your billing counter, stock and khata ledger."
+                  }
+                </p>
+              </div>
+
+              {/* Segmented Control Switcher (Password vs Email OTP) */}
+              <div className="grid grid-cols-2 p-1 bg-slate-900 border border-slate-800 rounded-xl gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (role === "CUSTOMER") setCustomerAuthMethod("PASSWORD");
+                    else setMerchantAuthMethod("PASSWORD");
+                    setErrorDetails(null);
+                    setOtpSuccessMsg(null);
+                  }}
+                  className={`py-2 px-3 text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    (role === "CUSTOMER" ? customerAuthMethod : merchantAuthMethod) === "PASSWORD"
+                      ? "bg-slate-800 text-white shadow-sm"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                  <span>Password</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (role === "CUSTOMER") setCustomerAuthMethod("EMAIL_OTP");
+                    else setMerchantAuthMethod("EMAIL_OTP");
+                    setErrorDetails(null);
+                    setOtpSuccessMsg(null);
+                  }}
+                  className={`py-2 px-3 text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    (role === "CUSTOMER" ? customerAuthMethod : merchantAuthMethod) === "EMAIL_OTP"
+                      ? (role === "CUSTOMER" 
+                          ? "bg-brand-orange/20 text-brand-orange border border-brand-orange/40 shadow-sm"
+                          : "bg-brand-emerald/20 text-brand-emerald border border-brand-emerald/40 shadow-sm")
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  <span>Email OTP</span>
+                </button>
+              </div>
+
+              {/* Error Alert */}
+              {errorDetails && (
+                <div className="bg-rose-950/40 border border-rose-800/80 p-3.5 rounded-2xl flex gap-2.5 text-xs text-rose-200 leading-relaxed shadow-sm">
+                  <AlertCircle className="h-4.5 w-4.5 text-rose-400 shrink-0 mt-0.5" />
+                  <span>{errorDetails}</span>
+                </div>
+              )}
+
+              {/* OTP Success Alert */}
+              {otpSuccessMsg && (
+                <div className="bg-emerald-950/40 border border-emerald-800/80 p-3.5 rounded-2xl flex gap-2.5 text-xs text-emerald-200 leading-relaxed shadow-sm">
+                  <CheckCircle2 className="h-4.5 w-4.5 text-brand-emerald shrink-0 mt-0.5" />
+                  <span>{otpSuccessMsg}</span>
+                </div>
+              )}
+
+              {/* Customer Forms */}
+              {role === "CUSTOMER" && (
+                <>
+                  {customerAuthMethod === "PASSWORD" ? (
                     <form onSubmit={custLoginForm.handleSubmit(onCustomerLogin)} className="space-y-4">
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                          Mobile or Email
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                          Email or Mobile Number
                         </label>
                         <div className="relative">
                           <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
                           <input
                             type="text"
                             {...custLoginForm.register("identifier")}
-                            placeholder="e.g. 9876543210 or customer@email.com"
+                            placeholder="e.g. 9876543210 or rishi@example.com"
                             disabled={isLoading}
                             className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-orange rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
                           />
                         </div>
                         {custLoginForm.formState.errors.identifier && (
-                          <p className="text-[10px] text-rose-500 font-medium mt-1">{String(custLoginForm.formState.errors.identifier.message)}</p>
+                          <p className="text-[10px] text-rose-500 font-medium mt-1">
+                            {String(custLoginForm.formState.errors.identifier.message)}
+                          </p>
                         )}
                       </div>
 
                       <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                            Password
-                          </label>
-                        </div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                          Password
+                        </label>
                         <div className="relative">
                           <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
                           <input
@@ -890,89 +1610,194 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                           </button>
                         </div>
                         {custLoginForm.formState.errors.password && (
-                          <p className="text-[10px] text-rose-500 font-medium mt-1">{String(custLoginForm.formState.errors.password.message)}</p>
+                          <p className="text-[10px] text-rose-500 font-medium mt-1">
+                            {String(custLoginForm.formState.errors.password.message)}
+                          </p>
                         )}
                       </div>
 
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full py-3.5 bg-brand-orange hover:bg-brand-orange-hover text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-lg active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+                        className="w-full py-3.5 bg-brand-orange hover:bg-brand-orange-hover text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-orange-950/40 active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
                       >
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Sign In & Order</span>}
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Sign In to Checkout</span>}
                       </button>
                     </form>
                   ) : (
-                    <form onSubmit={custRegisterForm.handleSubmit(onCustomerRegister)} className="space-y-4">
+                    <div className="space-y-4">
+                      {!otpSent ? (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleSendOtp(otpEmail, "CUSTOMER");
+                          }}
+                          className="space-y-4"
+                        >
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                              Registered Email Address
+                            </label>
+                            <div className="relative">
+                              <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                              <input
+                                type="email"
+                                value={otpEmail}
+                                onChange={(e) => setOtpEmail(e.target.value)}
+                                placeholder="e.g. shopper@example.com"
+                                disabled={isSendingOtp}
+                                className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-orange rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={isSendingOtp || !otpEmail.trim()}
+                            className="w-full py-3.5 bg-brand-orange hover:bg-brand-orange-hover text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+                          >
+                            {isSendingOtp ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Mail className="h-4 w-4" />
+                                <span>Send OTP to Email</span>
+                              </>
+                            )}
+                          </button>
+                        </form>
+                      ) : (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleVerifyOtp(otpEmail, otpCode, "CUSTOMER");
+                          }}
+                          className="space-y-4"
+                        >
+                          <div className="flex items-center justify-between text-xs text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <Mail className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                              <span className="truncate max-w-[190px] font-medium text-slate-200">{otpEmail}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOtpSent(false);
+                                setOtpCode("");
+                                setOtpSuccessMsg(null);
+                              }}
+                              className="text-[10px] text-brand-orange hover:underline font-bold shrink-0 cursor-pointer"
+                            >
+                              Change
+                            </button>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                              Enter 6-Digit Code
+                            </label>
+                            <div className="relative">
+                              <ShieldCheck className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                              <input
+                                type="text"
+                                maxLength={6}
+                                value={otpCode}
+                                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                                placeholder="------"
+                                autoFocus
+                                disabled={isVerifyingOtp}
+                                className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-orange rounded-xl pl-11 pr-4 py-3 text-center tracking-[0.4em] font-mono text-base font-bold text-white placeholder-slate-600 focus:outline-none transition-colors"
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={isVerifyingOtp || otpCode.length !== 6}
+                            className="w-full py-3.5 bg-brand-orange hover:bg-brand-orange-hover text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-lg active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+                          >
+                            {isVerifyingOtp ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <span className="flex items-center gap-1.5">
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Verify & Sign In
+                              </span>
+                            )}
+                          </button>
+
+                          <div className="text-center pt-1">
+                            {otpCountdown > 0 ? (
+                              <span className="text-[11px] text-slate-500 font-medium">
+                                Resend code in <strong className="text-slate-300">{otpCountdown}s</strong>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={isSendingOtp}
+                                onClick={() => handleSendOtp(otpEmail, "CUSTOMER")}
+                                className="text-xs text-brand-orange hover:underline font-bold cursor-pointer inline-flex items-center gap-1"
+                              >
+                                <RefreshCw className="h-3 w-3" /> Resend Verification Code
+                              </button>
+                            )}
+                          </div>
+                        </form>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Merchant Forms */}
+              {role === "MERCHANT" && (
+                <>
+                  {merchantAuthMethod === "PASSWORD" ? (
+                    <form onSubmit={merchLoginForm.handleSubmit(onMerchantLogin)} className="space-y-4">
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                          Full Name
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                          Store Email, Mobile or Admin ID
                         </label>
                         <div className="relative">
                           <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
                           <input
                             type="text"
-                            {...custRegisterForm.register("name")}
-                            placeholder="e.g. Rishi Dubey"
+                            {...merchLoginForm.register("identifier")}
+                            placeholder="e.g. admin@quickbizs.com"
                             disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-orange rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors shadow-inner"
                           />
                         </div>
-                        {custRegisterForm.formState.errors.name && (
-                          <p className="text-[10px] text-rose-500 font-medium mt-1">{String(custRegisterForm.formState.errors.name.message)}</p>
+                        {merchLoginForm.formState.errors.identifier && (
+                          <p className="text-[10px] text-rose-500 font-medium mt-1">
+                            {String(merchLoginForm.formState.errors.identifier.message)}
+                          </p>
                         )}
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                          Mobile Number
-                        </label>
-                        <div className="relative">
-                          <Phone className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                          <input
-                            type="text"
-                            {...custRegisterForm.register("phone")}
-                            placeholder="e.g. 9876543210"
-                            disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-orange rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                          />
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Password
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMerchantAuthMethod("EMAIL_OTP");
+                              setErrorDetails(null);
+                            }}
+                            className="text-[10px] text-brand-emerald hover:underline font-bold cursor-pointer"
+                          >
+                            Forgot? Use Email OTP
+                          </button>
                         </div>
-                        {custRegisterForm.formState.errors.phone && (
-                          <p className="text-[10px] text-rose-500 font-medium mt-1">{String(custRegisterForm.formState.errors.phone.message)}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                          Email (Optional)
-                        </label>
-                        <div className="relative">
-                          <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                          <input
-                            type="email"
-                            {...custRegisterForm.register("email")}
-                            placeholder="e.g. rishi@example.com"
-                            disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-orange rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                          />
-                        </div>
-                        {custRegisterForm.formState.errors.email && (
-                          <p className="text-[10px] text-rose-500 font-medium mt-1">{String(custRegisterForm.formState.errors.email.message)}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                          Password
-                        </label>
                         <div className="relative">
                           <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
                           <input
                             type={showPassword ? "text" : "password"}
-                            {...custRegisterForm.register("password")}
+                            {...merchLoginForm.register("password")}
                             placeholder="••••••••"
                             disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-orange rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors shadow-inner"
                           />
                           <button
                             type="button"
@@ -982,156 +1807,229 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
                         </div>
-                        {custRegisterForm.formState.errors.password && (
-                          <p className="text-[10px] text-rose-500 font-medium mt-1">{String(custRegisterForm.formState.errors.password.message)}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                          Confirm Password
-                        </label>
-                        <div className="relative">
-                          <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            {...custRegisterForm.register("confirmPassword")}
-                            placeholder="••••••••"
-                            disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-orange rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                          />
-                        </div>
-                        {custRegisterForm.formState.errors.confirmPassword && (
-                          <p className="text-[10px] text-rose-500 font-medium mt-1">{String(custRegisterForm.formState.errors.confirmPassword.message)}</p>
+                        {merchLoginForm.formState.errors.password && (
+                          <p className="text-[10px] text-rose-500 font-medium mt-1">
+                            {String(merchLoginForm.formState.errors.password.message)}
+                          </p>
                         )}
                       </div>
 
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full py-3.5 bg-brand-orange hover:bg-brand-orange-hover text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-lg active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+                        className="w-full py-3.5 bg-gradient-to-r from-brand-emerald to-emerald-600 hover:from-emerald-500 hover:to-brand-emerald text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
                       >
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Register & Sign In</span>}
+                        {isLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <span>Sign In to Store</span>
+                            <ArrowRight className="h-4 w-4" />
+                          </>
+                        )}
                       </button>
                     </form>
-                  )}
-
-                  <div className="text-center pt-2 border-t border-slate-900/60">
-                    <button
-                      onClick={() => {
-                        setMode(mode === "LOGIN" ? "REGISTER" : "LOGIN");
-                        setErrorDetails(null);
-                      }}
-                      className="text-xs text-brand-orange hover:underline font-bold cursor-pointer"
-                    >
-                      {mode === "LOGIN" ? "New customer? Register Account" : "Already registered? Sign In"}
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* MERCHANT LOGIN MODE */}
-              {role === "MERCHANT" && mode === "LOGIN" && (
-                <motion.div
-                  key="merchant-login"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  className="bg-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6"
-                >
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={handleBackToRole}
-                      className="p-2 border border-slate-800 hover:bg-slate-900 text-slate-400 hover:text-white rounded-xl transition-colors cursor-pointer"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </button>
-                    <div>
-                      <span className="text-[9px] text-brand-emerald font-bold uppercase tracking-wider">
-                        Merchant Store Portal
-                      </span>
-                      <h3 className="text-md font-black text-white leading-tight">
-                        Merchant Login
-                      </h3>
-                    </div>
-                  </div>
-
-                  {errorDetails && (
-                    <div className="bg-rose-950/40 border border-rose-800/80 p-3.5 rounded-2xl flex gap-2.5 text-[11px] text-rose-200 leading-relaxed">
-                      <AlertCircle className="h-4.5 w-4.5 text-rose-400 shrink-0 mt-0.5" />
-                      <span>{errorDetails}</span>
-                    </div>
-                  )}
-
-                  <form onSubmit={merchLoginForm.handleSubmit(onMerchantLogin)} className="space-y-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                        Store Email, Mobile or Admin ID
-                      </label>
-                      <div className="relative">
-                        <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                        <input
-                          type="text"
-                          {...merchLoginForm.register("identifier")}
-                          placeholder="e.g. owner@quickbizs.com or admin"
-                          disabled={isLoading}
-                          className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                        />
-                      </div>
-                      {merchLoginForm.formState.errors.identifier && (
-                        <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchLoginForm.formState.errors.identifier.message)}</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                        Password
-                      </label>
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          {...merchLoginForm.register("password")}
-                          placeholder="••••••••"
-                          disabled={isLoading}
-                          className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-3.5 text-slate-500 hover:text-slate-300 cursor-pointer"
+                  ) : (
+                    <div className="space-y-4">
+                      {!otpSent ? (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleSendOtp(otpEmail, "MERCHANT");
+                          }}
+                          className="space-y-4"
                         >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                      {merchLoginForm.formState.errors.password && (
-                        <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchLoginForm.formState.errors.password.message)}</p>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                              Registered Store Email Address
+                            </label>
+                            <div className="relative">
+                              <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                              <input
+                                type="email"
+                                value={otpEmail}
+                                onChange={(e) => setOtpEmail(e.target.value)}
+                                placeholder="e.g. merchant@quickbizs.com"
+                                disabled={isSendingOtp}
+                                className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors shadow-inner"
+                              />
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-1">
+                              We will send a secure 6-digit verification code to this inbox.
+                            </p>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={isSendingOtp || !otpEmail.trim()}
+                            className="w-full py-3.5 bg-brand-emerald hover:bg-emerald-600 text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+                          >
+                            {isSendingOtp ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Mail className="h-4 w-4" />
+                                <span>Send Verification Code</span>
+                              </>
+                            )}
+                          </button>
+                        </form>
+                      ) : (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleVerifyOtp(otpEmail, otpCode, "MERCHANT");
+                          }}
+                          className="space-y-4"
+                        >
+                          <div className="flex items-center justify-between text-xs text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <Mail className="h-3.5 w-3.5 text-brand-emerald shrink-0" />
+                              <span className="truncate max-w-[190px] font-medium text-slate-200">{otpEmail}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOtpSent(false);
+                                setOtpCode("");
+                                setOtpSuccessMsg(null);
+                              }}
+                              className="text-[10px] text-brand-emerald hover:underline font-bold shrink-0 cursor-pointer"
+                            >
+                              Change
+                            </button>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                              Enter 6-Digit Code
+                            </label>
+                            <div className="relative">
+                              <ShieldCheck className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                              <input
+                                type="text"
+                                maxLength={6}
+                                value={otpCode}
+                                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                                placeholder="------"
+                                autoFocus
+                                disabled={isVerifyingOtp}
+                                className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-center tracking-[0.4em] font-mono text-base font-bold text-white placeholder-slate-600 focus:outline-none transition-colors"
+                              />
+                            </div>
+                            <p className="text-[10px] text-slate-400 text-center mt-1.5">
+                              Tip: Check your <strong>Spam / Junk</strong> folder if not in Inbox.
+                            </p>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={isVerifyingOtp || otpCode.length !== 6}
+                            className="w-full py-3.5 bg-brand-emerald hover:bg-emerald-600 text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-lg active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+                          >
+                            {isVerifyingOtp ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <span className="flex items-center gap-1.5">
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Verify & Sign In
+                              </span>
+                            )}
+                          </button>
+
+                          <div className="text-center pt-1">
+                            {otpCountdown > 0 ? (
+                              <span className="text-[11px] text-slate-500 font-medium">
+                                Resend code in <strong className="text-slate-300">{otpCountdown}s</strong>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={isSendingOtp}
+                                onClick={() => handleSendOtp(otpEmail, "MERCHANT")}
+                                className="text-xs text-brand-emerald hover:underline font-bold cursor-pointer inline-flex items-center gap-1"
+                              >
+                                <RefreshCw className="h-3 w-3" /> Resend Verification Code
+                              </button>
+                            )}
+                          </div>
+                        </form>
                       )}
                     </div>
-
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-full py-3.5 bg-brand-emerald hover:bg-emerald-600 text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-lg active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
-                    >
-                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Sign In & Manage</span>}
-                    </button>
-                  </form>
-
-                  <div className="text-center pt-2 border-t border-slate-900/60">
-                    <button
-                      onClick={() => {
-                        setMode("REGISTER");
-                        setErrorDetails(null);
-                      }}
-                      className="text-xs text-brand-emerald hover:underline font-bold cursor-pointer"
-                    >
-                      Register new store? Setup Wizard
-                    </button>
-                  </div>
-                </motion.div>
+                  )}
+                </>
               )}
 
+              {/* Link to Registration Wizard */}
+              <div className="text-center pt-2 border-t border-slate-800/80">
+                {role === "MERCHANT" ? (
+                  <button
+                    onClick={() => {
+                      setMode("REGISTER");
+                      setErrorDetails(null);
+                    }}
+                    className="text-xs text-brand-emerald hover:underline font-bold cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <span className="text-slate-400">Don't have a registered store?</span>
+                    <span className="text-brand-emerald underline">Setup Wizard →</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setCustomerAuthMethod("PASSWORD");
+                      setErrorDetails(null);
+                    }}
+                    className="text-xs text-brand-orange hover:underline font-bold cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <span className="text-slate-400">Need help signing in?</span>
+                    <span className="text-brand-orange underline">Contact Support →</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Security & Privacy Footnote */}
+            <div className="text-center space-y-1 text-[11px] text-slate-500 font-medium">
+              <p className="flex items-center justify-center gap-1.5 text-slate-400">
+                <Lock className="h-3 w-3 text-emerald-400" />
+                <span>End-to-End Encrypted Session • Multi-Tenant Isolated</span>
+              </p>
+              <p className="text-[10px] text-slate-600">
+                © 2026 QuickBizs Technologies Inc. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        // =========================================================================
+        // MULTI-STEP STORE SETUP WIZARD (REGISTER MODE - SPACIOUS 2-COLUMN LAYOUT)
+        // =========================================================================
+        <div className="flex-1 flex flex-col justify-between p-6 sm:p-12 z-10 min-h-screen">
+          <header className="flex items-center justify-between w-full max-w-7xl mx-auto">
+            <div className="flex items-center gap-3">
+              <img src={logo} alt="QuickBizs Logo" className="h-9 w-9 rounded-xl object-cover shadow-lg" />
+              <div>
+                <h1 className="text-xl font-extrabold text-white tracking-tight">
+                  Quick<span className="text-brand-orange">Bizs</span>
+                </h1>
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                  Business Management Software
+                </span>
+              </div>
+            </div>
+            <button 
+              onClick={() => {
+                setMode("LOGIN");
+                setErrorDetails(null);
+              }}
+              className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900/60"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back to Sign In</span>
+            </button>
+          </header>
+
+          <main className="w-full max-w-7xl mx-auto my-auto py-6 sm:py-8 transition-all duration-500">
+            <AnimatePresence mode="wait">
               {/* MERCHANT REGISTER MODE (WIDESCREEN 2-COLUMN SHOWCASE & SPATIOUS LAYOUT) */}
               {role === "MERCHANT" && mode === "REGISTER" && (
                 <motion.div
@@ -1556,9 +2454,16 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                             </div>
 
                             <div>
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                                Store Email *
-                              </label>
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                  Store Email *
+                                </label>
+                                {regEmailVerified && (
+                                  <span className="text-[10px] font-bold text-brand-emerald flex items-center gap-1">
+                                    <CheckCircle2 className="h-3 w-3" /> Verified
+                                  </span>
+                                )}
+                              </div>
                               <div className="relative">
                                 <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
                                 <input
@@ -1566,11 +2471,58 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                                   {...merchRegisterForm.register("email")}
                                   placeholder="e.g. store@verma.com"
                                   disabled={isLoading}
-                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-24 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
                                 />
+                                {!regEmailVerified && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const emailVal = merchRegisterForm.getValues("email");
+                                      handleSendRegOtp(emailVal);
+                                    }}
+                                    disabled={isSendingRegOtp}
+                                    className="absolute right-2 top-2 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-brand-emerald rounded-lg text-[10px] font-bold transition-colors cursor-pointer border border-brand-emerald/30"
+                                  >
+                                    {isSendingRegOtp ? "Sending..." : regOtpSent ? "Resend OTP" : "Verify Email"}
+                                  </button>
+                                )}
                               </div>
                               {merchRegisterForm.formState.errors.email && (
                                 <p className="text-[10px] text-rose-500 font-medium mt-1">{String(merchRegisterForm.formState.errors.email.message)}</p>
+                              )}
+
+                              {regOtpSuccessMsg && (
+                                <p className="text-[10px] text-emerald-400 font-medium mt-1">{regOtpSuccessMsg}</p>
+                              )}
+
+                              {regOtpSent && !regEmailVerified && (
+                                <div className="mt-2.5 p-3 rounded-xl bg-slate-900/90 border border-brand-emerald/30 space-y-2">
+                                  <div className="flex items-center justify-between text-[11px] text-slate-300">
+                                    <span>Enter 6-digit code sent to your email:</span>
+                                    {regOtpCountdown > 0 && <span className="text-slate-500">{regOtpCountdown}s</span>}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      maxLength={6}
+                                      value={regOtpCode}
+                                      onChange={(e) => setRegOtpCode(e.target.value.replace(/\D/g, ""))}
+                                      placeholder="123456"
+                                      className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-center font-mono text-sm tracking-widest text-white focus:outline-none focus:border-brand-emerald"
+                                    />
+                                    <button
+                                      type="button"
+                                      disabled={isVerifyingRegOtp || regOtpCode.length !== 6}
+                                      onClick={() => {
+                                        const emailVal = merchRegisterForm.getValues("email");
+                                        handleVerifyRegOtp(emailVal, regOtpCode);
+                                      }}
+                                      className="px-3 py-1.5 bg-brand-emerald hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
+                                    >
+                                      {isVerifyingRegOtp ? "Verifying..." : "Confirm"}
+                                    </button>
+                                  </div>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -1691,10 +2643,186 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
           </main>
 
           <footer className="text-center text-[10px] text-slate-600 font-bold max-w-7xl mx-auto w-full">
-            © 2026 QuickBizs Hyperlocal Commerce Group. All rights reserved.
+            © 2026 QuickBizs Technologies. Smart Business Management Software. All rights reserved.
           </footer>
         </div>
       )}
+
+      {/* 60-SECOND INTERACTIVE APPLICATION TOUR MODAL */}
+      <AnimatePresence>
+        {showVideoTourModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 rounded-xl bg-brand-emerald/15 text-brand-emerald border border-brand-emerald/30">
+                    <Play className="h-4 w-4 fill-current" />
+                  </span>
+                  <div>
+                    <h3 className="text-base font-black text-white">QuickBizs Software Interactive Tour</h3>
+                    <p className="text-[11px] text-slate-400">Step {tourStep + 1} of 4 • Complete Business Management OS</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowVideoTourModal(false)}
+                  className="p-2 rounded-xl border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Tour Steps Content */}
+              <div className="min-h-[200px]">
+                {tourStep === 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-brand-orange">
+                      <Zap className="h-4 w-4" />
+                      <span>01. LIGHTNING 0.3s EXPRESS POS BILLING</span>
+                    </div>
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                      Barcode scanning, USB electronic weighing scale sync, loose item lookup, and instant thermal receipt printing. Keep long counter lines moving at lightning speed.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Speed Benchmark</span>
+                        <span className="text-lg font-black text-white">0.3 Seconds</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Thermal Compatibility</span>
+                        <span className="text-lg font-black text-emerald-400">2" & 3" ESC/POS</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {tourStep === 1 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-brand-emerald">
+                      <Package className="h-4 w-4" />
+                      <span>02. REAL-TIME INVENTORY & FEFO EXPIRY ENGINE</span>
+                    </div>
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                      Batch number tracking, automated First-Expiry-First-Out (FEFO) clearance pricing, low-stock threshold alerts, and automated purchase orders to distributors.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Spoilage Reduction</span>
+                        <span className="text-lg font-black text-brand-emerald">99.8% Saved</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Stockout Prevention</span>
+                        <span className="text-lg font-black text-white">Auto 1-Click PO</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {tourStep === 2 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-sky-400">
+                      <BookOpen className="h-4 w-4" />
+                      <span>03. CUSTOMER KHATA & AUTOMATED WHATSAPP UPI</span>
+                    </div>
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                      Maintain zero-dispute digital credit ledgers for neighborhood shoppers. Send automated payment reminders on WhatsApp with dynamic UPI QR codes for instant bank settlement.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Payment Recovery</span>
+                        <span className="text-lg font-black text-sky-400">3X Faster Recovery</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Dispute Ratio</span>
+                        <span className="text-lg font-black text-white">0% (Verified Audit)</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {tourStep === 3 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-purple-400">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>04. 100% OFFLINE-READY RESILIENT PWA</span>
+                    </div>
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                      Internet bandh ho jaye ya router crash kare — counter par billing kabhi rukti nahi. Local IndexedDB storage par fast checkout chalti rehti hai aur internet wapas aane par automatic sync ho jata hai.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Offline Uptime</span>
+                        <span className="text-lg font-black text-purple-400">100% Non-Stop</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Sync Conflict</span>
+                        <span className="text-lg font-black text-white">Auto-Resolved</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Controls */}
+              <div className="flex items-center justify-between border-t border-slate-800 pt-4">
+                <div className="flex gap-1.5">
+                  {[0, 1, 2, 3].map((step) => (
+                    <button
+                      key={step}
+                      type="button"
+                      onClick={() => setTourStep(step)}
+                      className={`h-2 rounded-full transition-all cursor-pointer ${
+                        tourStep === step ? "w-6 bg-brand-emerald" : "w-2 bg-slate-800 hover:bg-slate-700"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {tourStep > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setTourStep((prev) => prev - 1)}
+                      className="px-3.5 py-1.5 rounded-xl border border-slate-800 hover:bg-slate-800 text-xs font-bold text-slate-300 cursor-pointer"
+                    >
+                      Previous
+                    </button>
+                  )}
+                  {tourStep < 3 ? (
+                    <button
+                      type="button"
+                      onClick={() => setTourStep((prev) => prev + 1)}
+                      className="px-4 py-1.5 rounded-xl bg-brand-emerald hover:bg-emerald-600 text-white text-xs font-black flex items-center gap-1 cursor-pointer shadow-lg"
+                    >
+                      <span>Next Feature</span>
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowVideoTourModal(false)}
+                      className="px-4 py-1.5 rounded-xl bg-brand-emerald hover:bg-emerald-600 text-white text-xs font-black cursor-pointer shadow-lg"
+                    >
+                      Get Started →
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

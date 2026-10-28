@@ -1,12 +1,20 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { prisma } from "../config/prisma";
+import { authService } from "./authService";
+import { encryptDbField, decryptDbField } from "../utils/dbEncryption";
 
 export class SaasService {
   async getTenants() {
-    return prisma.business.findMany({
+    const list = await prisma.business.findMany({
       orderBy: { createdAt: "desc" },
     });
+    return list.map((b) => ({
+      ...b,
+      phone: b.phone ? (decryptDbField(b.phone) as string) : b.phone,
+      email: b.email ? (decryptDbField(b.email) as string) : b.email,
+      ownerName: b.ownerName ? (decryptDbField(b.ownerName) as string) : b.ownerName,
+    }));
   }
 
   async updateTenantStatus(id: string, status: "Active" | "Suspended") {
@@ -86,11 +94,14 @@ export class SaasService {
 
     let mapped = users.map((u) => {
       const activeRole = u.roles.find((r) => r.role?.name === "SuperAdmin")?.role?.name || u.roles[0]?.role?.name || "Owner";
+      const decName = (decryptDbField(u.name) as string) || u.name;
+      const decEmail = (decryptDbField(u.email) as string) || u.email;
+      const decPhone = (decryptDbField(u.phone) as string) || u.phone;
       return {
         id: u.id,
-        name: u.name,
-        email: u.email,
-        phone: u.phone,
+        name: decName,
+        email: decEmail,
+        phone: decPhone,
         isActive: u.isActive,
         businessId: u.businessId,
         businessName: u.business?.name || "Unknown Store",
@@ -434,5 +445,124 @@ export class SaasService {
     });
 
     return { success: true, message: "Admin password updated successfully. Please note your new credentials." };
+  }
+
+  async onboardMerchant(data: {
+    ownerName: string;
+    businessName: string;
+    phone: string;
+    email?: string;
+    password?: string;
+    businessType?: string;
+    sellingMode?: string;
+    plan?: string;
+    address?: string;
+  }) {
+    const ownerNameClean = data.ownerName?.trim();
+    const businessNameClean = data.businessName?.trim();
+    const phoneClean = data.phone?.trim();
+
+    if (!ownerNameClean) {
+      const err: any = new Error("Owner name is required.");
+      err.statusCode = 400;
+      throw err;
+    }
+    if (!businessNameClean) {
+      const err: any = new Error("Store / Business name is required.");
+      err.statusCode = 400;
+      throw err;
+    }
+    if (!phoneClean || !/^\d{10}$/.test(phoneClean)) {
+      const err: any = new Error("Valid 10-digit mobile number is required.");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Check if phone already registered in User or Business
+    const existingUserPhone = await prisma.user.findFirst({
+      where: { phone: phoneClean, isDeleted: false }
+    });
+    if (existingUserPhone) {
+      const err: any = new Error(`Mobile number ${phoneClean} is already registered with user "${existingUserPhone.name}".`);
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const existingBizPhone = await prisma.business.findFirst({
+      where: { phone: phoneClean, isDeleted: false }
+    });
+    if (existingBizPhone) {
+      const err: any = new Error(`Mobile number ${phoneClean} is already registered with shop "${existingBizPhone.name}".`);
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Fallback email if merchant doesn't have one
+    let emailToUse = data.email?.trim();
+    if (!emailToUse) {
+      const slugName = ownerNameClean.toLowerCase().replace(/[^a-z0-9]/g, "");
+      emailToUse = `${slugName || "merchant"}.${phoneClean.slice(-4)}@quickbizs.store`;
+    }
+
+    const existingUserEmail = await prisma.user.findFirst({
+      where: { email: emailToUse, isDeleted: false }
+    });
+    if (existingUserEmail) {
+      const err: any = new Error(`Email ${emailToUse} is already registered with another account.`);
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Generate readable password if not provided
+    let plainPassword = data.password?.trim();
+    if (!plainPassword) {
+      const firstName = ownerNameClean.split(" ")[0].replace(/[^a-zA-Z]/g, "");
+      const capFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+      plainPassword = `${capFirstName || "Shop"}@${phoneClean.slice(-4)}`;
+    }
+
+    if (plainPassword.length < 6) {
+      const err: any = new Error("Password must be at least 6 characters.");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const bType = data.businessType?.trim() || "Grocery Store";
+    const sMode = data.sellingMode?.trim() || "Retail Store";
+    const planToSet = data.plan?.trim() || "Basic";
+
+    // Call registerMerchant
+    const registerResult = await authService.registerMerchant({
+      ownerName: ownerNameClean,
+      businessName: businessNameClean,
+      phone: phoneClean,
+      email: emailToUse,
+      address: data.address?.trim() || "Local Market Store",
+      passwordHash: plainPassword,
+      businessType: bType,
+      sellingMode: sMode,
+    });
+
+    // Update plan if not Basic
+    if (planToSet && planToSet !== "Basic") {
+      await prisma.business.update({
+        where: { id: registerResult.user.businessId },
+        data: { plan: planToSet }
+      });
+    }
+
+    return {
+      businessId: registerResult.user.businessId,
+      businessName: businessNameClean,
+      ownerName: ownerNameClean,
+      phone: phoneClean,
+      email: emailToUse,
+      password: plainPassword,
+      businessType: bType,
+      sellingMode: sMode,
+      plan: planToSet,
+      address: data.address?.trim() || "",
+      createdAt: new Date().toISOString()
+    };
   }
 }

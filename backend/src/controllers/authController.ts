@@ -117,17 +117,20 @@ export class AuthController {
     }
   }
 
-  async sendOtp(req: Request, res: Response, next: NextFunction) {
+    async sendOtp(req: Request, res: Response, next: NextFunction) {
     try {
-      const { phone, type } = req.body;
+      const identifier = req.body.email || req.body.phone || req.body.identifier;
+      const type = req.body.type || "MERCHANT";
 
-      if (!phone || !type) {
-        const err: any = new Error("Phone number and user type are required.");
+      if (!identifier) {
+        const err: any = new Error("Email address or phone number is required.");
         err.statusCode = 400;
+        err.problem = "Missing parameter.";
+        err.reason = "Provide either 'email' or 'phone' in the request body.";
         throw err;
       }
 
-      const result = await authService.sendOtp(phone, type);
+      const result = await authService.sendOtp(identifier, type);
 
       res.status(200).json({
         success: true,
@@ -142,15 +145,17 @@ export class AuthController {
 
   async verifyOtp(req: Request, res: Response, next: NextFunction) {
     try {
-      const { phone, otp, type } = req.body;
+      const identifier = req.body.email || req.body.phone || req.body.identifier;
+      const { otp } = req.body;
+      const type = req.body.type || "MERCHANT";
 
-      if (!phone || !otp || !type) {
-        const err: any = new Error("Phone number, OTP code, and user type are required.");
+      if (!identifier || !otp) {
+        const err: any = new Error("Email/phone and OTP code are required.");
         err.statusCode = 400;
         throw err;
       }
 
-      const result = await authService.verifyOtp(phone, otp, type);
+      const result = await authService.verifyOtp(identifier, otp, type);
 
       res.status(200).json({
         success: true,

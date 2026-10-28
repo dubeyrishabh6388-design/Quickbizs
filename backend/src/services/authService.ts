@@ -6,6 +6,8 @@ import { OtpRepository } from "../repositories/otpRepository";
 import { PwaCustomerRepository } from "../repositories/pwaCustomerRepository";
 import { generateAccessToken, generateRefreshToken } from "../utils/token";
 import { BUSINESS_TEMPLATES } from "../config/templates";
+import { mailService } from "./mailService";
+import { encryptDbField, decryptDbField } from "../utils/dbEncryption";
 
 const userRepository = new UserRepository();
 const otpRepository = new OtpRepository();
@@ -61,8 +63,8 @@ export class AuthService {
       const user = await tx.user.create({
         data: {
           businessId: business.id,
-          name: data.name,
-          email: data.email,
+          name: encryptDbField(data.name) || data.name,
+          email: encryptDbField(data.email) || data.email,
           passwordHash: hash,
         },
       });
@@ -111,6 +113,7 @@ export class AuthService {
         where: {
           OR: [
             { email: adminEmail },
+            { email: encryptDbField(adminEmail) || adminEmail },
             { email: "admin" }
           ]
         },
@@ -205,8 +208,8 @@ export class AuthService {
         data: {
           id: crypto.randomUUID(),
           businessId: business.id,
-          name: "Administrator",
-          email: adminEmail,
+          name: encryptDbField("Administrator") || "Administrator",
+          email: encryptDbField(adminEmail) || adminEmail,
           passwordHash: hash,
           isActive: true,
           isDeleted: false,
@@ -233,6 +236,9 @@ export class AuthService {
       user = (await userRepository.findByEmail("admin@quickbizs.com")) || (await userRepository.findByEmail("admin"));
     }
     if (!user) {
+      user = await userRepository.findByPhone(inputClean);
+    }
+    if (!user) {
       const err: any = new Error("Invalid email or password.");
       err.statusCode = 401;
       err.problem = "Authentication check failed.";
@@ -247,7 +253,8 @@ export class AuthService {
       throw err;
     }
 
-    const isMatch = await bcrypt.compare(data.passwordHash, user.passwordHash);
+    const rawPassword = data.passwordHash || (data as any).password;
+    const isMatch = await bcrypt.compare(rawPassword, user.passwordHash);
     if (!isMatch) {
       const err: any = new Error("Invalid email or password.");
       err.statusCode = 401;
@@ -343,77 +350,113 @@ export class AuthService {
     return { success: true, message: "Logged out successfully." };
   }
 
-  async sendOtp(phone: string, type: "CUSTOMER" | "MERCHANT") {
-    if (!phone || !phone.match(/^\+?[1-9]\d{1,14}$/)) {
-      const err: any = new Error("Invalid phone number format.");
+  async sendOtp(identifier: string, type: "CUSTOMER" | "MERCHANT" | "LOGIN" | "REGISTER" | string) {
+    const clean = (identifier || "").trim();
+    if (!clean) {
+      const err: any = new Error("Email address or phone number is required.");
       err.statusCode = 400;
       err.problem = "Input validation failed.";
-      err.reason = "Phone number must be in E.164 format.";
-      err.solution = "Please enter a valid phone number (e.g. +919988776655).";
+      err.reason = "Identifier parameter cannot be empty.";
+      err.solution = "Please enter your email or mobile phone number.";
       throw err;
     }
 
-    if (type !== "CUSTOMER" && type !== "MERCHANT") {
-      const err: any = new Error("Invalid user type.");
-      err.statusCode = 400;
-      throw err;
+    const isEmail = clean.includes("@");
+    if (isEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(clean)) {
+        const err: any = new Error("Invalid email address format.");
+        err.statusCode = 400;
+        err.problem = "Input validation failed.";
+        err.reason = "Email address must follow standard user@domain.com syntax.";
+        err.solution = "Please double check your email spelling.";
+        throw err;
+      }
+    } else {
+      if (!clean.match(/^\+?[1-9]\d{1,14}$/)) {
+        const err: any = new Error("Invalid phone number format.");
+        err.statusCode = 400;
+        err.problem = "Input validation failed.";
+        err.reason = "Phone number must be in valid numeric format.";
+        err.solution = "Please enter a valid phone number (e.g. +919988776655).";
+        throw err;
+      }
     }
 
-    // Rate Limiting checks: max 3 requests in 10 minutes
-    const recentSends = await otpRepository.countRecentSends(phone, 10);
-    if (recentSends >= 3) {
+    // Rate Limiting checks: max 5 requests in 10 minutes
+    const recentSends = await otpRepository.countRecentSends(clean, 10);
+    if (recentSends >= 5) {
       const err: any = new Error("Too many OTP requests. Please wait before retrying.");
       err.statusCode = 429;
       err.problem = "Rate limit exceeded.";
-      err.reason = "Maximum of 3 OTP sends within 10 minutes is allowed per phone number.";
-      err.solution = "Please wait a few minutes before trying to request a new verification code.";
+      err.reason = "Maximum of 5 OTP sends within 10 minutes is allowed per identifier.";
+      err.solution = "Please wait a few minutes before requesting a new verification code.";
       throw err;
     }
 
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    // Generate secure 6-digit verification code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
 
     await otpRepository.create({
-      phone,
+      email: isEmail ? clean : undefined,
+      phone: !isEmail ? clean : clean,
       code,
-      type,
+      type: type || "MERCHANT",
       expiresAt,
     });
 
-    console.log(`[SMS Gateway Emulator] Sent OTP code [${code}] to phone [${phone}] (Valid for 5 mins).`);
+    if (isEmail) {
+      await mailService.sendOtpEmail({
+        to: clean,
+        code,
+        type,
+      });
+      console.log(`[Email OTP] Sent verification code [${code}] to email [${clean}] (Expires in 5m).`);
+    } else {
+      console.log(`[SMS Gateway Emulator] Sent OTP code [${code}] to phone [${clean}] (Expires in 5m).`);
+    }
 
     return {
       success: true,
-      message: "OTP sent successfully.",
+      message: isEmail ? `Verification code sent to ${clean}` : `OTP sent to ${clean}`,
       expiresAt,
     };
   }
 
-  async verifyOtp(phone: string, otp: string, type: "CUSTOMER" | "MERCHANT") {
-    if (!phone || !otp) {
-      const err: any = new Error("Phone number and OTP code are required.");
+  async verifyOtp(identifier: string, otp: string, type: "CUSTOMER" | "MERCHANT" | "LOGIN" | "REGISTER" | string) {
+    const clean = (identifier || "").trim();
+    const cleanOtp = (otp || "").trim();
+    if (!clean || !cleanOtp) {
+      const err: any = new Error("Identifier and OTP code are required.");
       err.statusCode = 400;
+      err.problem = "Missing parameters.";
       throw err;
     }
 
-    const record = await otpRepository.findLatest(phone, type);
-    if (!record || record.code !== otp || new Date() > record.expiresAt) {
-      const err: any = new Error("Invalid or expired OTP code.");
+    const record = await otpRepository.findLatest(clean, type || "MERCHANT");
+    if (!record || record.code !== cleanOtp || new Date() > record.expiresAt) {
+      const err: any = new Error("Invalid or expired verification code.");
       err.statusCode = 401;
-      err.problem = "OTP check failed.";
-      err.reason = "Code does not match or session has expired.";
-      err.solution = "Please request a new verification code and try again.";
+      err.problem = "Verification failed.";
+      err.reason = "Code does not match or has expired.";
+      err.solution = "Please request a new code and try again.";
       throw err;
     }
 
-    let userResponse: any;
+    const isEmail = clean.includes("@");
 
+    // If type is CUSTOMER
     if (type === "CUSTOMER") {
-      let pwaCustomer: any = await pwaCustomerRepository.findByPhone(phone);
+      let pwaCustomer: any = isEmail
+        ? await pwaCustomerRepository.findByEmail(clean)
+        : await pwaCustomerRepository.findByPhone(clean);
+
       if (!pwaCustomer) {
         pwaCustomer = await pwaCustomerRepository.create({
-          name: "New Customer",
-          phone,
+          name: isEmail ? clean.split("@")[0] : "New Customer",
+          phone: isEmail ? clean : clean,
+          email: isEmail ? clean : undefined,
         });
       }
 
@@ -425,29 +468,28 @@ export class AuthService {
 
       await userRepository.createSession(pwaCustomer.id, accessToken, refreshToken, expiresAt, true);
 
-      userResponse = {
+      return {
         user: {
           id: pwaCustomer.id,
           name: pwaCustomer.name,
           phone: pwaCustomer.phone,
+          email: pwaCustomer.email,
           role,
           trustScore: pwaCustomer.trustScore?.score ?? 100,
         },
         accessToken,
         refreshToken,
+        isExistingUser: true,
       };
-    } else {
-      const user = await userRepository.findByPhone(phone);
-      if (!user) {
-        const err: any = new Error("Merchant account not registered under this phone number.");
-        err.statusCode = 404;
-        err.problem = "Account lookup failed.";
-        err.reason = "No merchant user matches the provided phone number.";
-        err.solution = "Please register your business using the web portal first.";
-        throw err;
-      }
+    }
 
-      const activeRole = user.roles[0]?.role.name || "Owner";
+    // If type is MERCHANT or LOGIN
+    const user = isEmail
+      ? await userRepository.findByEmail(clean)
+      : await userRepository.findByPhone(clean);
+
+    if (user) {
+      const activeRole = user.roles.find((r: any) => r.role?.name === "SuperAdmin")?.role?.name || user.roles[0]?.role?.name || "Owner";
       const accessToken = generateAccessToken(user.id, user.businessId, activeRole);
       const refreshToken = generateRefreshToken(user.id);
       const expiresAt = new Date();
@@ -455,7 +497,7 @@ export class AuthService {
 
       await userRepository.createSession(user.id, accessToken, refreshToken, expiresAt);
 
-      userResponse = {
+      return {
         user: {
           id: user.id,
           name: user.name,
@@ -467,10 +509,17 @@ export class AuthService {
         },
         accessToken,
         refreshToken,
+        isExistingUser: true,
+      };
+    } else {
+      // User is not yet registered; OTP verified for registration!
+      return {
+        verified: true,
+        isExistingUser: false,
+        identifier: clean,
+        message: "Email verified successfully. You can complete your store registration.",
       };
     }
-
-    return userResponse;
   }
 
   async registerMerchant(data: {
@@ -508,7 +557,7 @@ export class AuthService {
           data: {
             name: data.businessName,
             phone: data.phone,
-            email: data.email,
+            email: encryptDbField(data.email) || data.email,
             ownerName: data.ownerName,
             address: data.address,
             businessType: bType,
@@ -601,7 +650,7 @@ export class AuthService {
             id: userId,
             businessId: business.id,
             name: data.ownerName,
-            email: data.email,
+            email: encryptDbField(data.email) || data.email,
             phone: data.phone,
             passwordHash: hash,
           },
@@ -611,7 +660,7 @@ export class AuthService {
             id: userId,
             businessId: business.id,
             name: data.ownerName,
-            email: data.email,
+            email: encryptDbField(data.email) || data.email,
             phone: data.phone,
           };
         }
@@ -732,7 +781,8 @@ export class AuthService {
       throw err;
     }
 
-    const isMatch = await bcrypt.compare(data.passwordHash, user.passwordHash);
+    const rawPassword = data.passwordHash || (data as any).password;
+    const isMatch = await bcrypt.compare(rawPassword, user.passwordHash);
     if (!isMatch) {
       const err: any = new Error("Invalid phone/email or password.");
       err.statusCode = 401;
@@ -856,3 +906,6 @@ export class AuthService {
     };
   }
 }
+
+
+export const authService = new AuthService();

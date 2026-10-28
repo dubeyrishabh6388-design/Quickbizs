@@ -22,7 +22,11 @@ import {
   X,
   Lock,
   Download,
-  LogOut
+  LogOut,
+  Store,
+  Tag,
+  Terminal,
+  Cpu
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusiness } from "../context/BusinessContext";
@@ -137,6 +141,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [currentUser, setCurrentUser] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const [activeAdminTab, setActiveAdminTab] = useState<string>(() => {
+    try {
+      return localStorage.getItem("qb_admin_tab") || "tenants";
+    } catch {
+      return "tenants";
+    }
+  });
+
+  useEffect(() => {
+    const handleTabUpdated = (e: any) => {
+      if (e.detail) setActiveAdminTab(e.detail);
+    };
+    window.addEventListener("qb-admin-tab-updated", handleTabUpdated);
+    return () => window.removeEventListener("qb-admin-tab-updated", handleTabUpdated);
+  }, []);
+
+  const handleAdminTabClick = (tabId: string) => {
+    setActiveAdminTab(tabId);
+    try {
+      localStorage.setItem("qb_admin_tab", tabId);
+    } catch {}
+    setActiveScreen("superadmin");
+    window.dispatchEvent(new CustomEvent("qb-admin-tab-change", { detail: tabId }));
+  };
+
+  const adminMenuItems = [
+    { id: "tenants", label: "Stores & Platform Stats", icon: Store },
+    { id: "users", label: "Merchant & User Accounts", icon: Users },
+    { id: "categories", label: "Category Management", icon: Tag },
+    { id: "logs", label: "Live Logs & Error Tracking", icon: Terminal },
+    { id: "diagnostics", label: "System Diagnostics & Security", icon: Cpu },
+  ];
+
   useEffect(() => {
     try {
       const u = localStorage.getItem("qb_user");
@@ -206,19 +243,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Streamlined retail navigation - completely dynamic based on department permissions
   const allMenuItems: { id: ScreenType; label: string; icon: React.ElementType; badge?: number; highlight?: boolean }[] = [
+    { id: "superadmin", label: "Admin Console", icon: ShieldCheck, highlight: true },
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: lowStockCount + pendingDuesCount },
     { id: "incoming-orders", label: "Incoming Orders", icon: ShoppingCart },
-    { id: "recovery", label: "Udhaar & Recovery", icon: HandCoins, badge: pendingDuesCount },
     { id: "billing", label: "Billing / POS", icon: Receipt },
     { id: "counter", label: "Counter Mode", icon: Zap },
     { id: "inventory", label: "Inventory", icon: Package, badge: lowStockCount },
     { id: "customers", label: "Customers & Khata", icon: Users },
+    { id: "recovery", label: "Udhaar & Recovery", icon: HandCoins, badge: pendingDuesCount },
     { id: "suppliers", label: "Suppliers", icon: Truck },
     { id: "staff", label: "Staff Attendance", icon: UserCheck },
     { id: "reports", label: "Business Reports", icon: BarChart3 },
     { id: "ai", label: "AI Assistant", icon: Sparkles, highlight: true },
     { id: "settings", label: "Store Settings", icon: Settings },
-    { id: "superadmin", label: "Admin Console", icon: ShieldCheck, highlight: true },
   ];
 
   // Dynamic modules permitted for the current department
@@ -226,7 +263,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const menuItems = allMenuItems
     .filter(item => allowedModules.includes(item.id))
     .filter(item => SHOW_INCOMING_ORDERS || item.id !== "incoming-orders")
-    .filter(item => item.id !== "customers")
     .sort((a, b) => {
       if (currentRole === "SuperAdmin") {
         if (a.id === "superadmin") return -1;
@@ -271,7 +307,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Modern Interactive Persona Switcher & Search Section */}
       <div className="px-5 py-4 border-b border-slate-800 space-y-3 bg-slate-900/30 relative" ref={dropdownRef}>
         
-        {operatingMode === "solo" ? (
+        {currentRole === "SuperAdmin" ? (
+          /* SuperAdmin Root Persona: Zero Confusion, Root Master Privileges */
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between px-0.5">
+              <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                सिस्टम व्यवस्थापक • Master Admin
+              </span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-950/60 text-amber-400 border border-amber-800/60 uppercase">
+                ROOT PRIVILEGES
+              </span>
+            </div>
+            <div className="w-full flex items-center justify-between bg-slate-850/90 border border-amber-500/30 rounded-xl p-2.5 shadow-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="h-8 w-8 rounded-lg bg-amber-500/15 border-amber-500/30 text-amber-400 border flex items-center justify-center shrink-0 shadow-2xs">
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-white tracking-tight truncate">
+                    Platform Super Admin
+                  </div>
+                  <div className="text-[10px] text-slate-400 truncate">
+                    Unrestricted 360° platform & store access
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : operatingMode === "solo" ? (
           /* Solo Shopkeeper Mode: Zero Clutter, Full Store Access */
           <div className="space-y-1.5">
             <div className="flex items-center justify-between px-0.5">
@@ -424,60 +488,107 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeScreen === item.id;
-          
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveScreen(item.id as ScreenType)}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 text-sm font-semibold relative overflow-hidden group cursor-pointer ${
-                isActive 
-                  ? "text-white" 
-                  : item.highlight 
-                    ? "text-brand-orange hover:text-brand-orange-hover"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
-              }`}
-            >
-              {/* Sliding backdrop for active link */}
-              {isActive && (
-                <motion.div
-                  layoutId="activeSidebarTab"
-                  className={`absolute inset-0 z-0 ${
-                    item.highlight 
-                      ? "bg-brand-orange" 
-                      : "bg-slate-800"
-                  }`}
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
+      <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+        {currentRole === "SuperAdmin" ? (
+          /* SuperAdmin Dedicated Admin Suite Navigation */
+          <div className="space-y-1">
+            <div className="pt-1 pb-2 px-2">
+              <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
+                <span>Platform Admin Console</span>
+              </div>
+            </div>
 
-              <div className="flex items-center gap-3 relative z-10">
-                <Icon className={`h-5 w-5 transition-transform duration-200 group-hover:scale-105 ${
+            {adminMenuItems.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeAdminTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleAdminTabClick(tab.id)}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-sm font-semibold relative overflow-hidden group cursor-pointer ${
+                    isActive 
+                      ? "text-white" 
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeAdminSidebarTab"
+                      className="absolute inset-0 z-0 bg-amber-500/20 border border-amber-500/40 rounded-xl"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+
+                  <div className="flex items-center gap-3 relative z-10">
+                    <Icon className={`h-5 w-5 transition-transform duration-200 group-hover:scale-105 ${
+                      isActive ? "text-amber-400" : "text-slate-400 group-hover:text-slate-200"
+                    }`} />
+                    <span>{tab.label}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          /* Standard Store Navigation for Store Roles (Owner, Cashier, Manager, Accountant, Warehouse, Employee) */
+          menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeScreen === item.id;
+            
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveScreen(item.id as ScreenType)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-sm font-semibold relative overflow-hidden group cursor-pointer ${
                   isActive 
                     ? "text-white" 
                     : item.highlight 
-                      ? "text-brand-orange"
-                      : "text-slate-400 group-hover:text-slate-200"
-                }`} />
-                <span>{item.label}</span>
-              </div>
+                      ? "text-brand-orange hover:text-brand-orange-hover"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                }`}
+              >
+                {/* Sliding backdrop for active link */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeSidebarTab"
+                    className={`absolute inset-0 z-0 ${
+                      item.highlight 
+                        ? "bg-brand-orange" 
+                        : "bg-slate-800"
+                    }`}
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
 
-              {/* Badges for active notification indicators */}
-              {item.badge && item.badge > 0 ? (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full relative z-10 ${
-                  isActive 
-                    ? item.highlight ? "bg-white text-brand-orange" : "bg-brand-orange text-white" 
-                    : "bg-slate-800 border border-slate-700 text-slate-300"
-                }`}>
-                  {item.badge}
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
+                <div className="flex items-center gap-3 relative z-10">
+                  <Icon className={`h-5 w-5 transition-transform duration-200 group-hover:scale-105 ${
+                    isActive 
+                      ? "text-white" 
+                      : item.highlight 
+                        ? "text-brand-orange"
+                        : "text-slate-400 group-hover:text-slate-200"
+                  }`} />
+                  <span>{item.label}</span>
+                </div>
+
+                {/* Badges for active notification indicators */}
+                {item.badge && item.badge > 0 ? (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full relative z-10 ${
+                    isActive 
+                      ? item.highlight ? "bg-white text-brand-orange" : "bg-brand-orange text-white" 
+                      : "bg-slate-800 border border-slate-700 text-slate-300"
+                  }`}>
+                    {item.badge}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })
+        )}
       </nav>
 
       {/* Download / Install App Section in Mobile & Desktop Sidebar */}

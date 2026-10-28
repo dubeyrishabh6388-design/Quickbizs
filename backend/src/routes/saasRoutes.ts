@@ -81,5 +81,10 @@ router.delete("/business-categories/:id", requireAuth, (req: Request, res: Respo
   controller.deleteBusinessCategory(req, res, next)
 );
 
+
+router.post("/onboard-merchant", requireAuth, (req: Request, res: Response, next: NextFunction) =>
+  controller.onboardMerchant(req, res, next)
+);
+
 export default router;
 

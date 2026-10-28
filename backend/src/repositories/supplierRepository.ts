@@ -1,4 +1,19 @@
 import { prisma } from "../config/prisma";
+import { encryptDbField, decryptDbField } from "../utils/dbEncryption";
+
+export function decryptSupplier<T extends Record<string, any> | null | undefined>(supp: T): T {
+  if (!supp) return supp;
+  return {
+    ...supp,
+    contactPerson: supp.contactPerson ? (decryptDbField(supp.contactPerson) as string) : supp.contactPerson,
+    mobile: supp.mobile ? (decryptDbField(supp.mobile) as string) : supp.mobile,
+    email: supp.email ? (decryptDbField(supp.email) as string) : supp.email,
+  };
+}
+
+export function decryptSuppliers<T extends Record<string, any>>(list: T[]): T[] {
+  return list.map(decryptSupplier);
+}
 
 export class SupplierRepository {
   async findMany(params: {
@@ -16,10 +31,13 @@ export class SupplierRepository {
     };
 
     if (params.search) {
+      const encSearch = encryptDbField(params.search) || params.search;
       where.OR = [
         { companyName: { contains: params.search } },
         { contactPerson: { contains: params.search } },
+        { contactPerson: encSearch },
         { mobile: { contains: params.search } },
+        { mobile: encSearch },
         { supplierCode: { contains: params.search } },
       ];
     }
@@ -35,12 +53,13 @@ export class SupplierRepository {
       orderBy.createdAt = "desc";
     }
 
-    return prisma.supplier.findMany({
+    const list = await prisma.supplier.findMany({
       where,
       skip: params.skip,
       take: params.take,
       orderBy,
     });
+    return decryptSuppliers(list);
   }
 
   async count(params: {
@@ -54,10 +73,13 @@ export class SupplierRepository {
     };
 
     if (params.search) {
+      const encSearch = encryptDbField(params.search) || params.search;
       where.OR = [
         { companyName: { contains: params.search } },
         { contactPerson: { contains: params.search } },
+        { contactPerson: encSearch },
         { mobile: { contains: params.search } },
+        { mobile: encSearch },
         { supplierCode: { contains: params.search } },
       ];
     }
@@ -70,27 +92,36 @@ export class SupplierRepository {
   }
 
   async findById(businessId: string, id: string) {
-    return prisma.supplier.findFirst({
+    const supp = await prisma.supplier.findFirst({
       where: { id, businessId, isDeleted: false },
     });
+    return decryptSupplier(supp);
   }
 
   async findByMobile(businessId: string, mobile: string) {
-    return prisma.supplier.findFirst({
-      where: { mobile, businessId, isDeleted: false },
+    const encMobile = encryptDbField(mobile) || mobile;
+    const supp = await prisma.supplier.findFirst({
+      where: {
+        businessId,
+        isDeleted: false,
+        OR: [{ mobile }, { mobile: encMobile }],
+      },
     });
+    return decryptSupplier(supp);
   }
 
   async findByCode(businessId: string, supplierCode: string) {
-    return prisma.supplier.findFirst({
+    const supp = await prisma.supplier.findFirst({
       where: { supplierCode, businessId, isDeleted: false },
     });
+    return decryptSupplier(supp);
   }
 
   async findByGst(businessId: string, gstNumber: string) {
-    return prisma.supplier.findFirst({
+    const supp = await prisma.supplier.findFirst({
       where: { gstNumber, businessId, isDeleted: false },
     });
+    return decryptSupplier(supp);
   }
 
   async findLatestSupplierCode(businessId: string) {
@@ -101,7 +132,7 @@ export class SupplierRepository {
   }
 
   async findOutstanding(businessId: string) {
-    return prisma.supplier.findMany({
+    const list = await prisma.supplier.findMany({
       where: {
         businessId,
         outstandingAmount: { gt: 0 },
@@ -109,29 +140,43 @@ export class SupplierRepository {
       },
       orderBy: { outstandingAmount: "desc" },
     });
+    return decryptSuppliers(list);
   }
 
   async findTopSuppliers(businessId: string, limit: number) {
-    return prisma.supplier.findMany({
+    const list = await prisma.supplier.findMany({
       where: { businessId, isDeleted: false },
       take: limit,
-      orderBy: { outstandingAmount: "desc" }, // Order by outstanding volume
+      orderBy: { outstandingAmount: "desc" },
     });
+    return decryptSuppliers(list);
   }
 
   async create(businessId: string, data: any) {
-    return prisma.supplier.create({
+    const encData = {
+      ...data,
+      contactPerson: data.contactPerson ? encryptDbField(data.contactPerson) : data.contactPerson,
+      mobile: data.mobile ? encryptDbField(data.mobile) : data.mobile,
+      email: data.email ? encryptDbField(data.email) : data.email,
+    };
+    const created = await prisma.supplier.create({
       data: {
         businessId,
-        ...data,
+        ...encData,
       },
     });
+    return decryptSupplier(created);
   }
 
   async update(businessId: string, id: string, data: any) {
+    const encData = { ...data };
+    if (encData.contactPerson) encData.contactPerson = encryptDbField(encData.contactPerson);
+    if (encData.mobile) encData.mobile = encryptDbField(encData.mobile);
+    if (encData.email) encData.email = encryptDbField(encData.email);
+
     return prisma.supplier.updateMany({
       where: { id, businessId, isDeleted: false },
-      data,
+      data: encData,
     });
   }
 

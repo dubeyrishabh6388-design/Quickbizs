@@ -383,4 +383,34 @@ export class SaasController {
       next(error);
     }
   }
+
+  async onboardMerchant(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      if (req.user!.role !== "SuperAdmin") {
+        return res.status(403).json({ success: false, message: "Super Admin privileges required." });
+      }
+
+      const { ownerName, businessName, phone, email, password, businessType, sellingMode, plan, address } = req.body;
+      const result = await saasService.onboardMerchant({
+        ownerName,
+        businessName,
+        phone,
+        email,
+        password,
+        businessType,
+        sellingMode,
+        plan,
+        address
+      });
+
+      res.status(201).json({
+        success: true,
+        message: `Store "${result.businessName}" created successfully for ${result.ownerName}.`,
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

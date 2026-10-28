@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { PickupOrderController } from "../controllers/pickupOrderController";
 import { requireAuth, requireRoles } from "../middlewares/auth";
+import { checkoutLimiter } from "../middlewares/rateLimiter";
 
 const router = Router();
 const controller = new PickupOrderController();
@@ -70,7 +71,7 @@ router.post(
 );
 
 // --- Customer Paths ---
-router.post("/", requireAuth, (req: any, res: any, next: any) => controller.createOrder(req, res, next));
+router.post("/", requireAuth, checkoutLimiter, (req: any, res: any, next: any) => controller.createOrder(req, res, next));
 router.get("/", requireAuth, (req: any, res: any, next: any) => controller.getCustomerOrders(req, res, next));
 router.get("/:id", requireAuth, (req: any, res: any, next: any) => controller.getCustomerOrderById(req, res, next));
 router.delete("/:id", requireAuth, (req: any, res: any, next: any) => controller.cancelCustomerOrder(req, res, next));

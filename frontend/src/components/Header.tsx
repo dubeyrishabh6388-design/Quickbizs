@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { 
   Sun, 
   Moon, 
@@ -19,7 +20,11 @@ import {
   Sparkles,
   Settings,
   Shield,
-  Download
+  Download,
+  Store,
+  Tag,
+  Terminal,
+  Cpu
 } from "lucide-react";
 import logo from "../assets/logo.jpg";
 import { NotificationBell } from "./NotificationDrawer";
@@ -89,6 +94,39 @@ export const Header: React.FC<HeaderProps> = ({
   const allowedModules = getRoleAllowedModules ? getRoleAllowedModules(currentRole) : [];
   const headerNavItems = allNavItems.filter(item => allowedModules.includes(item.id));
 
+  const [activeAdminTab, setActiveAdminTab] = useState<string>(() => {
+    try {
+      return localStorage.getItem("qb_admin_tab") || "tenants";
+    } catch {
+      return "tenants";
+    }
+  });
+
+  useEffect(() => {
+    const handleTabUpdated = (e: any) => {
+      if (e.detail) setActiveAdminTab(e.detail);
+    };
+    window.addEventListener("qb-admin-tab-updated", handleTabUpdated);
+    return () => window.removeEventListener("qb-admin-tab-updated", handleTabUpdated);
+  }, []);
+
+  const handleAdminTabClick = (tabId: string) => {
+    setActiveAdminTab(tabId);
+    try {
+      localStorage.setItem("qb_admin_tab", tabId);
+    } catch {}
+    setActiveScreen("superadmin");
+    window.dispatchEvent(new CustomEvent("qb-admin-tab-change", { detail: tabId }));
+  };
+
+  const adminNavTabs = [
+    { id: "tenants", label: "Stores & Platform", icon: Store },
+    { id: "users", label: "Merchants & Users", icon: Users },
+    { id: "categories", label: "Categories", icon: Tag },
+    { id: "logs", label: "Live Logs & Errors", icon: Terminal },
+    { id: "diagnostics", label: "System Diagnostics", icon: Cpu },
+  ];
+
   useEffect(() => {
     const loadUser = () => {
       try {
@@ -116,6 +154,141 @@ export const Header: React.FC<HeaderProps> = ({
     .toUpperCase() || "QB";
 
   const isDark = theme === "dark";
+
+  // ─── ULTRA PREMIUM SUPERADMIN NAVBAR (Full Width, Spacious, No Congestion) ───
+  if (currentRole === "SuperAdmin") {
+    return (
+      <header className="sticky top-0 z-50 shrink-0 bg-slate-950/98 backdrop-blur-2xl border-b border-slate-800 text-slate-200 shadow-xl select-none">
+        {/* Brand Luxury Accent Top Bar */}
+        <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-amber-500 to-transparent shadow-[0_0_20px_rgba(245,158,11,0.9)]" />
+
+        <div className="flex items-center justify-between gap-4 lg:gap-8 w-full px-4 sm:px-6 lg:px-10 py-3 sm:py-3.5">
+          {/* Left: QuickBizs Brand & Root OS Badge */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="relative">
+              <img
+                src={logo}
+                alt="QuickBizs Logo"
+                className="h-10 w-10 rounded-xl object-cover ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/25 shrink-0"
+              />
+              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-slate-950 animate-pulse" />
+            </div>
+
+            <div className="flex flex-col leading-none">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-black text-white tracking-tight">
+                  Quick<span className="text-amber-400">Bizs</span>
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  Root Admin
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-400 font-semibold tracking-wider mt-0.5">
+                Platform SaaS OS
+              </span>
+            </div>
+
+            <div className="hidden md:block h-8 w-[1px] bg-slate-800 ml-2" />
+          </div>
+
+          {/* Center / Expanded: Spacious Navigation Tabs (Zero Congestion) */}
+          <div className="flex-1 flex items-center justify-center overflow-x-auto no-scrollbar py-0.5">
+            <nav className="flex items-center gap-2 sm:gap-3 p-1.5 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-inner">
+              {adminNavTabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeAdminTab === tab.id;
+
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => handleAdminTabClick(tab.id)}
+                    className={`relative flex items-center gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer whitespace-nowrap group select-none shrink-0 ${
+                      isActive
+                        ? "text-white shadow-lg shadow-amber-500/25"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/70 border border-transparent hover:border-slate-700/60"
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeSuperAdminHeaderTab"
+                        className="absolute inset-0 z-0 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 rounded-xl shadow-md border border-amber-400/40"
+                        transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                      />
+                    )}
+
+                    <Icon
+                      className={`h-4 sm:h-4.5 w-4 sm:w-4.5 shrink-0 relative z-10 transition-transform duration-200 group-hover:scale-110 ${
+                        isActive ? "text-white drop-shadow-sm" : "text-slate-400 group-hover:text-amber-400"
+                      }`}
+                    />
+
+                    <span className="relative z-10 font-bold tracking-tight">
+                      {tab.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Right: Live System Heartbeat, Controls, Profile & Logout */}
+          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+            {/* Live Status Badge */}
+            <div className="hidden 2xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs font-bold shadow-2xs">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[11px] font-mono text-emerald-400 tracking-wider font-extrabold">SYSTEM LIVE</span>
+            </div>
+
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 sm:p-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center bg-slate-900/90 hover:bg-slate-850 text-amber-400 border border-slate-700/80 hover:border-amber-500/40 shadow-xs active:scale-95"
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-label="Toggle Theme"
+            >
+              {isDark ? (
+                <Sun className="h-4.5 w-4.5 text-amber-400" />
+              ) : (
+                <Moon className="h-4.5 w-4.5 text-slate-300" />
+              )}
+            </button>
+
+            {/* Notification Bell */}
+            <NotificationBell />
+
+            <div className="h-7 w-[1px] hidden sm:block bg-slate-800" />
+
+            {/* Admin Profile Capsule */}
+            <div className="flex items-center gap-2.5 p-1 sm:pr-3.5 rounded-2xl bg-slate-900/90 border border-amber-500/30 shadow-inner">
+              <div className="h-8 sm:h-9 w-8 sm:w-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center font-black text-xs sm:text-sm shrink-0 select-none shadow-[0_0_14px_rgba(245,158,11,0.4)] ring-1 ring-amber-400/50">
+                {initials}
+              </div>
+
+              <div className="hidden lg:flex flex-col text-left leading-tight">
+                <span className="text-xs sm:text-sm font-black text-white truncate max-w-[140px]">
+                  {displayName}
+                </span>
+                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider truncate">
+                  Master Admin
+                </span>
+              </div>
+            </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all active:scale-95 cursor-pointer bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 hover:border-rose-600 shadow-xs"
+              title="Sign Out as Administrator"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-50 transition-all duration-200 shrink-0 bg-brand-navy border-b border-slate-800 text-slate-300 shadow-md">

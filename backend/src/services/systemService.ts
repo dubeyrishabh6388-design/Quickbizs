@@ -1,3 +1,4 @@
+import { decryptDbField } from "../utils/dbEncryption";
 import fs from "fs";
 import path from "path";
 import { prisma } from "../config/prisma";
@@ -28,11 +29,20 @@ export class SystemService {
   }
 
   async getAuditLogs(businessId: string) {
-    return prisma.auditLog.findMany({
+    const logs = await prisma.auditLog.findMany({
       where: { businessId },
       orderBy: { createdAt: "desc" },
       include: { user: { select: { name: true, email: true } } },
     });
+    return logs.map((l) => ({
+      ...l,
+      user: l.user
+        ? {
+            name: (decryptDbField(l.user.name) as string) || l.user.name,
+            email: (decryptDbField(l.user.email) as string) || l.user.email,
+          }
+        : null,
+    }));
   }
 
   async logAction(data: {

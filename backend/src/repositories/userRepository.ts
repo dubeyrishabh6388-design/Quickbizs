@@ -1,47 +1,68 @@
 import crypto from "crypto";
 import { prisma } from "../config/prisma";
+import { encryptDbField, decryptDbField } from "../utils/dbEncryption";
+
+export function decryptUser<T extends { email?: string | null; phone?: string | null; name?: string | null } | null>(user: T): T {
+  if (!user) return user;
+  return {
+    ...user,
+    email: user.email ? (decryptDbField(user.email) as string) : user.email,
+    phone: user.phone ? (decryptDbField(user.phone) as string) : user.phone,
+    name: user.name ? (decryptDbField(user.name) as string) : user.name,
+  };
+}
 
 export class UserRepository {
   async findByEmail(email: string) {
-    return prisma.user.findUnique({
-      where: { email },
+    const encEmail = encryptDbField(email) || email;
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ email }, { email: encEmail }],
+      },
       include: {
         business: true,
         roles: {
           include: {
-            role: true
-          }
-        }
-      }
+            role: true,
+          },
+        },
+      },
     });
+    return decryptUser(user);
   }
 
   async findByPhone(phone: string) {
-    return prisma.user.findFirst({
-      where: { phone, isDeleted: false },
+    const encPhone = encryptDbField(phone) || phone;
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ phone }, { phone: encPhone }],
+        isDeleted: false,
+      },
       include: {
         business: true,
         roles: {
           include: {
-            role: true
-          }
-        }
-      }
+            role: true,
+          },
+        },
+      },
     });
+    return decryptUser(user);
   }
 
   async findById(id: string) {
-    return prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id },
       include: {
         business: true,
         roles: {
           include: {
-            role: true
-          }
-        }
-      }
+            role: true,
+          },
+        },
+      },
     });
+    return decryptUser(user);
   }
 
   async createSession(

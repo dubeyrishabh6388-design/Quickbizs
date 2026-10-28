@@ -199,6 +199,7 @@ interface BusinessContextType {
   currentRole: UserRole;
   setCurrentRole: (role: UserRole) => void;
   tenants: Tenant[];
+  fetchTenants?: () => Promise<void>;
   toggleTenantStatus: (id: string) => void;
   stockMovementLogs: StockMovementLog[];
   logStockMovement: (productId: string, productName: string, quantity: number, reason: string) => void;
@@ -278,6 +279,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const userStr = localStorage.getItem("qb_user");
       const user = userStr ? JSON.parse(userStr) : null;
+      if (user?.role === "SuperAdmin" || currentRole === "SuperAdmin") return;
       const businessId = user?.businessId;
       if (!businessId) return;
 
@@ -364,6 +366,10 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const fetchProducts = async () => {
+    const userStr = localStorage.getItem("qb_user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (user?.role === "SuperAdmin" || currentRole === "SuperAdmin") return;
+
     try {
       const response = await api.get("/products");
       if (response.data?.success && response.data?.data?.products) {
@@ -384,6 +390,10 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [customers, setCustomers] = useState<Customer[]>([]);
 
   const fetchCustomers = async () => {
+    const userStr = localStorage.getItem("qb_user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (user?.role === "SuperAdmin" || currentRole === "SuperAdmin") return;
+
     const token = localStorage.getItem("qb_token");
     if (!token) return;
 
@@ -421,6 +431,10 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   const fetchSuppliers = async () => {
+    const userStr = localStorage.getItem("qb_user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (user?.role === "SuperAdmin" || currentRole === "SuperAdmin") return;
+
     const token = localStorage.getItem("qb_token");
     if (!token) return;
 
@@ -455,6 +469,10 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [orders, setOrders] = useState<Order[]>([]);
 
   const fetchOrders = async () => {
+    const userStr = localStorage.getItem("qb_user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (user?.role === "SuperAdmin" || currentRole === "SuperAdmin") return;
+
     const token = localStorage.getItem("qb_token");
     if (!token) return;
 
@@ -502,6 +520,10 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [employees, setEmployees] = useState<Employee[]>([]);
 
   const fetchEmployees = async () => {
+    const userStr = localStorage.getItem("qb_user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (user?.role === "SuperAdmin" || currentRole === "SuperAdmin") return;
+
     const token = localStorage.getItem("qb_token");
     if (!token) return;
 
@@ -570,7 +592,16 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   ]);
 
   // Chapter 4: User Roles & SaaS active tenants
-  const [currentRole, setCurrentRole] = useState<UserRole>("Owner");
+  const [currentRole, setCurrentRole] = useState<UserRole>(() => {
+    try {
+      const userStr = localStorage.getItem("qb_user");
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        if (u.role) return u.role as UserRole;
+      }
+    } catch {}
+    return "Owner";
+  });
 
   // Store Operating Mode & Owner Security PIN (Indian Retail Security)
   const [operatingMode, setOperatingModeState] = useState<"solo" | "multi-staff">(() => {
@@ -637,11 +668,9 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     SuperAdmin: {
       pin: "9999",
       label: "Master Administrator",
-      description: "Full platform control, error diagnostics, users and store management",
+      description: "Platform control, error diagnostics, categories, users and stores management",
       allowedModules: [
-        "superadmin", "dashboard", "billing", "counter", "inventory", 
-        "customers", "suppliers", "staff", "reports", "recovery", 
-        "settings", "ai", "automation"
+        "superadmin"
       ]
     },
     Employee: {
@@ -659,6 +688,9 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const saved = localStorage.getItem("qb_role_departments");
       if (saved) {
         const parsed = JSON.parse(saved);
+        // Force SuperAdmin to always retain unrestricted module access regardless of previous localStorage state
+        parsed.SuperAdmin = defaultDepartmentConfigs.SuperAdmin;
+        localStorage.setItem("qb_role_departments", JSON.stringify({ ...defaultDepartmentConfigs, ...parsed }));
         return { ...defaultDepartmentConfigs, ...parsed };
       }
     } catch (e) {
@@ -708,6 +740,9 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const getRoleAllowedModules = (role: UserRole): ScreenType[] => {
+    if (role === "SuperAdmin") {
+      return ["superadmin"];
+    }
     return departmentConfigs[role]?.allowedModules || defaultDepartmentConfigs[role]?.allowedModules || [];
   };
 
@@ -1509,6 +1544,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         currentRole,
         setCurrentRole,
         tenants,
+        fetchTenants,
         toggleTenantStatus,
         stockMovementLogs,
         logStockMovement,

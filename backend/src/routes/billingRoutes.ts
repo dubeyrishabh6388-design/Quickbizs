@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { BillingController } from "../controllers/billingController";
 import { requireAuth, requireRoles } from "../middlewares/auth";
+import { checkoutLimiter } from "../middlewares/rateLimiter";
 
 const router = Router();
 const controller = new BillingController();
@@ -22,11 +23,12 @@ router.get("/:id", requireAuth, (req: Request, res: Response, next: NextFunction
   controller.getOrderById(req, res, next)
 );
 
-// 2. Modify invoice status (limited to Owner and Cashier roles)
+// 2. Modify invoice status (limited to Owner and Cashier roles + checkoutLimiter)
 router.post(
   "/",
   requireAuth,
   requireRoles(["Owner", "Cashier"]),
+  checkoutLimiter,
   (req: Request, res: Response, next: NextFunction) => controller.createOrder(req, res, next)
 );
 

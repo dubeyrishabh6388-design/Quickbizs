@@ -4821,6 +4821,7 @@ export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeo
 export const OtpScalarFieldEnum = {
   id: 'id',
   phone: 'phone',
+  email: 'email',
   code: 'code',
   type: 'type',
   expiresAt: 'expiresAt',
@@ -5897,6 +5898,7 @@ export type SessionOrderByRelevanceFieldEnum = (typeof SessionOrderByRelevanceFi
 export const OtpOrderByRelevanceFieldEnum = {
   id: 'id',
   phone: 'phone',
+  email: 'email',
   code: 'code',
   type: 'type'
 } as const

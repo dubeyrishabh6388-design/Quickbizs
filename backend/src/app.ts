@@ -5,8 +5,13 @@ import apiRouter from "./routes";
 import { errorHandler } from "./middlewares/errorHandler";
 import { env, getAllowedOrigins } from "./config/environment";
 import { prisma } from "./config/prisma";
+import { globalApiLimiter } from "./middlewares/rateLimiter";
+import { payloadEncryptionMiddleware } from "./middlewares/payloadEncryption";
 
 const app = express();
+
+// Trust reverse proxy (Render, Nginx, Cloudflare) for accurate client IP in rate limiting
+app.set("trust proxy", 1);
 
 // CORS configuration supporting local dev, Render previews, and production domains
 const allowedOrigins = getAllowedOrigins();
@@ -31,12 +36,16 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Payload-Encrypted", "X-Skip-Encryption"],
+    exposedHeaders: ["X-Payload-Encrypted"],
   })
 );
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Automatic Payload Encryption & Decryption Middleware
+app.use(payloadEncryptionMiddleware);
 
 // Morgan Request Logging
 app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
@@ -71,6 +80,9 @@ app.get("/health", async (req, res) => {
     });
   }
 });
+
+// Global Rate Limiter applied to all API endpoints
+app.use("/api", globalApiLimiter);
 
 // Version 1 API Routes
 app.use("/api/v1", apiRouter);

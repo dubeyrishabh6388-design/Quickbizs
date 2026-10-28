@@ -6,7 +6,6 @@ import {
   CheckCircle2, 
   Search, 
   DollarSign, 
-  Users,
   RefreshCw,
   AlertTriangle,
   XCircle,
@@ -21,7 +20,6 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
-  Cpu,
   Layers,
   Store,
   Check,
@@ -47,7 +45,14 @@ import {
   Utensils,
   Car,
   HeartPulse,
-  Scissors
+  Scissors,
+  UserPlus,
+  Send,
+  MessageSquare,
+  Share2,
+  ExternalLink,
+  CheckCheck,
+  Lightbulb
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../config/api";
@@ -59,7 +64,199 @@ interface LogEntry {
   level: "INFO" | "WARN" | "ERROR";
   message: string;
   details?: string;
+  category?: "DATABASE" | "AUTH" | "VALIDATION" | "NETWORK" | "PAYMENT" | "SYSTEM";
+  simplifiedTitle?: string;
+  explanation?: string;
+  suggestedAction?: string;
+  isActionRequired?: boolean;
 }
+
+const getLogInterpretation = (log: LogEntry) => {
+  if (log.simplifiedTitle && log.explanation && log.suggestedAction) {
+    return {
+      category: log.category || "SYSTEM",
+      simplifiedTitle: log.simplifiedTitle,
+      explanation: log.explanation,
+      suggestedAction: log.suggestedAction,
+      isActionRequired: log.isActionRequired ?? (log.level !== "INFO"),
+    };
+  }
+
+  const combined = `${log.message} ${log.details || ""}`.toLowerCase();
+
+  // 1. Database Connection Pool Exhaustion / Timeout
+  if (
+    combined.includes("pool timeout") || 
+    combined.includes("pool connections") || 
+    combined.includes("failed to retrieve a connection from pool") ||
+    combined.includes("connection pool")
+  ) {
+    return {
+      category: "DATABASE" as const,
+      simplifiedTitle: "Database Connection Pool Exhausted (Timeout)",
+      explanation: "All available PostgreSQL connection pool slots were active and busy. Incoming queries waited longer than the pool timeout (10,000ms) without getting an idle slot.",
+      suggestedAction: "1. In 'backend/.env', append '?connection_limit=25&pool_timeout=20' to DATABASE_URL.\n2. Verify all Prisma queries in backend services are awaited and transactions are properly committed.\n3. Restart the backend daemon to reset connection pools.",
+      isActionRequired: true
+    };
+  }
+
+  // 2. Database & Unique Constraints (Duplicates & Already Registered)
+  if (
+    combined.includes("unique constraint") || 
+    combined.includes("p2002") || 
+    combined.includes("already exists") || 
+    combined.includes("duplicate") || 
+    combined.includes("already registered")
+  ) {
+    const isPhone = combined.includes("phone") || combined.includes("mobile");
+    const isEmail = combined.includes("email");
+    return {
+      category: "DATABASE" as const,
+      simplifiedTitle: isPhone 
+        ? "Duplicate Phone Number Conflict" 
+        : isEmail 
+          ? "Duplicate Email Conflict (Already Registered)" 
+          : "Duplicate Unique Record Conflict",
+      explanation: isPhone 
+        ? "The mobile number provided is already registered to an existing merchant or user account. QuickBizs enforces unique phone numbers for security." 
+        : isEmail 
+          ? "The email address provided is already registered in the system database. Each user account requires a unique email address." 
+          : "The record violates a unique constraint index in the database. Identical duplicate data cannot be re-inserted.",
+      suggestedAction: "1. Use an alternate phone number or email address.\n2. In this Admin Console, check the 'Stores Directory' or 'Users' tab to review, reset password, or update the existing account.",
+      isActionRequired: true
+    };
+  }
+
+  // 2b. SaaS Subscription & Plan Quota Limits
+  if (
+    combined.includes("subscription limit") || 
+    combined.includes("limit reached") || 
+    combined.includes("maximum allowed limit") || 
+    combined.includes("saas limit")
+  ) {
+    return {
+      category: "DATABASE" as const,
+      simplifiedTitle: "Store Catalog Quota Reached (Subscription Limit)",
+      explanation: "This business has reached its plan quota for products (default 100 on Basic plan) or customers. Additional items cannot be added until the subscription plan is upgraded.",
+      suggestedAction: "1. In this Admin Console, navigate to the 'Stores Directory' or 'Tenants' tab.\n2. Locate the merchant's store and click 'Edit Store' or 'Upgrade Plan'.\n3. Switch the plan from Basic to Pro (1,000 items) or Enterprise (50,000 items), or increase the max_products limit.",
+      isActionRequired: true
+    };
+  }
+
+  // 3. Database Connection Failure / Unreachable
+  if (
+    combined.includes("econnrefused") || 
+    combined.includes("cant reach database") || 
+    combined.includes("can't reach database") || 
+    combined.includes("prismaclientinitializationerror") || 
+    combined.includes("database server was not found")
+  ) {
+    return {
+      category: "DATABASE" as const,
+      simplifiedTitle: "PostgreSQL Database Server Unreachable",
+      explanation: "The Node.js backend cannot establish a TCP socket connection to PostgreSQL. The database service may be stopped, port 5432 blocked, or DATABASE_URL credentials incorrect.",
+      suggestedAction: "1. Check if PostgreSQL service is running in Windows Services (services.msc) or run 'Get-Service postgresql*'.\n2. Verify host, port, username, and password in 'backend/.env' (DATABASE_URL).\n3. Run 'npx prisma db pull' in backend directory to verify connectivity.",
+      isActionRequired: true
+    };
+  }
+
+  // 4. Foreign Key Constraints (P2003)
+  if (combined.includes("p2003") || combined.includes("foreign key constraint") || combined.includes("violates foreign key")) {
+    return {
+      category: "DATABASE" as const,
+      simplifiedTitle: "Foreign Key Integrity Constraint Violation",
+      explanation: "An operation attempted to reference or delete a record that has active dependencies (e.g. creating an order for an invalid businessId/userId, or deleting a store with active orders).",
+      suggestedAction: "1. Confirm the parent business or user record exists before creating dependent items.\n2. Deactivate the entity with soft delete (isActive: false) instead of cascade deletion.",
+      isActionRequired: true
+    };
+  }
+
+  // 5. Authentication & Password Mismatch
+  if (combined.includes("invalid credentials") || combined.includes("bcrypt") || combined.includes("password mismatch") || combined.includes("incorrect password")) {
+    return {
+      category: "AUTH" as const,
+      simplifiedTitle: "Authentication Failed (Invalid Credentials)",
+      explanation: "A login attempt failed because the submitted phone/email and password did not match the hashed record stored in the database.",
+      suggestedAction: "1. Verify the user is using the correct 10-digit phone number and exact case-sensitive password.\n2. In this Admin Console, navigate to 'Merchants & Users' tab and click 'Reset Password' to assign fresh credentials.",
+      isActionRequired: true
+    };
+  }
+
+  // 6. Token & Session Expiry
+  if (combined.includes("jwt expired") || combined.includes("jwt malformed") || combined.includes("unauthorized") || combined.includes("no token provided") || combined.includes("invalid token")) {
+    return {
+      category: "AUTH" as const,
+      simplifiedTitle: "Authentication Session Expired or Invalid Token",
+      explanation: "The HTTP request carried an expired or invalid JSON Web Token (JWT) in the Authorization header.",
+      suggestedAction: "1. The user must sign in again to receive a renewed authentication token.\n2. If this occurs immediately after login, verify 'JWT_SECRET' in 'backend/.env' is configured properly.",
+      isActionRequired: true
+    };
+  }
+
+  // 7. Validation & Missing Fields
+  if (combined.includes("validation") || combined.includes("is required") || combined.includes("must be") || combined.includes("invalid input") || combined.includes("must be 10 digits")) {
+    return {
+      category: "VALIDATION" as const,
+      simplifiedTitle: "Input Validation Error (Missing / Malformed Fields)",
+      explanation: "The API payload failed client or server schema validation. Required parameters were missing, empty, or incorrectly formatted.",
+      suggestedAction: "1. Inspect the form submission inputs in frontend to ensure all required fields are filled.\n2. Review controller validation logic in 'backend/src/controllers/'.",
+      isActionRequired: true
+    };
+  }
+
+  // 8. Payments & Razorpay
+  if (combined.includes("razorpay") || combined.includes("payment") || combined.includes("order_id")) {
+    return {
+      category: "PAYMENT" as const,
+      simplifiedTitle: "Payment Gateway Transaction Notice",
+      explanation: "An issue or notice occurred during Razorpay order creation, payment capture, or webhook verification.",
+      suggestedAction: "1. Verify 'RAZORPAY_KEY_ID' and 'RAZORPAY_KEY_SECRET' in 'backend/.env'.\n2. Check internet connectivity and inspect webhook event logs in the Razorpay Dashboard.",
+      isActionRequired: true
+    };
+  }
+
+  // 9. WebSocket / Real-time events
+  if (combined.includes("socket client") || combined.includes("joined rooms") || combined.includes("socket.io")) {
+    return {
+      category: "SYSTEM" as const,
+      simplifiedTitle: "WebSocket Real-Time Event",
+      explanation: log.message,
+      suggestedAction: "Normal background event for real-time synchronization across connected terminals. No action required.",
+      isActionRequired: false
+    };
+  }
+
+  // 10. General Warning
+  if (log.level === "WARN") {
+    return {
+      category: "SYSTEM" as const,
+      simplifiedTitle: "System Warning Recorded",
+      explanation: log.message || "The system logged a non-fatal warning condition.",
+      suggestedAction: "Review the parameters and server state. Warnings typically do not prevent application availability.",
+      isActionRequired: true
+    };
+  }
+
+  // 11. General Error
+  if (log.level === "ERROR") {
+    return {
+      category: "SYSTEM" as const,
+      simplifiedTitle: "System Runtime Exception Occurred",
+      explanation: log.message.replace(/^Error:\s*/i, "") || "An unexpected server runtime error occurred.",
+      suggestedAction: "Click 'Tech Trace' below to inspect the call stack, check the affected route controller, and restart the backend server if persistent.",
+      isActionRequired: true
+    };
+  }
+
+  // 12. Info / Success
+  return {
+    category: "SYSTEM" as const,
+    simplifiedTitle: "System Activity Event",
+    explanation: log.message,
+    suggestedAction: "Normal system event. No action required.",
+    isActionRequired: false
+  };
+};
 
 interface LogStats {
   total: number;
@@ -116,6 +313,12 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Car,
   HeartPulse,
   Scissors,
+  UserPlus,
+  Send,
+  MessageSquare,
+  Share2,
+  ExternalLink,
+  CheckCheck,
   Tag,
   ShieldCheck,
 };
@@ -177,8 +380,34 @@ interface DiagnosticsData {
 
 
 export const SuperAdmin: React.FC = () => {
-  const { tenants, toggleTenantStatus } = useBusiness();
-  const [activeTab, setActiveTab] = useState<"logs" | "users" | "categories" | "tenants" | "diagnostics">("logs");
+  const { tenants, toggleTenantStatus, fetchTenants } = useBusiness();
+  const [activeTab, setActiveTabState] = useState<"logs" | "users" | "categories" | "tenants" | "diagnostics">(() => {
+    try {
+      const saved = localStorage.getItem("qb_admin_tab");
+      if (saved && ["logs", "users", "categories", "tenants", "diagnostics"].includes(saved)) {
+        return saved as any;
+      }
+    } catch {}
+    return "tenants";
+  });
+
+  const setActiveTab = (tab: "logs" | "users" | "categories" | "tenants" | "diagnostics") => {
+    setActiveTabState(tab);
+    try {
+      localStorage.setItem("qb_admin_tab", tab);
+    } catch {}
+    window.dispatchEvent(new CustomEvent("qb-admin-tab-updated", { detail: tab }));
+  };
+
+  useEffect(() => {
+    const handleTabChange = (e: any) => {
+      if (e.detail && ["logs", "users", "categories", "tenants", "diagnostics"].includes(e.detail)) {
+        setActiveTab(e.detail);
+      }
+    };
+    window.addEventListener("qb-admin-tab-change", handleTabChange);
+    return () => window.removeEventListener("qb-admin-tab-change", handleTabChange);
+  }, []);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null);
 
   // --- Logs State ---
@@ -243,6 +472,136 @@ export const SuperAdmin: React.FC = () => {
 
   // --- Tenants Search ---
   const [tenantSearchQuery, setTenantSearchQuery] = useState<string>("");
+
+  // --- Onboard Merchant (Admin Creates Shop & Sends Credentials) ---
+  const [isOnboardModalOpen, setIsOnboardModalOpen] = useState<boolean>(false);
+  const [onboardOwnerName, setOnboardOwnerName] = useState<string>("");
+  const [onboardBusinessName, setOnboardBusinessName] = useState<string>("");
+  const [onboardPhone, setOnboardPhone] = useState<string>("");
+  const [onboardEmail, setOnboardEmail] = useState<string>("");
+  const [onboardPassword, setOnboardPassword] = useState<string>("");
+  const [onboardBusinessType, setOnboardBusinessType] = useState<string>("Grocery Store");
+  const [onboardPlan, setOnboardPlan] = useState<string>("Basic");
+  const [onboardAddress, setOnboardAddress] = useState<string>("");
+  const [showOnboardPass, setShowOnboardPass] = useState<boolean>(false);
+  const [isOnboardingMerchant, setIsOnboardingMerchant] = useState<boolean>(false);
+  
+  interface CreatedMerchantCredentials {
+    businessId: string;
+    businessName: string;
+    ownerName: string;
+    phone: string;
+    email: string;
+    password: string;
+    businessType: string;
+    plan: string;
+    address?: string;
+    createdAt: string;
+  }
+  const [createdCredentials, setCreatedCredentials] = useState<CreatedMerchantCredentials | null>(null);
+  const [copiedFullMessage, setCopiedFullMessage] = useState<boolean>(false);
+
+  const generateRandomPassword = (name: string, phone: string) => {
+    const cleanName = (name || "Store").trim().split(" ")[0].replace(/[^a-zA-Z]/g, "");
+    const cap = cleanName.charAt(0).toUpperCase() + cleanName.slice(1).toLowerCase();
+    const digits = phone && phone.length >= 4 ? phone.slice(-4) : Math.floor(1000 + Math.random() * 9000).toString();
+    return `${cap || "Shop"}@${digits}`;
+  };
+
+  const getMerchantWhatsAppText = (creds: CreatedMerchantCredentials) => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://quickbizs.com";
+    return `🏪 *QuickBizs - Aapki Dukan Ka Login ID & Password*
+
+Namaste *${creds.ownerName}* ji,
+Aapki dukan *${creds.businessName}* ka QuickBizs store account successfully create ho gaya hai.
+
+Niche diye gaye User ID aur Password se aap turant login kar sakte hain:
+
+📱 *User ID / Mobile:* ${creds.phone}
+🔑 *Password:* ${creds.password}
+🏪 *Shop Category:* ${creds.businessType}
+💎 *Subscription Plan:* ${creds.plan}
+
+🌐 *Login Portal:* ${origin}
+
+Aap turant login karke apni billing, inventory aur customer khata book shuru kar sakte hain.
+Kisi bhi sahayata ke liye sampark karein: QuickBizs Master Support.`;
+  };
+
+  const handleShareWhatsApp = (creds: CreatedMerchantCredentials) => {
+    const text = getMerchantWhatsAppText(creds);
+    const cleanPhone = creds.phone.replace(/[^0-9]/g, "");
+    const url = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+    showToast("Opening WhatsApp to send credentials...", "info");
+  };
+
+  const handleCopyFullCredentials = (creds: CreatedMerchantCredentials) => {
+    const text = getMerchantWhatsAppText(creds);
+    navigator.clipboard.writeText(text);
+    setCopiedFullMessage(true);
+    setTimeout(() => setCopiedFullMessage(false), 2500);
+    showToast("Full login credentials copied to clipboard!", "success");
+  };
+
+  const handleShareEmail = (creds: CreatedMerchantCredentials) => {
+    const text = getMerchantWhatsAppText(creds);
+    const subject = `Your QuickBizs Store Login Details - ${creds.businessName}`;
+    const url = `mailto:${creds.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+  };
+
+  const handleShareSMS = (creds: CreatedMerchantCredentials) => {
+    const text = getMerchantWhatsAppText(creds);
+    const cleanPhone = creds.phone.replace(/[^0-9]/g, "");
+    const url = `sms:${cleanPhone}?body=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+  };
+
+  const handleOnboardMerchantSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onboardBusinessName.trim() || !onboardOwnerName.trim() || !onboardPhone.trim()) {
+      showToast("Store Name, Owner Name, and Mobile Number are required.", "error");
+      return;
+    }
+    if (!/^\d{10}$/.test(onboardPhone.trim())) {
+      showToast("Mobile number must be exactly 10 digits.", "error");
+      return;
+    }
+
+    setIsOnboardingMerchant(true);
+    try {
+      const res = await api.post("/admin/onboard-merchant", {
+        businessName: onboardBusinessName.trim(),
+        ownerName: onboardOwnerName.trim(),
+        phone: onboardPhone.trim(),
+        email: onboardEmail.trim() || undefined,
+        password: onboardPassword.trim() || undefined,
+        businessType: onboardBusinessType,
+        plan: onboardPlan,
+        address: onboardAddress.trim() || undefined,
+      });
+
+      if (res.data?.success && res.data.data) {
+        showToast(`Store "${res.data.data.businessName}" created successfully!`);
+        setCreatedCredentials(res.data.data);
+        setIsOnboardModalOpen(false);
+        setOnboardBusinessName("");
+        setOnboardOwnerName("");
+        setOnboardPhone("");
+        setOnboardEmail("");
+        setOnboardPassword("");
+        setOnboardAddress("");
+        fetchUsers();
+        if (fetchTenants) fetchTenants();
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Failed to create store account.", "error");
+    } finally {
+      setIsOnboardingMerchant(false);
+    }
+  };
+
 
   const showToast = useCallback((text: string, type: "success" | "error" | "info" = "success") => {
     setToastMsg({ text, type });
@@ -546,13 +905,25 @@ export const SuperAdmin: React.FC = () => {
     }
   };
 
-  // Copy Stack Trace
+  // Copy Clean Human-Readable Error Summary
   const handleCopyLog = (log: LogEntry) => {
-    const textToCopy = `[${log.timestamp}] [${log.level}] : ${log.message}\n${log.details || ""}`;
+    const info = getLogInterpretation(log);
+    const textToCopy = `🚨 QuickBizs System Log Report
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 Level: ${log.level}
+🏷️ Category: ${info.category}
+⏰ Time: ${new Date(log.timestamp).toLocaleString()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ Summary: ${info.simplifiedTitle}
+🔍 Root Cause: ${info.explanation}
+${info.isActionRequired !== false ? `💡 Fix & Resolution: ${info.suggestedAction}\n` : ""}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🛠️ Technical Message: ${log.message}
+${log.details ? `\n🔍 Stack Trace:\n${log.details}` : ""}`;
+
     navigator.clipboard.writeText(textToCopy);
     setCopiedLogId(log.id);
     setTimeout(() => setCopiedLogId(null), 2000);
-    showToast("Log details copied to clipboard.", "info");
+    showToast("Error report copied to clipboard!", "success");
   };
 
   // Tenants filtering
@@ -639,6 +1010,25 @@ export const SuperAdmin: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          
+          {/* Onboard New Merchant Button */}
+          <button
+            onClick={() => {
+              setOnboardOwnerName("");
+              setOnboardBusinessName("");
+              setOnboardPhone("");
+              setOnboardEmail("");
+              setOnboardPassword("");
+              setOnboardAddress("");
+              setIsOnboardModalOpen(true);
+            }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+            title="Create store account for shopkeeper unable to register"
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            <span>+ Onboard New Merchant / Shop</span>
+          </button>
+
           {/* Change Admin Password Button */}
           <button
             onClick={() => setIsAdminPassModalOpen(true)}
@@ -665,66 +1055,7 @@ export const SuperAdmin: React.FC = () => {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 overflow-x-auto scrollbar-none">
-        {[
-          { 
-            id: "logs", 
-            label: "Live Error & Logs", 
-            icon: Activity, 
-            badge: logStats?.errors ? `${logStats.errors} Errors` : undefined,
-            badgeColor: logStats?.errors ? "bg-rose-500 text-white" : ""
-          },
-          { 
-            id: "users", 
-            label: "User Management", 
-            icon: Users,
-            badge: users.length ? `${users.length}` : undefined,
-            badgeColor: "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-          },
-          { 
-            id: "categories", 
-            label: "Category Management", 
-            icon: Tag,
-            badge: categories.length ? `${categories.length}` : undefined,
-            badgeColor: "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-          },
-          { 
-            id: "tenants", 
-            label: "Stores & Tenants", 
-            icon: Store,
-            badge: `${tenants.length}`,
-            badgeColor: "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-          },
-          { 
-            id: "diagnostics", 
-            label: "System Diagnostics", 
-            icon: Cpu 
-          },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                isActive
-                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-md"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{tab.label}</span>
-              {tab.badge && (
-                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${tab.badgeColor}`}>
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+
 
       {/* ========================================================================= */}
       {/* TAB 1: LIVE ERROR & SYSTEM LOGS                                           */}
@@ -845,88 +1176,147 @@ export const SuperAdmin: React.FC = () => {
                 <p className="text-xs">No matching logs or errors found in the current buffer filter.</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 font-mono text-xs">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs p-2 space-y-2">
                 {logs.map((log) => {
                   const isExpanded = expandedLogId === log.id;
                   const isError = log.level === "ERROR";
                   const isWarn = log.level === "WARN";
+                  const info = getLogInterpretation(log);
 
                   return (
                     <div
                       key={log.id}
-                      className={`p-3.5 transition-colors ${
+                      className={`p-4 transition-all rounded-xl border ${
                         isError
-                          ? "bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-50/70 dark:hover:bg-rose-950/30"
+                          ? "bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50"
                           : isWarn
-                            ? "bg-amber-50/30 dark:bg-amber-950/10 hover:bg-amber-50/50"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                            ? "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50"
+                            : "bg-slate-50/60 dark:bg-slate-850/40 border-slate-200 dark:border-slate-800"
                       }`}
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-black shrink-0 tracking-wider ${
-                              isError
-                                ? "bg-rose-500 text-white"
-                                : isWarn
-                                  ? "bg-amber-500 text-white"
-                                  : "bg-emerald-500 text-white"
-                            }`}
-                          >
-                            {log.level}
-                          </span>
+                      {/* Top Row: Badges, Simplified Title & Actions */}
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0 flex-1 font-sans">
+                          {/* Level Badge */}
+                          <div className={`p-2 rounded-xl shrink-0 ${
+                            isError ? "bg-rose-500 text-white shadow-sm shadow-rose-500/30" : isWarn ? "bg-amber-500 text-white shadow-sm shadow-amber-500/30" : "bg-emerald-500 text-white"
+                          }`}>
+                            {isError ? <AlertTriangle className="h-4 w-4" /> : isWarn ? <Info className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                          </div>
 
-                          <div className="min-w-0 flex-1">
-                            <p className="text-slate-800 dark:text-slate-100 font-sans font-bold text-xs break-words">
-                              {log.message}
-                            </p>
-                            <div className="flex items-center gap-3 mt-1 text-[10px] font-sans text-slate-400 font-semibold">
-                              <span className="flex items-center gap-1">
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase ${
+                                isError ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300" : isWarn ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                              }`}>
+                                {log.level}
+                              </span>
+
+                              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                                🏷️ {info.category}
+                              </span>
+
+                              <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 {new Date(log.timestamp).toLocaleTimeString()} · {new Date(log.timestamp).toLocaleDateString()}
                               </span>
-                              <span>ID: {log.id}</span>
                             </div>
+
+                            {/* Easy-To-Understand Title */}
+                            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white leading-snug">
+                              {info.simplifiedTitle}
+                            </h4>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 self-end sm:self-start shrink-0 font-sans">
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-start font-sans">
                           <button
+                            type="button"
                             onClick={() => handleCopyLog(log)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-                            title="Copy log entry"
+                            className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                            title="Copy clean error report"
                           >
                             {copiedLogId === log.id ? (
-                              <Check className="h-3.5 w-3.5 text-emerald-500" />
+                              <>
+                                <Check className="h-3.5 w-3.5 text-emerald-500" />
+                                <span className="text-emerald-600 dark:text-emerald-400">Copied!</span>
+                              </>
                             ) : (
-                              <Copy className="h-3.5 w-3.5" />
+                              <>
+                                <Copy className="h-3.5 w-3.5 text-slate-500" />
+                                <span>Copy Report</span>
+                              </>
                             )}
                           </button>
 
                           {log.details && (
                             <button
+                              type="button"
                               onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
-                              className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center gap-1 cursor-pointer transition-colors"
+                              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all cursor-pointer ${
+                                isExpanded
+                                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent shadow-xs"
+                                  : "bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
+                              }`}
                             >
-                              <span>{isExpanded ? "Hide Details" : "Stack Trace"}</span>
-                              {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                              <span>{isExpanded ? "Hide Trace" : "Tech Trace"}</span>
+                              {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                             </button>
                           )}
                         </div>
                       </div>
 
+                      {/* Plain-Language Explanation & Solution Card */}
+                      <div className="mt-3.5 p-3.5 rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-2.5 font-sans">
+                        <div className="flex items-start gap-2.5">
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider shrink-0 mt-0.5 ${
+                            isError 
+                              ? "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300" 
+                              : isWarn 
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300" 
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                          }`}>
+                            {isError || isWarn ? "Root Cause" : "Event Summary"}
+                          </span>
+                          <p className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-relaxed">
+                            {info.explanation}
+                          </p>
+                        </div>
+
+                        {(isError || isWarn || info.isActionRequired) && (
+                          <div className="flex items-start gap-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800">
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider shrink-0 mt-0.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                              <Lightbulb className="h-3 w-3 text-amber-500" />
+                              How to Fix &amp; Where to Check
+                            </span>
+                            <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 leading-relaxed whitespace-pre-line space-y-1">
+                              {info.suggestedAction}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Expandable Technical Developer Stack Trace */}
                       {isExpanded && log.details && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="mt-3 p-3 bg-slate-900 text-rose-300 rounded-xl overflow-x-auto text-[11px] leading-relaxed border border-slate-800 font-mono"
+                          className="mt-3 p-3.5 bg-slate-950 text-rose-300 rounded-xl overflow-x-auto text-[11px] leading-relaxed border border-slate-800 font-mono shadow-inner"
                         >
-                          <div className="flex items-center justify-between text-[10px] text-slate-400 pb-1.5 mb-2 border-b border-slate-800 font-sans">
-                            <span className="font-bold uppercase tracking-wider text-slate-400">Error Payload / Stack Trace</span>
-                            <span className="text-[9px]">Captured by Application Logger</span>
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 pb-2 mb-2 border-b border-slate-800 font-sans">
+                            <span className="font-bold uppercase tracking-wider text-slate-400">
+                              Developer Error Details &amp; Raw Stack Trace
+                            </span>
+                            <span className="text-[9px] text-slate-500">Node.js Server Runtime</span>
                           </div>
-                          <pre className="whitespace-pre-wrap break-all">{log.details}</pre>
+                          <div className="text-xs text-rose-200 font-bold mb-2">
+                            Raw Message: {log.message}
+                          </div>
+                          <pre className="whitespace-pre-wrap break-all text-[11px] font-mono text-slate-300">
+                            {log.details}
+                          </pre>
                         </motion.div>
                       )}
                     </div>
@@ -2057,6 +2447,357 @@ export const SuperAdmin: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+    
+      {/* ========================================================================= */}
+      {/* MODAL: ONBOARD NEW MERCHANT / SHOP (ADMIN DIRECT CREATION)                */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {isOnboardModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 my-8"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl ring-4 ring-emerald-500/10">
+                    <UserPlus className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                      Onboard New Merchant / Shop
+                    </h3>
+                    <p className="text-xs text-slate-500 font-semibold">
+                      Create store account &amp; directly send User ID &amp; Password
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsOnboardModalOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleOnboardMerchantSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Store / Business Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={onboardBusinessName}
+                      onChange={(e) => setOnboardBusinessName(e.target.value)}
+                      placeholder="e.g. Ramesh Kirana Store"
+                      required
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Owner Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={onboardOwnerName}
+                      onChange={(e) => setOnboardOwnerName(e.target.value)}
+                      placeholder="e.g. Ramesh Kumar"
+                      required
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Mobile Number (Primary User ID) *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">+91</span>
+                      <input
+                        type="tel"
+                        maxLength={10}
+                        value={onboardPhone}
+                        onChange={(e) => setOnboardPhone(e.target.value.replace(/\D/g, ""))}
+                        placeholder="9876543210"
+                        required
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-3 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Email Address (Optional)
+                    </label>
+                    <input
+                      type="email"
+                      value={onboardEmail}
+                      onChange={(e) => setOnboardEmail(e.target.value)}
+                      placeholder="Auto-generated if left blank"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Business Category / Vertical *
+                    </label>
+                    <select
+                      value={onboardBusinessType}
+                      onChange={(e) => setOnboardBusinessType(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Subscription Plan
+                    </label>
+                    <select
+                      value={onboardPlan}
+                      onChange={(e) => setOnboardPlan(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value="Basic">Basic Plan (Standard POS &amp; Khata)</option>
+                      <option value="Premium">Premium Plan (Full Multi-staff &amp; Barcode)</option>
+                      <option value="Enterprise">Enterprise Plan (Unlimited Scale)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Merchant Password *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setOnboardPassword(generateRandomPassword(onboardOwnerName, onboardPhone))}
+                      className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      <span>⚡ Auto-Generate</span>
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showOnboardPass ? "text" : "password"}
+                      value={onboardPassword}
+                      onChange={(e) => setOnboardPassword(e.target.value)}
+                      placeholder="e.g. Ramesh@3210 (or click Auto-Generate)"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3.5 pr-10 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowOnboardPass(prev => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                    >
+                      {showOnboardPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Leave blank to automatically generate a friendly password like <code>FirstName@Last4Digits</code>.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Store Address (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={onboardAddress}
+                    onChange={(e) => setOnboardAddress(e.target.value)}
+                    placeholder="e.g. Shop #14, Main Gandhi Market"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsOnboardModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isOnboardingMerchant || !onboardBusinessName.trim() || !onboardOwnerName.trim() || !onboardPhone.trim()}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-md transition-all"
+                  >
+                    {isOnboardingMerchant ? (
+                      <>
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        <span>Creating Account...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-3.5 w-3.5" />
+                        <span>Create Store &amp; Generate Credentials</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ========================================================================= */}
+      {/* MODAL: DIRECT SEND CREDENTIALS (WHATSAPP / SMS / COPY)                     */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {createdCredentials && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 my-8"
+            >
+              <div className="text-center space-y-2">
+                <div className="h-14 w-14 mx-auto bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center ring-8 ring-emerald-500/10">
+                  <CheckCheck className="h-7 w-7" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                  Store Account Created Successfully!
+                </h3>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  Login details are ready. Direct shopkeeper ko WhatsApp ya message send karein:
+                </p>
+              </div>
+
+              {/* Credentials Highlight Box */}
+              <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4.5 space-y-3">
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-200 dark:border-slate-700">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Store Name</p>
+                    <p className="text-sm font-extrabold text-slate-900 dark:text-white mt-0.5">{createdCredentials.businessName}</p>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                    {createdCredentials.plan} Plan
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white dark:bg-slate-900/90 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">User ID / Mobile</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-sm font-black text-slate-900 dark:text-white font-mono">{createdCredentials.phone}</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(createdCredentials.phone);
+                          showToast("User ID copied!", "info");
+                        }}
+                        className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                        title="Copy User ID"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-900/90 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Password</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">{createdCredentials.password}</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(createdCredentials.password);
+                          showToast("Password copied!", "info");
+                        }}
+                        className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                        title="Copy Password"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-slate-500 space-y-1 pt-1">
+                  <p>👤 <strong>Owner Name:</strong> {createdCredentials.ownerName}</p>
+                  <p>🏪 <strong>Shop Category:</strong> {createdCredentials.businessType}</p>
+                  <p>🌐 <strong>Login Portal:</strong> <span className="font-mono text-slate-700 dark:text-slate-300">{typeof window !== "undefined" ? window.location.origin : "https://quickbizs.com"}</span></p>
+                </div>
+              </div>
+
+              {/* Direct Actions: Send WhatsApp, Copy, Email, SMS */}
+              <div className="space-y-2.5">
+                {/* 1. Direct WhatsApp Button */}
+                <button
+                  type="button"
+                  onClick={() => handleShareWhatsApp(createdCredentials)}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 px-4 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-600/25 transition-all cursor-pointer"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span>📲 Send User ID &amp; Password via WhatsApp (+91 {createdCredentials.phone})</span>
+                </button>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {/* 2. Copy Complete Message Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleCopyFullCredentials(createdCredentials)}
+                    className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-2.5 px-2 rounded-xl text-[11px] flex items-center justify-center gap-1 transition-all cursor-pointer"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>{copiedFullMessage ? "Copied!" : "Copy All"}</span>
+                  </button>
+
+                  {/* 3. Send via SMS */}
+                  <button
+                    type="button"
+                    onClick={() => handleShareSMS(createdCredentials)}
+                    className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-2.5 px-2 rounded-xl text-[11px] flex items-center justify-center gap-1 transition-all cursor-pointer"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    <span>Send SMS</span>
+                  </button>
+
+                  {/* 4. Send via Email */}
+                  <button
+                    type="button"
+                    onClick={() => handleShareEmail(createdCredentials)}
+                    className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-2.5 px-2 rounded-xl text-[11px] flex items-center justify-center gap-1 transition-all cursor-pointer"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    <span>Email</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => setCreatedCredentials(null)}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer underline"
+                >
+                  Close &amp; Return to Dashboard
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
