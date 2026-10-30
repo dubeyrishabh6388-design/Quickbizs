@@ -59,6 +59,7 @@ import logo from "../assets/logo.jpg";
 import customerImg from "../assets/groceries_customer.jpg";
 import merchantImg from "../assets/merchant_laptop.jpg";
 import { api } from "../config/api";
+import { getUserFriendlyErrorMessage } from "../utils/errorMessage";
 
 // --- Validation Schemas ---
 const customerLoginSchema = z.object({
@@ -645,10 +646,10 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       if (response.data?.success && response.data?.data) {
         onAuthSuccess(response.data.data);
       } else {
-        setErrorDetails(response.data?.message || "Registration failed.");
+        setErrorDetails(getUserFriendlyErrorMessage(response.data?.message || "Registration failed."));
       }
     } catch (err: any) {
-      setErrorDetails(err.response?.data?.message || "Mobile number or Email already registered.");
+      setErrorDetails(getUserFriendlyErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -667,10 +668,10 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       if (response.data?.success && response.data?.data) {
         onAuthSuccess(response.data.data);
       } else {
-        setErrorDetails(response.data?.message || "Login failed.");
+        setErrorDetails(getUserFriendlyErrorMessage(response.data?.message || "Login failed."));
       }
     } catch (err: any) {
-      setErrorDetails(err.response?.data?.message || "Invalid merchant credentials.");
+      setErrorDetails(getUserFriendlyErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -696,10 +697,10 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       if (response.data?.success && response.data?.data) {
         onAuthSuccess(response.data.data);
       } else {
-        setErrorDetails(response.data?.message || "Store registration failed.");
+        setErrorDetails(getUserFriendlyErrorMessage(response.data?.message || "Store registration failed."));
       }
     } catch (err: any) {
-      setErrorDetails(err.response?.data?.message || "Business registration failed.");
+      setErrorDetails(getUserFriendlyErrorMessage(err));
     } finally {
       setIsLoading(false);
     }

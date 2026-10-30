@@ -23,8 +23,8 @@ export class AuthService {
   }) {
     const existing = await userRepository.findByEmail(data.email);
     if (existing) {
-      const err: any = new Error("User email is already registered.");
-      err.statusCode = 400;
+      const err: any = new Error("This email address is already registered. Please sign in or use a different email.");
+      err.statusCode = 409;
       err.problem = "Duplicate user email registration.";
       err.reason = "A user account with this email address already exists.";
       err.solution = "Please log in with your existing account or use a different email.";
@@ -532,11 +532,41 @@ export class AuthService {
     businessType?: string;
     sellingMode?: string;
   }) {
+    // 1. Proactive Email Uniqueness Check
     const existingUser = await userRepository.findByEmail(data.email);
     if (existingUser) {
-      const err: any = new Error("User email is already registered.");
-      err.statusCode = 400;
+      const err: any = new Error("This email address is already registered. Please sign in or use a different email.");
+      err.statusCode = 409;
+      err.problem = "Email already registered.";
+      err.reason = "An account with this email address already exists in the system.";
+      err.solution = "Please sign in to your store or use another email address.";
       throw err;
+    }
+
+    // 2. Proactive Mobile Number Uniqueness Check (Across Business and User records)
+    const cleanPhone = (data.phone || "").trim();
+    if (cleanPhone) {
+      const existingBusiness = await prisma.business.findFirst({
+        where: { phone: cleanPhone, isDeleted: false },
+      });
+      if (existingBusiness) {
+        const err: any = new Error("This mobile number is already registered to a store. Please sign in or use a different mobile number.");
+        err.statusCode = 409;
+        err.problem = "Mobile number already registered.";
+        err.reason = "A registered store already exists with this mobile number.";
+        err.solution = "Please sign in with this mobile number, or register with another mobile number.";
+        throw err;
+      }
+
+      const existingUserPhone = await userRepository.findByPhone(cleanPhone);
+      if (existingUserPhone) {
+        const err: any = new Error("This mobile number is already registered. Please sign in or use a different mobile number.");
+        err.statusCode = 409;
+        err.problem = "Mobile number already registered.";
+        err.reason = "An account with this mobile number already exists in the system.";
+        err.solution = "Please sign in to your account, or use another mobile number.";
+        throw err;
+      }
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -710,16 +740,22 @@ export class AuthService {
   }) {
     const existingPhone = await pwaCustomerRepository.findByPhone(data.phone);
     if (existingPhone) {
-      const err: any = new Error("Phone number is already registered.");
-      err.statusCode = 400;
+      const err: any = new Error("This mobile number is already registered. Please sign in with your mobile number.");
+      err.statusCode = 409;
+      err.problem = "Mobile number already registered.";
+      err.reason = "A customer account already exists with this mobile number.";
+      err.solution = "Please sign in with this mobile number, or use another number.";
       throw err;
     }
 
     if (data.email) {
       const existingEmail = await pwaCustomerRepository.findByEmail(data.email);
       if (existingEmail) {
-        const err: any = new Error("Email is already registered.");
-        err.statusCode = 400;
+        const err: any = new Error("This email address is already registered. Please sign in or use a different email.");
+        err.statusCode = 409;
+        err.problem = "Email already registered.";
+        err.reason = "A customer account already exists with this email address.";
+        err.solution = "Please sign in with this email, or use another email address.";
         throw err;
       }
     }

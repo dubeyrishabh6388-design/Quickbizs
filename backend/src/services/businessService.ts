@@ -95,10 +95,11 @@ export class BusinessService {
     if (data.phone) {
       const existing = await businessRepository.findByPhone(data.phone);
       if (existing) {
-        const err: any = new Error("A business with this phone number is already registered.");
+        const err: any = new Error("This mobile number is already registered. Please sign in or use a different mobile number.");
         err.statusCode = 409;
-        err.problem = "Duplicate entry check failed.";
-        err.reason = "Only one store can be mapped to a phone number.";
+        err.problem = "Mobile number already registered.";
+        err.reason = "A store is already associated with this mobile number.";
+        err.solution = "Please sign in or use an alternate mobile number.";
         throw err;
       }
     }

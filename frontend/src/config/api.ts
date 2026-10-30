@@ -1,6 +1,7 @@
 import axios from "axios";
 import { env } from "./env";
 import { encryptData, decryptData, isEncryptedEnvelope } from "../utils/cryptoPayload";
+import { getUserFriendlyErrorMessage } from "../utils/errorMessage";
 
 export const api = axios.create({
   baseURL: `${env.apiUrl}/api/v1`,
@@ -81,6 +82,13 @@ api.interceptors.response.use(
         error.response.data = decryptData(error.response.data.payload);
       } catch (err) {
         console.error("[Crypto] Failed to decrypt error response payload:", err);
+      }
+    }
+
+    // Transparently sanitize all API error messages to be user-friendly & eliminate database jargon
+    if (error.response?.data && typeof error.response.data === "object") {
+      if (error.response.data.message) {
+        error.response.data.message = getUserFriendlyErrorMessage(error.response.data.message);
       }
     }
 
