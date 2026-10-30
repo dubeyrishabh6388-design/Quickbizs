@@ -53,7 +53,10 @@ import {
   Share2,
   X,
   ChevronRight,
-  Printer
+  ChevronDown,
+  Printer,
+  Sun,
+  Moon
 } from "lucide-react";
 import logo from "../assets/logo.jpg";
 import customerImg from "../assets/groceries_customer.jpg";
@@ -161,6 +164,15 @@ export const BUSINESS_CATEGORIES = [
   { id: "Cosmetics Store", label: "Cosmetics & Beauty", desc: "Skincare, Makeup & Fragrances", icon: Sparkles },
   { id: "Paan & Convenience", label: "Paan & Convenience", desc: "Paan, Mints, Snacks & Drinks", icon: Store },
   { id: "Custom Business", label: "General Retail", desc: "Flexible Retail Setup", icon: Store },
+];
+
+export const POPULAR_CATEGORY_IDS = [
+  "Grocery Store",
+  "Clothing Store",
+  "Pharmacy",
+  "Mobile Store",
+  "Hardware Store",
+  "Custom Business"
 ];
 
 const getCategoryHighlight = (id: string) => {
@@ -314,9 +326,36 @@ export const CATEGORY_SECTORS = [
 
 interface LoginProps {
   onAuthSuccess: (userData: any) => void;
+  theme?: "light" | "dark";
+  toggleTheme?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
+export const Login: React.FC<LoginProps> = ({ onAuthSuccess, theme: propTheme, toggleTheme: propToggleTheme }) => {
+  const [internalTheme, setInternalTheme] = useState<"light" | "dark">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("qb_theme") as "light" | "dark") || (document.documentElement.classList.contains("dark") ? "dark" : "light");
+    }
+    return "light";
+  });
+
+  const currentTheme = propTheme || internalTheme;
+
+  const handleToggleTheme = () => {
+    if (propToggleTheme) {
+      propToggleTheme();
+    } else {
+      const nextTheme = currentTheme === "dark" ? "light" : "dark";
+      setInternalTheme(nextTheme);
+      if (nextTheme === "dark") {
+        document.documentElement.classList.add("dark");
+        document.body.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.body.classList.remove("dark");
+      }
+      localStorage.setItem("qb_theme", nextTheme);
+    }
+  };
   const [role, setRole] = useState<"CUSTOMER" | "MERCHANT" | null>(() => SHOW_CUSTOMER_PORTAL ? null : "MERCHANT");
   const [mode, setMode] = useState<"LOGIN" | "REGISTER">("LOGIN");
   const [registerStep, setRegisterStep] = useState<1 | 2>(1);
@@ -327,6 +366,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
   const [businessType, setBusinessType] = useState("Grocery Store");
   const [sellingMode, setSellingMode] = useState("Retail Store");
   const [categorySearch, setCategorySearch] = useState("");
+  const [showAllCategories, setShowAllCategories] = useState(false);
   const [categoriesList, setCategoriesList] = useState<any[]>(BUSINESS_CATEGORIES);
 
   useEffect(() => {
@@ -366,6 +406,14 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       return true;
     });
   }, [categoriesList, categorySearch, activeSector]);
+
+  const displayedCategories = useMemo(() => {
+    if (categorySearch.trim() || activeSector !== "ALL" || showAllCategories) {
+      return filteredCategories;
+    }
+    const popularSet = new Set(POPULAR_CATEGORY_IDS);
+    return filteredCategories.filter(c => popularSet.has(c.id) || c.id === businessType);
+  }, [filteredCategories, categorySearch, activeSector, showAllCategories, businessType]);
 
   const selectedCategory = useMemo(() => {
     return categoriesList.find(c => c.id === businessType) || categoriesList[0];
@@ -593,19 +641,13 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
     setRegisterStep(1);
     setActiveSector("ALL");
     setCategorySearch("");
+    setShowAllCategories(false);
     resetOtpStates();
   };
 
   const handleRoleSelect = (selectedRole: "CUSTOMER" | "MERCHANT") => {
     setRole(selectedRole);
     setMode("LOGIN");
-    resetForms();
-  };
-
-  const handleBackToRole = () => {
-    if (SHOW_CUSTOMER_PORTAL) {
-      setRole(null);
-    }
     resetForms();
   };
 
@@ -707,12 +749,12 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-950 font-sans text-slate-200 relative overflow-hidden">
+    <div className="flex min-h-screen w-full bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-200 relative overflow-hidden transition-colors duration-200">
       
       {/* Background Ambient Lighting Glows */}
-      <div className="absolute top-1/4 left-10 w-[500px] h-[500px] bg-brand-orange/15 rounded-full blur-[160px] pointer-events-none -translate-y-1/2"></div>
+      <div className="absolute top-1/4 left-10 w-[500px] h-[500px] bg-brand-orange/10 dark:bg-brand-orange/15 rounded-full blur-[160px] pointer-events-none -translate-y-1/2"></div>
       <div className="absolute top-1/4 right-10 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[160px] pointer-events-none -translate-y-1/2"></div>
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-25"></div>
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#cbd5e1_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e1_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20 dark:opacity-25 pointer-events-none"></div>
 
       {role === null ? (
         // --- PREMIUM ACCOUNT SELECTION SCREEN ---
@@ -728,7 +770,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
             >
               <img src={logo} alt="QuickBizs Logo" className="h-9 w-9 rounded-xl object-cover shadow-lg" />
               <div>
-                <h1 className="text-xl font-extrabold text-white tracking-tight leading-none">
+                <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">
                   Quick<span className="text-brand-orange">Bizs</span>
                 </h1>
                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
@@ -737,20 +779,32 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
               </div>
             </motion.div>
 
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-800/80 rounded-full text-[10px] text-slate-300 font-bold shadow-sm backdrop-blur-sm"
-            >
-              <span className="text-brand-orange">★</span> Trusted by 5000+ businesses
-              <div className="flex -space-x-2 overflow-hidden ml-1">
-                <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Avatar 1" />
-                <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="Avatar 2" />
-                <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt="Avatar 3" />
-                <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80" alt="Avatar 4" />
-              </div>
-            </motion.div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleToggleTheme}
+                aria-label="Toggle theme"
+                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer shadow-sm"
+                title={currentTheme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
+                {currentTheme === "dark" ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
+              </button>
+
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-full text-[10px] text-slate-700 dark:text-slate-300 font-bold shadow-sm backdrop-blur-sm"
+              >
+                <span className="text-brand-orange">★</span> Trusted by 5000+ businesses
+                <div className="flex -space-x-2 overflow-hidden ml-1">
+                  <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Avatar 1" />
+                  <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="Avatar 2" />
+                  <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt="Avatar 3" />
+                  <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80" alt="Avatar 4" />
+                </div>
+              </motion.div>
+            </div>
           </header>
 
           {/* Hero Content */}
@@ -1016,41 +1070,28 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
         // =========================================================================
         <div className="w-full min-h-screen flex flex-col lg:flex-row relative z-10 overflow-x-hidden">
           
-          {/* LEFT PANE (58%): ENTERPRISE PRODUCT SHOWCASE & REALTIME POS SIMULATION */}
-          <div className="w-full lg:w-[56%] xl:w-[58%] min-h-screen flex flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-14 border-b lg:border-b-0 lg:border-r border-slate-800/80 bg-slate-950/70 backdrop-blur-xl relative overflow-hidden">
+          {/* LEFT PANE (58%): ENTERPRISE PRODUCT SHOWCASE & REALTIME POS SIMULATION (DESKTOP ONLY) */}
+          <div className="hidden lg:flex lg:w-[56%] xl:w-[58%] min-h-screen flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-14 border-r border-slate-200 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-950/70 backdrop-blur-xl relative overflow-hidden transition-colors">
             {/* Ambient Multi-Hue Lighting Mesh */}
-            <div className="absolute -top-32 -left-32 w-96 h-96 bg-brand-orange/15 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute top-1/2 -right-32 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -top-32 -left-32 w-96 h-96 bg-brand-orange/10 dark:bg-brand-orange/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute top-1/2 -right-32 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-32 left-1/3 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
             {/* Fine Precision Grid Background */}
-            <div className="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:24px_24px] opacity-25 pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] dark:bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:24px_24px] opacity-30 dark:opacity-25 pointer-events-none" />
 
             {/* Top Brand Header & Live Engine Status */}
             <div className="relative z-10 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3.5">
-                <img src={logo} alt="QuickBizs Logo" className="h-10 w-10 rounded-2xl object-cover shadow-xl ring-1 ring-white/10" />
+                <img src={logo} alt="QuickBizs Logo" className="h-10 w-10 rounded-2xl object-cover shadow-md ring-1 ring-slate-200 dark:ring-white/10" />
                 <div>
-                  <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                  <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                     Quick<span className="text-brand-orange">Bizs</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-emerald/15 text-brand-emerald border border-brand-emerald/30 uppercase tracking-wider">
-                      OS 2.4
-                    </span>
                   </h1>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider block">
                     Business Management Software
                   </span>
                 </div>
-              </div>
-
-              {/* Dynamic Live Status Indicator */}
-              <div className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-[11px] font-semibold text-slate-300 shadow-md backdrop-blur-md">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                </span>
-                <span>Ledger Engine Active</span>
-                <span className="text-slate-500 font-mono text-[10px] pl-1 border-l border-slate-800">99.98% Uptime</span>
               </div>
             </div>
 
@@ -1064,45 +1105,45 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                       <Sparkles className="h-3.5 w-3.5" />
                       QuickBizs Shopper Portal
                     </span>
-                    <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white leading-tight tracking-tight">
+                    <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
                       Shop Faster from Your <span className="text-brand-orange">Trusted</span> Local Stores.
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
                       No more waiting in billing lines. Pre-order groceries, auto-track digital receipts, earn loyalty reward cashback and maintain a transparent digital Khata ledger with verified neighborhood shops.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3.5 pt-2">
-                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/80 space-y-2">
+                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-2">
                       <div className="h-9 w-9 rounded-xl bg-brand-orange/15 text-brand-orange flex items-center justify-center">
                         <Zap className="h-4.5 w-4.5" />
                       </div>
-                      <h4 className="text-xs font-bold text-white">Express Counter Pickup</h4>
-                      <p className="text-[11px] text-slate-400 leading-snug">Order ahead from your phone; your packed bag is ready at counter.</p>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">Express Counter Pickup</h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">Order ahead from your phone; your packed bag is ready at counter.</p>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/80 space-y-2">
+                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-2">
                       <div className="h-9 w-9 rounded-xl bg-brand-emerald/15 text-brand-emerald flex items-center justify-center">
                         <CheckCircle2 className="h-4.5 w-4.5" />
                       </div>
-                      <h4 className="text-xs font-bold text-white">Digital Paperless Bills</h4>
-                      <p className="text-[11px] text-slate-400 leading-snug">All your purchase receipts safely archived in your pocket app.</p>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">Digital Paperless Bills</h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">All your purchase receipts safely archived in your pocket app.</p>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/80 space-y-2">
-                      <div className="h-9 w-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
+                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-2">
+                      <div className="h-9 w-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
                         <Star className="h-4.5 w-4.5" />
                       </div>
-                      <h4 className="text-xs font-bold text-white">Loyalty & Cashback</h4>
-                      <p className="text-[11px] text-slate-400 leading-snug">Earn reward points on every transaction and redeem on next visit.</p>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">Loyalty & Cashback</h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">Earn reward points on every transaction and redeem on next visit.</p>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/80 space-y-2">
-                      <div className="h-9 w-9 rounded-xl bg-sky-500/15 text-sky-400 flex items-center justify-center">
+                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-2">
+                      <div className="h-9 w-9 rounded-xl bg-sky-500/15 text-sky-500 flex items-center justify-center">
                         <BookOpen className="h-4.5 w-4.5" />
                       </div>
-                      <h4 className="text-xs font-bold text-white">Transparent Khata</h4>
-                      <p className="text-[11px] text-slate-400 leading-snug">Live balance ledger, zero disputes, and easy UPI payment settlement.</p>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">Transparent Khata</h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">Live balance ledger, zero disputes, and easy UPI payment settlement.</p>
                     </div>
                   </div>
                 </div>
@@ -1134,7 +1175,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                       </button>
                     </div>
 
-                    <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white leading-tight tracking-tight">
+                    <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
                       Manage Every Aspect of Your{" "}
                       <span className="bg-gradient-to-r from-brand-orange via-amber-400 to-brand-emerald bg-clip-text text-transparent">
                         Business.
@@ -1142,7 +1183,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                       Big or Small.
                     </h2>
 
-                    <p className="text-xs sm:text-sm text-slate-300 font-normal leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-normal leading-relaxed">
                       Chhote kirana dukaan se lekar multi-outlet supermarket & wholesale networks tak — express barcode billing, real-time inventory, GST invoices aur customer khata ek hi powerful platform par.
                     </p>
                   </div>
@@ -1459,22 +1500,22 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
             </div>
 
             {/* Bottom Trust & Verification Row */}
-            <div className="relative z-10 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-400 text-xs">
+            <div className="relative z-10 pt-4 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-500 dark:text-slate-400 text-xs">
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-2">
-                  <span className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-950 bg-brand-orange text-[9px] font-bold text-white flex items-center justify-center">R</span>
-                  <span className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-950 bg-emerald-600 text-[9px] font-bold text-white flex items-center justify-center">S</span>
-                  <span className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-950 bg-sky-600 text-[9px] font-bold text-white flex items-center justify-center">M</span>
+                  <span className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-slate-950 bg-brand-orange text-[9px] font-bold text-white flex items-center justify-center shadow-sm">R</span>
+                  <span className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-slate-950 bg-emerald-600 text-[9px] font-bold text-white flex items-center justify-center shadow-sm">S</span>
+                  <span className="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-slate-950 bg-sky-600 text-[9px] font-bold text-white flex items-center justify-center shadow-sm">M</span>
                 </div>
                 <div>
-                  <span className="font-bold text-white">10,000+ Stores</span>
-                  <span className="text-slate-500 text-[11px] ml-1.5">• 4.9 ★★★★★ Rating</span>
+                  <span className="font-bold text-slate-900 dark:text-white">10,000+ Stores</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] ml-1.5">• 4.9 ★★★★★ Rating</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 text-[11px] font-medium text-slate-400">
-                <span className="inline-flex items-center gap-1">
-                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> ISO 27001
+              <div className="flex items-center gap-3 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" /> ISO 27001
                 </span>
                 <span>•</span>
                 <span>256-bit SSL</span>
@@ -1485,21 +1526,47 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
           </div>
 
           {/* RIGHT PANE (42%): FOCUSED LUXURY AUTH SUITE */}
-          <div className="w-full lg:w-[44%] xl:w-[42%] min-h-screen flex flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-14 bg-slate-950/95 backdrop-blur-2xl relative">
-            {/* Top Role Header */}
-            <div className="flex items-center justify-end">
-              <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-400">
-                {role === "CUSTOMER" ? "Customer Portal" : "Merchant Store Portal"}
-              </span>
+          <div className="w-full lg:w-[44%] xl:w-[42%] min-h-screen flex flex-col justify-between p-4 sm:p-8 lg:p-10 xl:p-12 bg-slate-50/70 dark:bg-slate-950/95 backdrop-blur-2xl relative transition-colors overflow-hidden">
+            {/* Subtle Ambient Glows for Right Pane */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-brand-emerald/5 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-80 h-80 bg-brand-orange/5 dark:bg-brand-orange/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Top Role Header & Theme Toggle */}
+            <div className="flex items-center justify-between w-full relative z-10">
+              {/* Mobile QuickBizs Branding (Visible only on mobile when left pane is hidden) */}
+              <div className="flex lg:hidden items-center gap-2.5">
+                <img src={logo} alt="QuickBizs Logo" className="h-8 w-8 rounded-xl object-cover shadow-sm ring-1 ring-slate-200 dark:ring-white/10" />
+                <div className="flex flex-col">
+                  <span className="text-base font-black text-slate-900 dark:text-white leading-tight">
+                    Quick<span className="text-brand-orange">Bizs</span>
+                  </span>
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                    Store Portal
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 ml-auto">
+                {/* Theme Toggle Button */}
+                <button
+                  type="button"
+                  onClick={handleToggleTheme}
+                  aria-label="Toggle theme"
+                  className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer shadow-sm hover:shadow"
+                  title={currentTheme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                >
+                  {currentTheme === "dark" ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
+                </button>
+              </div>
             </div>
 
-            {/* Center Authentication Card */}
-            <div className="my-auto py-8 sm:py-10 max-w-md w-full mx-auto space-y-6">
+            {/* Center Authentication Card: ELEVATED LUXURY CARD */}
+            <div className="my-auto py-6 sm:py-8 max-w-md w-full mx-auto space-y-5 bg-white dark:bg-slate-900/60 p-6 sm:p-8 rounded-3xl border border-slate-200/90 dark:border-slate-800/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.06)] dark:shadow-2xl backdrop-blur-sm relative z-10">
               <div className="space-y-1.5">
-                <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                   {role === "CUSTOMER" ? "Welcome Shopper 👋" : "Welcome Back 👋"}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
                   {role === "CUSTOMER" 
                     ? "Sign in to track orders, digital bills and earn cashback."
                     : "Sign in to access your billing counter, stock and khata ledger."
@@ -1508,7 +1575,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
               </div>
 
               {/* Segmented Control Switcher (Password vs Email OTP) */}
-              <div className="grid grid-cols-2 p-1 bg-slate-900 border border-slate-800 rounded-xl gap-1">
+              <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl gap-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -1519,8 +1586,8 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                   }}
                   className={`py-2 px-3 text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
                     (role === "CUSTOMER" ? customerAuthMethod : merchantAuthMethod) === "PASSWORD"
-                      ? "bg-slate-800 text-white shadow-sm"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm border border-slate-200/60 dark:border-slate-700/60"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                   }`}
                 >
                   <Lock className="h-3.5 w-3.5" />
@@ -1537,9 +1604,9 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                   className={`py-2 px-3 text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
                     (role === "CUSTOMER" ? customerAuthMethod : merchantAuthMethod) === "EMAIL_OTP"
                       ? (role === "CUSTOMER" 
-                          ? "bg-brand-orange/20 text-brand-orange border border-brand-orange/40 shadow-sm"
-                          : "bg-brand-emerald/20 text-brand-emerald border border-brand-emerald/40 shadow-sm")
-                      : "text-slate-400 hover:text-slate-200"
+                          ? "bg-brand-orange/15 text-brand-orange border border-brand-orange/30 shadow-sm"
+                          : "bg-brand-emerald/15 text-brand-emerald border border-brand-emerald/30 shadow-sm")
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                   }`}
                 >
                   <Mail className="h-3.5 w-3.5" />
@@ -1549,15 +1616,15 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
 
               {/* Error Alert */}
               {errorDetails && (
-                <div className="bg-rose-950/40 border border-rose-800/80 p-3.5 rounded-2xl flex gap-2.5 text-xs text-rose-200 leading-relaxed shadow-sm">
-                  <AlertCircle className="h-4.5 w-4.5 text-rose-400 shrink-0 mt-0.5" />
+                <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 p-3.5 rounded-2xl flex gap-2.5 text-xs text-rose-800 dark:text-rose-200 leading-relaxed shadow-sm">
+                  <AlertCircle className="h-4.5 w-4.5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
                   <span>{errorDetails}</span>
                 </div>
               )}
 
               {/* OTP Success Alert */}
               {otpSuccessMsg && (
-                <div className="bg-emerald-950/40 border border-emerald-800/80 p-3.5 rounded-2xl flex gap-2.5 text-xs text-emerald-200 leading-relaxed shadow-sm">
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 p-3.5 rounded-2xl flex gap-2.5 text-xs text-emerald-800 dark:text-emerald-200 leading-relaxed shadow-sm">
                   <CheckCircle2 className="h-4.5 w-4.5 text-brand-emerald shrink-0 mt-0.5" />
                   <span>{otpSuccessMsg}</span>
                 </div>
@@ -1755,17 +1822,17 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                   {merchantAuthMethod === "PASSWORD" ? (
                     <form onSubmit={merchLoginForm.handleSubmit(onMerchantLogin)} className="space-y-4">
                       <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider block mb-1">
                           Store Email, Mobile or Admin ID
                         </label>
                         <div className="relative">
-                          <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                          <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
                           <input
                             type="text"
                             {...merchLoginForm.register("identifier")}
                             placeholder="e.g. admin@quickbizs.com"
                             disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors shadow-inner"
+                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-colors shadow-sm"
                           />
                         </div>
                         {merchLoginForm.formState.errors.identifier && (
@@ -1777,7 +1844,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
 
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">
                             Password
                           </label>
                           <button
@@ -1792,18 +1859,18 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                           </button>
                         </div>
                         <div className="relative">
-                          <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                          <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
                           <input
                             type={showPassword ? "text" : "password"}
                             {...merchLoginForm.register("password")}
                             placeholder="••••••••"
                             disabled={isLoading}
-                            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors shadow-inner"
+                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-colors shadow-sm"
                           />
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-3.5 text-slate-500 hover:text-slate-300"
+                            className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-pointer"
                           >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
@@ -1818,7 +1885,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full py-3.5 bg-gradient-to-r from-brand-emerald to-emerald-600 hover:from-emerald-500 hover:to-brand-emerald text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+                        className="w-full py-3.5 bg-gradient-to-r from-brand-emerald to-emerald-600 hover:from-emerald-500 hover:to-brand-emerald text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
                       >
                         {isLoading ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -1841,21 +1908,21 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                           className="space-y-4"
                         >
                           <div>
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                            <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider block mb-1">
                               Registered Store Email Address
                             </label>
                             <div className="relative">
-                              <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                              <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
                               <input
                                 type="email"
                                 value={otpEmail}
                                 onChange={(e) => setOtpEmail(e.target.value)}
                                 placeholder="e.g. merchant@quickbizs.com"
                                 disabled={isSendingOtp}
-                                className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors shadow-inner"
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-colors shadow-sm"
                               />
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-1">
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                               We will send a secure 6-digit verification code to this inbox.
                             </p>
                           </div>
@@ -1883,10 +1950,10 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                           }}
                           className="space-y-4"
                         >
-                          <div className="flex items-center justify-between text-xs text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                          <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-900/80 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                             <div className="flex items-center gap-2 overflow-hidden">
                               <Mail className="h-3.5 w-3.5 text-brand-emerald shrink-0" />
-                              <span className="truncate max-w-[190px] font-medium text-slate-200">{otpEmail}</span>
+                              <span className="truncate max-w-[190px] font-medium text-slate-800 dark:text-slate-200">{otpEmail}</span>
                             </div>
                             <button
                               type="button"
@@ -1902,11 +1969,11 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                           </div>
 
                           <div>
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                            <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider block mb-1">
                               Enter 6-Digit Code
                             </label>
                             <div className="relative">
-                              <ShieldCheck className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                              <ShieldCheck className="absolute left-4 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
                               <input
                                 type="text"
                                 maxLength={6}
@@ -1915,10 +1982,10 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                                 placeholder="------"
                                 autoFocus
                                 disabled={isVerifyingOtp}
-                                className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-center tracking-[0.4em] font-mono text-base font-bold text-white placeholder-slate-600 focus:outline-none transition-colors"
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-center tracking-[0.4em] font-mono text-base font-bold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-colors"
                               />
                             </div>
-                            <p className="text-[10px] text-slate-400 text-center mt-1.5">
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center mt-1.5">
                               Tip: Check your <strong>Spam / Junk</strong> folder if not in Inbox.
                             </p>
                           </div>
@@ -1940,7 +2007,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                           <div className="text-center pt-1">
                             {otpCountdown > 0 ? (
                               <span className="text-[11px] text-slate-500 font-medium">
-                                Resend code in <strong className="text-slate-300">{otpCountdown}s</strong>
+                                Resend code in <strong className="text-slate-700 dark:text-slate-300">{otpCountdown}s</strong>
                               </span>
                             ) : (
                               <button
@@ -1961,7 +2028,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
               )}
 
               {/* Link to Registration Wizard */}
-              <div className="text-center pt-2 border-t border-slate-800/80">
+              <div className="text-center pt-2 border-t border-slate-200 dark:border-slate-800/80">
                 {role === "MERCHANT" ? (
                   <button
                     onClick={() => {
@@ -1970,8 +2037,8 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                     }}
                     className="text-xs text-brand-emerald hover:underline font-bold cursor-pointer inline-flex items-center gap-1.5"
                   >
-                    <span className="text-slate-400">Don't have a registered store?</span>
-                    <span className="text-brand-emerald underline">Setup Wizard →</span>
+                    <span className="text-slate-500 dark:text-slate-400">Don't have a registered store?</span>
+                    <span className="text-brand-emerald underline font-extrabold">Setup Wizard →</span>
                   </button>
                 ) : (
                   <button
@@ -1981,8 +2048,8 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                     }}
                     className="text-xs text-brand-orange hover:underline font-bold cursor-pointer inline-flex items-center gap-1.5"
                   >
-                    <span className="text-slate-400">Need help signing in?</span>
-                    <span className="text-brand-orange underline">Contact Support →</span>
+                    <span className="text-slate-500 dark:text-slate-400">Need help signing in?</span>
+                    <span className="text-brand-orange underline font-extrabold">Contact Support →</span>
                   </button>
                 )}
               </div>
@@ -1990,11 +2057,11 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
 
             {/* Bottom Security & Privacy Footnote */}
             <div className="text-center space-y-1 text-[11px] text-slate-500 font-medium">
-              <p className="flex items-center justify-center gap-1.5 text-slate-400">
-                <Lock className="h-3 w-3 text-emerald-400" />
+              <p className="flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400">
+                <Lock className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
                 <span>End-to-End Encrypted Session • Multi-Tenant Isolated</span>
               </p>
-              <p className="text-[10px] text-slate-600">
+              <p className="text-[10px] text-slate-400 dark:text-slate-600">
                 © 2026 QuickBizs Technologies Inc. All rights reserved.
               </p>
             </div>
@@ -2002,14 +2069,14 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
         </div>
       ) : (
         // =========================================================================
-        // MULTI-STEP STORE SETUP WIZARD (REGISTER MODE - SPACIOUS 2-COLUMN LAYOUT)
+        // MULTI-STEP STORE SETUP WIZARD (REGISTER MODE - EXPANSIVE FULL-WIDTH LAYOUT)
         // =========================================================================
-        <div className="flex-1 flex flex-col justify-between p-6 sm:p-12 z-10 min-h-screen">
-          <header className="flex items-center justify-between w-full max-w-7xl mx-auto">
+        <div className="flex-1 flex flex-col justify-between p-2.5 sm:p-6 lg:p-8 z-10 min-h-screen w-full">
+          <header className="flex items-center justify-between w-full pb-2">
             <div className="flex items-center gap-3">
               <img src={logo} alt="QuickBizs Logo" className="h-9 w-9 rounded-xl object-cover shadow-lg" />
               <div>
-                <h1 className="text-xl font-extrabold text-white tracking-tight">
+                <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                   Quick<span className="text-brand-orange">Bizs</span>
                 </h1>
                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
@@ -2017,196 +2084,111 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                 </span>
               </div>
             </div>
-            <button 
-              onClick={() => {
-                setMode("LOGIN");
-                setErrorDetails(null);
-              }}
-              className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900/60"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Back to Sign In</span>
-            </button>
+
+            <div className="flex items-center gap-2.5">
+              {/* Theme Toggle Button */}
+              <button
+                type="button"
+                onClick={handleToggleTheme}
+                aria-label="Toggle theme"
+                className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer shadow-sm"
+                title={currentTheme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
+                {currentTheme === "dark" ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
+              </button>
+
+              <button 
+                onClick={() => {
+                  setMode("LOGIN");
+                  setErrorDetails(null);
+                }}
+                className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-sm whitespace-nowrap shrink-0"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Sign In</span>
+              </button>
+            </div>
           </header>
 
-          <main className="w-full max-w-7xl mx-auto my-auto py-6 sm:py-8 transition-all duration-500">
+          <main className="w-full flex-1 my-auto py-3 sm:py-6 transition-all duration-300">
             <AnimatePresence mode="wait">
-              {/* MERCHANT REGISTER MODE (WIDESCREEN 2-COLUMN SHOWCASE & SPATIOUS LAYOUT) */}
+              {/* MERCHANT REGISTER MODE (EXPANSIVE FULL WIDTH WIZARD) */}
               {role === "MERCHANT" && mode === "REGISTER" && (
                 <motion.div
                   key="merchant-register"
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.35, ease: "easeOut" }}
-                  className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full"
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/90 rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 lg:p-10 shadow-xl sm:shadow-2xl space-y-4 sm:space-y-6 relative pb-24 sm:pb-8"
                 >
-                  {/* Left Column: Interactive Store Preview & Value Proposition (Desktop Only) */}
-                  <div className="hidden lg:flex lg:col-span-5 flex-col gap-6 sticky top-8">
-                    {/* Ambient Glassmorphism Showcase Card */}
-                    <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/50 backdrop-blur-xl p-8 shadow-2xl space-y-6">
-                      {/* Decorative Background Glows */}
-                      <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
-                      <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-brand-orange/15 rounded-full blur-3xl pointer-events-none" />
-
-                      {/* Header Badge */}
-                      <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[11px] font-bold tracking-wide">
-                          <Sparkles className="h-3.5 w-3.5" />
-                          {selectedHighlight.badge}
-                        </span>
-                        <span className="text-[11px] font-bold text-slate-500 tracking-wide uppercase">
-                          QuickBizs OS
-                        </span>
-                      </div>
-
-                      {/* Dynamic Store Headline */}
-                      <div className="space-y-2">
-                        <h2 className="text-2xl font-black text-white leading-tight">
-                          Built specifically for your <span className="text-brand-emerald">{selectedCategory.label}</span>.
-                        </h2>
-                        <p className="text-xs text-slate-400 font-medium leading-relaxed">
-                          {selectedHighlight.tag}. Customized POS shortcuts, specialized attributes, and automated GST billing out of the box.
-                        </p>
-                      </div>
-
-                      {/* Live Store Feature Spotlight */}
-                      <motion.div 
-                        key={businessType}
-                        initial={{ opacity: 0, scale: 0.96 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.25 }}
-                        className="p-5 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 shadow-inner space-y-4"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="h-11 w-11 rounded-xl bg-brand-emerald/20 border border-brand-emerald/40 text-brand-emerald flex items-center justify-center shrink-0 shadow-lg">
-                            <SelectedCategoryIcon className="h-5 w-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <h4 className="text-sm font-black text-white truncate">{selectedCategory.label}</h4>
-                            <p className="text-[10px] text-brand-emerald font-semibold">{sellingMode} Active</p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2.5 pt-2 border-t border-emerald-900/40">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Features Enabled for This Store:</p>
-                          {selectedHighlight.highlights.map((feat, idx) => (
-                            <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-300 font-medium">
-                              <span className="h-4.5 w-4.5 rounded-full bg-emerald-500/20 text-brand-emerald flex items-center justify-center shrink-0 border border-emerald-500/30">
-                                <Check className="h-2.5 w-2.5 stroke-[3]" />
-                              </span>
-                              <span className="truncate">{feat}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </motion.div>
-
-                      {/* Quick Metrics Bar */}
-                      <div className="grid grid-cols-3 gap-3 pt-1">
-                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-center">
-                          <p className="text-brand-emerald font-black text-sm">0.3s</p>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Express POS</p>
-                        </div>
-                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-center">
-                          <p className="text-brand-orange font-black text-sm">100%</p>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Offline Ready</p>
-                        </div>
-                        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-center">
-                          <p className="text-teal-400 font-black text-sm">GST</p>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Ready Invoices</p>
-                        </div>
-                      </div>
-
-                      {/* Trust & Rating Footnote */}
-                      <div className="flex items-center gap-3 pt-3 border-t border-slate-800/80">
-                        <div className="flex -space-x-2 overflow-hidden">
-                          <div className="inline-block h-7 w-7 rounded-full ring-2 ring-slate-900 bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white">R</div>
-                          <div className="inline-block h-7 w-7 rounded-full ring-2 ring-slate-900 bg-brand-orange flex items-center justify-center text-[10px] font-bold text-white">V</div>
-                          <div className="inline-block h-7 w-7 rounded-full ring-2 ring-slate-900 bg-teal-600 flex items-center justify-center text-[10px] font-bold text-white">M</div>
-                        </div>
-                        <div className="text-[11px] text-slate-400 font-medium">
-                          <div className="flex items-center gap-1 text-amber-400">
-                            {[...Array(5)].map((_, i) => (
-                              <Star key={i} className="h-3 w-3 fill-amber-400" />
-                            ))}
-                          </div>
-                          <span>Trusted by 10,000+ merchants in India</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Spacious & Structured Registration Form */}
-                  <div className="lg:col-span-7 bg-slate-950 border border-slate-800/90 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6 relative">
                     
                     {/* Stepper Tabs Bar */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
-                      <div className="flex items-center gap-3">
-                        <button 
-                          onClick={handleBackToRole}
-                          className="p-2.5 border border-slate-800 hover:bg-slate-900 text-slate-400 hover:text-white rounded-xl transition-colors cursor-pointer"
-                        >
-                          <ArrowLeft className="h-4 w-4" />
-                        </button>
-                        <div>
-                          <span className="text-[10px] text-brand-emerald font-bold uppercase tracking-wider flex items-center gap-1.5">
-                            <span className="h-1.5 w-1.5 rounded-full bg-brand-emerald animate-pulse" />
-                            Merchant Store Setup
-                          </span>
-                          <h3 className="text-xl font-black text-white leading-tight mt-0.5">
-                            {registerStep === 1 ? "Select Business Category" : "Store & Owner Account"}
-                          </h3>
-                        </div>
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800/80 pb-3 sm:pb-4">
+                      <div className="flex items-center gap-2.5">
+                        {registerStep === 2 && (
+                          <button 
+                            type="button"
+                            onClick={() => setRegisterStep(1)}
+                            className="p-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl transition-colors cursor-pointer"
+                            title="Back to Category"
+                          >
+                            <ArrowLeft className="h-4 w-4" />
+                          </button>
+                        )}
+                        <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white">
+                          {registerStep === 1 ? "Select Category" : "Store Details"}
+                        </h3>
                       </div>
 
                       {/* Visual 2-Step Stepper */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
                         <button
                           type="button"
                           onClick={() => setRegisterStep(1)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                             registerStep === 1 
                               ? "bg-brand-emerald/15 text-brand-emerald border border-brand-emerald/40 shadow-sm"
-                              : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                              : "bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                           }`}
                         >
-                          <span className={`h-5 w-5 rounded-full text-[10px] font-black flex items-center justify-center ${
-                            registerStep === 1 ? "bg-brand-emerald text-slate-950" : "bg-slate-800 text-slate-300"
+                          <span className={`h-4 w-4 sm:h-5 sm:w-5 rounded-full text-[10px] font-black flex items-center justify-center ${
+                            registerStep === 1 ? "bg-brand-emerald text-slate-950" : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                           }`}>
                             1
                           </span>
-                          <span>1. Trade Category</span>
+                          <span>Category</span>
                         </button>
 
-                        <div className={`h-0.5 w-3 sm:w-6 rounded transition-all ${registerStep === 2 ? "bg-brand-emerald" : "bg-slate-800"}`} />
+                        <div className={`h-0.5 w-3 sm:w-6 rounded transition-all ${registerStep === 2 ? "bg-brand-emerald" : "bg-slate-200 dark:bg-slate-800"}`} />
 
                         <button
                           type="button"
                           onClick={() => setRegisterStep(2)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                             registerStep === 2 
                               ? "bg-brand-emerald/15 text-brand-emerald border border-brand-emerald/40 shadow-sm"
-                              : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                              : "bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                           }`}
                         >
-                          <span className={`h-5 w-5 rounded-full text-[10px] font-black flex items-center justify-center ${
-                            registerStep === 2 ? "bg-brand-emerald text-slate-950" : "bg-slate-800 text-slate-300"
+                          <span className={`h-4 w-4 sm:h-5 sm:w-5 rounded-full text-[10px] font-black flex items-center justify-center ${
+                            registerStep === 2 ? "bg-brand-emerald text-slate-950" : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                           }`}>
                             2
                           </span>
-                          <span>2. Store Details</span>
+                          <span>Details</span>
                         </button>
                       </div>
                     </div>
 
                     {errorDetails && (
-                      <div className="bg-rose-950/40 border border-rose-800/80 p-4 rounded-2xl flex gap-3 text-xs text-rose-200 leading-relaxed">
-                        <AlertCircle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
+                      <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 p-4 rounded-2xl flex gap-3 text-xs text-rose-800 dark:text-rose-200 leading-relaxed shadow-sm">
+                        <AlertCircle className="h-5 w-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
                         <span>{errorDetails}</span>
                       </div>
                     )}
 
-                    {/* STEP 1: DEDICATED BUSINESS CATEGORY & OPERATING MODE SECTION */}
+                    {/* STEP 1: DEDICATED BUSINESS CATEGORY & OPERATING MODE SECTION (FULL WIDTH) */}
                     {registerStep === 1 && (
                       <motion.div
                         key="step-category"
@@ -2217,28 +2199,25 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                         className="space-y-6"
                       >
                         {/* Sector Filter Bar */}
-                        <div className="space-y-3">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                            <div>
-                              <h4 className="text-sm font-black text-slate-200">Browse by Industry Sector</h4>
-                              <p className="text-[11px] text-slate-400">Select your trade to load specialized custom fields and POS configurations</p>
-                            </div>
+                        <div className="space-y-2.5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Industry Sector</span>
 
                             {/* Quick Search */}
-                            <div className="relative w-full sm:w-60">
-                              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-500" />
+                            <div className="relative w-full sm:w-64">
+                              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
                               <input
                                 type="text"
                                 value={categorySearch}
                                 onChange={(e) => setCategorySearch(e.target.value)}
-                                placeholder="Search 28+ categories..."
-                                className="w-full bg-slate-900/90 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-8 pr-3 py-2 text-[11px] text-slate-200 placeholder-slate-500 focus:outline-none transition-colors"
+                                placeholder="Search category..."
+                                className="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-colors"
                               />
                             </div>
                           </div>
 
                           {/* Sector Filter Pills */}
-                          <div className="flex items-center gap-2 overflow-x-auto pb-1.5 custom-scrollbar">
+                          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
                             {CATEGORY_SECTORS.map((sector) => {
                               const SectorIcon = sector.icon;
                               const isActive = activeSector === sector.id;
@@ -2249,8 +2228,8 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                                   onClick={() => setActiveSector(sector.id)}
                                   className={`px-3 py-1.5 rounded-xl border text-xs font-bold shrink-0 flex items-center gap-1.5 transition-all cursor-pointer ${
                                     isActive
-                                      ? "bg-brand-emerald text-slate-950 border-brand-emerald font-black shadow-md shadow-emerald-500/20"
-                                      : "bg-slate-900/90 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                                      ? "bg-brand-emerald text-slate-950 border-brand-emerald font-black shadow-sm"
+                                      : "bg-slate-50 dark:bg-slate-900/90 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
                                   }`}
                                 >
                                   <SectorIcon className="h-3.5 w-3.5" />
@@ -2261,10 +2240,14 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                           </div>
                         </div>
 
-                        {/* Category Cards Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[340px] overflow-y-auto pr-2 custom-scrollbar p-0.5">
-                          {filteredCategories.length > 0 ? (
-                            filteredCategories.map((cat) => {
+                        {/* Category Cards Grid: EXPANSIVE RESPONSIVE FULL WIDTH GRID */}
+                        <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 p-0.5 ${
+                          (showAllCategories || categorySearch || activeSector !== "ALL") 
+                            ? "max-h-[340px] sm:max-h-[440px] overflow-y-auto pr-1.5 custom-scrollbar" 
+                            : ""
+                        }`}>
+                          {displayedCategories.length > 0 ? (
+                            displayedCategories.map((cat) => {
                               const Icon = cat.icon;
                               const isSelected = businessType === cat.id;
                               return (
@@ -2272,14 +2255,14 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                                   type="button"
                                   key={cat.id}
                                   onClick={() => setBusinessType(cat.id)}
-                                  className={`flex items-start gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative group ${
+                                  className={`flex items-start gap-2.5 p-2.5 sm:p-3 rounded-2xl border text-left transition-all cursor-pointer relative group ${
                                     isSelected
-                                      ? "bg-emerald-500/15 border-brand-emerald text-white shadow-lg ring-1 ring-brand-emerald"
-                                      : "bg-slate-900/70 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200 hover:bg-slate-900"
+                                      ? "bg-emerald-50 dark:bg-emerald-500/15 border-brand-emerald text-emerald-950 dark:text-white shadow-sm ring-1 ring-brand-emerald"
+                                      : "bg-slate-50 dark:bg-slate-900/70 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-900"
                                   }`}
                                 >
-                                  <div className={`p-2 rounded-xl shrink-0 transition-transform group-hover:scale-105 ${
-                                    isSelected ? "bg-brand-emerald text-slate-950 font-bold" : "bg-slate-800 text-slate-400"
+                                  <div className={`p-1.5 sm:p-2 rounded-xl shrink-0 transition-transform group-hover:scale-105 ${
+                                    isSelected ? "bg-brand-emerald text-slate-950 font-bold" : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-transparent"
                                   }`}>
                                     <Icon className="h-4 w-4" />
                                   </div>
@@ -2288,67 +2271,94 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                                       <p className="text-xs font-bold leading-tight truncate">{cat.label}</p>
                                       {isSelected && <Check className="h-3.5 w-3.5 text-brand-emerald shrink-0 ml-1" />}
                                     </div>
-                                    <p className="text-[10px] text-slate-500 line-clamp-1 mt-1">{cat.desc}</p>
+                                    <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">{cat.desc}</p>
                                   </div>
                                 </button>
                               );
                             })
                           ) : (
-                            <div className="col-span-full py-8 text-center text-xs text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800">
-                              No categories found in this sector matching "{categorySearch}".
+                            <div className="col-span-full py-8 text-center text-xs text-slate-500 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200 dark:border-slate-800">
+                              No categories found matching "{categorySearch}".
                             </div>
                           )}
                         </div>
 
-                        {/* Operating Mode Selector */}
-                        <div className="space-y-3 pt-4 border-t border-slate-900">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider">Choose Operating Mode</h4>
-                            <span className="text-[10px] font-semibold text-brand-emerald">B2C • B2B • Mixed</span>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                            {[
-                              { id: "Retail Store", label: "Retail (B2C)", desc: "Counter POS & Barcodes" },
-                              { id: "Wholesale", label: "Wholesale (B2B)", desc: "Bulk Cartons & Credit Khata" },
-                              { id: "Mixed Mode", label: "Mixed Store", desc: "B2C Retail & B2B Wholesale" }
-                            ].map((modeOpt) => (
+                        {/* Expand / Collapse All 28+ Categories Toggle */}
+                        {(!categorySearch && activeSector === "ALL") && (
+                          <div className="pt-0.5">
+                            {!showAllCategories ? (
                               <button
                                 type="button"
-                                key={modeOpt.id}
-                                onClick={() => setSellingMode(modeOpt.id)}
-                                className={`py-3 px-3.5 text-left rounded-xl border transition-all cursor-pointer ${
-                                  sellingMode === modeOpt.id
-                                    ? "bg-brand-emerald/15 border-brand-emerald text-white shadow-sm ring-1 ring-brand-emerald"
-                                    : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
-                                }`}
+                                onClick={() => setShowAllCategories(true)}
+                                className="w-full py-2 px-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 hover:border-brand-emerald text-slate-600 dark:text-slate-400 hover:text-brand-emerald text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-slate-50/60 dark:bg-slate-900/40"
                               >
-                                <div className="flex items-center justify-between">
-                                  <p className="text-xs font-bold">{modeOpt.label}</p>
-                                  {sellingMode === modeOpt.id && <Check className="h-3.5 w-3.5 text-brand-emerald" />}
-                                </div>
-                                <p className="text-[10px] text-slate-500 mt-0.5">{modeOpt.desc}</p>
+                                <span>Browse all 28+ categories</span>
+                                <ChevronDown className="h-3.5 w-3.5" />
                               </button>
-                            ))}
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setShowAllCategories(false)}
+                                className="w-full py-1 px-3 text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                              >
+                                <span>Show top categories only ↑</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Operating Mode Selector */}
+                        <div className="space-y-1.5 pt-3 border-t border-slate-200 dark:border-slate-800/80">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-300">Selling Mode</span>
+                            <span className="text-[10px] text-brand-emerald font-semibold hidden sm:inline">B2C • B2B • Mixed</span>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: "Retail Store", label: "Retail (B2C)", desc: "Counter POS" },
+                              { id: "Wholesale", label: "Wholesale", desc: "Bulk & Khata" },
+                              { id: "Mixed Mode", label: "Mixed Store", desc: "Retail + Bulk" }
+                            ].map((modeOpt) => {
+                              const isSel = sellingMode === modeOpt.id;
+                              return (
+                                <button
+                                  type="button"
+                                  key={modeOpt.id}
+                                  onClick={() => setSellingMode(modeOpt.id)}
+                                  className={`p-2.5 sm:p-3 text-center sm:text-left rounded-xl border transition-all cursor-pointer ${
+                                    isSel
+                                      ? "bg-emerald-50 dark:bg-brand-emerald/15 border-brand-emerald text-emerald-950 dark:text-white ring-1 ring-brand-emerald shadow-sm font-bold"
+                                      : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-900 dark:hover:text-slate-200"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-center sm:justify-between">
+                                    <p className="text-xs font-bold leading-tight">{modeOpt.label}</p>
+                                    {isSel && <Check className="h-3.5 w-3.5 text-brand-emerald shrink-0 hidden sm:block ml-1" />}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 mt-0.5 hidden sm:block">{modeOpt.desc}</p>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
 
-                        {/* Step 1 Action Bar */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-slate-800/80">
-                          <div className="flex items-center gap-2 text-xs text-slate-400">
-                            <span className="text-slate-500 font-medium">Selected Trade:</span>
-                            <span className="font-bold text-white bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-1.5">
-                              <SelectedCategoryIcon className="h-3.5 w-3.5 text-brand-emerald" />
-                              {selectedCategory.label} • {sellingMode}
+                        {/* Step 1 Action Bar - Sticky on Mobile */}
+                        <div className="fixed sm:static bottom-0 left-0 right-0 z-30 p-3 sm:p-0 bg-white/95 dark:bg-slate-950/95 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border-t border-slate-200 dark:border-slate-800 sm:border-0 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.08)] sm:shadow-none flex items-center justify-between gap-3 sm:pt-4 sm:border-t sm:border-slate-200 sm:dark:border-slate-800/80">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-slate-500 text-[11px] sm:text-xs font-medium shrink-0 hidden xs:inline">Selected:</span>
+                            <span className="font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-1.5 shadow-sm text-xs truncate max-w-[200px] sm:max-w-none">
+                              <SelectedCategoryIcon className="h-3.5 w-3.5 text-brand-emerald shrink-0" />
+                              <span className="truncate">{selectedCategory.label}</span>
                             </span>
                           </div>
 
                           <button
                             type="button"
                             onClick={() => setRegisterStep(2)}
-                            className="px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_-5px_rgba(16,185,129,0.4)] active:scale-[0.98] transition-all cursor-pointer group"
+                            className="px-6 py-2.5 sm:py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all cursor-pointer group shrink-0"
                           >
-                            <span>Continue to Store Setup</span>
+                            <span>Next</span>
                             <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                           </button>
                         </div>
@@ -2366,28 +2376,28 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                         className="space-y-6"
                       >
                         {/* Selected Category Summary Banner */}
-                        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-brand-emerald/20 border border-brand-emerald/40 text-brand-emerald flex items-center justify-center shrink-0">
-                              <SelectedCategoryIcon className="h-5 w-5" />
+                        <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="h-9 w-9 rounded-xl bg-brand-emerald/15 border border-brand-emerald/30 text-brand-emerald flex items-center justify-center shrink-0">
+                              <SelectedCategoryIcon className="h-4 w-4" />
                             </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-black text-white">{selectedCategory.label}</p>
+                            <div className="truncate">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">{selectedCategory.label}</p>
                                 <span className="text-[10px] font-bold text-brand-emerald bg-brand-emerald/10 px-2 py-0.5 rounded-full border border-brand-emerald/20">
                                   {sellingMode}
                                 </span>
                               </div>
-                              <p className="text-[11px] text-slate-400 mt-0.5">Dynamic attributes & tax rules automatically configured</p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{selectedHighlight.badge} • {selectedHighlight.tag}</p>
                             </div>
                           </div>
 
                           <button
                             type="button"
                             onClick={() => setRegisterStep(1)}
-                            className="text-xs font-bold text-brand-emerald hover:underline cursor-pointer px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 transition-colors"
+                            className="text-xs font-bold text-brand-emerald hover:underline cursor-pointer px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/25 shrink-0"
                           >
-                            Change Category
+                            Change
                           </button>
                         </div>
 
@@ -2395,17 +2405,17 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                           {/* Owner & Business Name */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                              <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider block mb-1">
                                 Owner Name *
                               </label>
                               <div className="relative">
-                                <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                                <User className="absolute left-4 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
                                 <input
                                   type="text"
                                   {...merchRegisterForm.register("ownerName")}
                                   placeholder="e.g. Rishi Verma"
                                   disabled={isLoading}
-                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-colors"
                                 />
                               </div>
                               {merchRegisterForm.formState.errors.ownerName && (
@@ -2414,17 +2424,17 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                             </div>
 
                             <div>
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                              <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider block mb-1">
                                 Business / Store Name *
                               </label>
                               <div className="relative">
-                                <Store className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                                <Store className="absolute left-4 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
                                 <input
                                   type="text"
                                   {...merchRegisterForm.register("businessName")}
                                   placeholder="e.g. Verma Retail & Spares"
                                   disabled={isLoading}
-                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-colors"
                                 />
                               </div>
                               {merchRegisterForm.formState.errors.businessName && (
@@ -2436,17 +2446,17 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                           {/* Phone & Email */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                              <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider block mb-1">
                                 Store Phone (10 Digits) *
                               </label>
                               <div className="relative">
-                                <Phone className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                                <Phone className="absolute left-4 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
                                 <input
                                   type="text"
                                   {...merchRegisterForm.register("phone")}
                                   placeholder="e.g. 9876543210"
                                   disabled={isLoading}
-                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-colors"
                                 />
                               </div>
                               {merchRegisterForm.formState.errors.phone && (
@@ -2456,7 +2466,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
 
                             <div>
                               <div className="flex items-center justify-between mb-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">
                                   Store Email *
                                 </label>
                                 {regEmailVerified && (
@@ -2466,13 +2476,13 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                                 )}
                               </div>
                               <div className="relative">
-                                <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                                <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
                                 <input
                                   type="email"
                                   {...merchRegisterForm.register("email")}
                                   placeholder="e.g. store@verma.com"
                                   disabled={isLoading}
-                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-24 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-24 py-3 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-colors"
                                 />
                                 {!regEmailVerified && (
                                   <button
@@ -2482,7 +2492,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                                       handleSendRegOtp(emailVal);
                                     }}
                                     disabled={isSendingRegOtp}
-                                    className="absolute right-2 top-2 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-brand-emerald rounded-lg text-[10px] font-bold transition-colors cursor-pointer border border-brand-emerald/30"
+                                    className="absolute right-2 top-2 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-brand-emerald rounded-lg text-[10px] font-bold transition-colors cursor-pointer border border-brand-emerald/30 shadow-sm"
                                   >
                                     {isSendingRegOtp ? "Sending..." : regOtpSent ? "Resend OTP" : "Verify Email"}
                                   </button>
@@ -2493,12 +2503,12 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                               )}
 
                               {regOtpSuccessMsg && (
-                                <p className="text-[10px] text-emerald-400 font-medium mt-1">{regOtpSuccessMsg}</p>
+                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1">{regOtpSuccessMsg}</p>
                               )}
 
                               {regOtpSent && !regEmailVerified && (
-                                <div className="mt-2.5 p-3 rounded-xl bg-slate-900/90 border border-brand-emerald/30 space-y-2">
-                                  <div className="flex items-center justify-between text-[11px] text-slate-300">
+                                <div className="mt-2.5 p-3 rounded-xl bg-emerald-50/60 dark:bg-slate-900/90 border border-emerald-200 dark:border-brand-emerald/30 space-y-2">
+                                  <div className="flex items-center justify-between text-[11px] text-slate-700 dark:text-slate-300">
                                     <span>Enter 6-digit code sent to your email:</span>
                                     {regOtpCountdown > 0 && <span className="text-slate-500">{regOtpCountdown}s</span>}
                                   </div>
@@ -2509,7 +2519,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                                       value={regOtpCode}
                                       onChange={(e) => setRegOtpCode(e.target.value.replace(/\D/g, ""))}
                                       placeholder="123456"
-                                      className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-center font-mono text-sm tracking-widest text-white focus:outline-none focus:border-brand-emerald"
+                                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-center font-mono text-sm tracking-widest text-slate-900 dark:text-white focus:outline-none focus:border-brand-emerald"
                                     />
                                     <button
                                       type="button"
@@ -2518,7 +2528,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                                         const emailVal = merchRegisterForm.getValues("email");
                                         handleVerifyRegOtp(emailVal, regOtpCode);
                                       }}
-                                      className="px-3 py-1.5 bg-brand-emerald hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
+                                      className="px-3 py-1.5 bg-brand-emerald hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm"
                                     >
                                       {isVerifyingRegOtp ? "Verifying..." : "Confirm"}
                                     </button>
@@ -2530,17 +2540,17 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
 
                           {/* Business Address */}
                           <div>
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                            <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider block mb-1">
                               Business Address *
                             </label>
                             <div className="relative">
-                              <MapPin className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                              <MapPin className="absolute left-4 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
                               <input
                                 type="text"
                                 {...merchRegisterForm.register("address")}
                                 placeholder="e.g. Shop #4, Metro Market, Andheri East, Mumbai"
                                 disabled={isLoading}
-                                className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-4 py-3 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-colors"
                               />
                             </div>
                             {merchRegisterForm.formState.errors.address && (
@@ -2551,22 +2561,22 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                           {/* Password & Confirm Password */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                              <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider block mb-1">
                                 Password (Min 6 Characters) *
                               </label>
                               <div className="relative">
-                                <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                                <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
                                 <input
                                   type={showPassword ? "text" : "password"}
                                   {...merchRegisterForm.register("password")}
                                   placeholder="••••••••"
                                   disabled={isLoading}
-                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-colors"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => setShowPassword(!showPassword)}
-                                  className="absolute right-4 top-3.5 text-slate-500 hover:text-slate-300 cursor-pointer"
+                                  className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-pointer"
                                 >
                                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                 </button>
@@ -2577,17 +2587,17 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                             </div>
 
                             <div>
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                              <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider block mb-1">
                                 Confirm Password *
                               </label>
                               <div className="relative">
-                                <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
+                                <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
                                 <input
                                   type={showPassword ? "text" : "password"}
                                   {...merchRegisterForm.register("confirmPassword")}
                                   placeholder="••••••••"
                                   disabled={isLoading}
-                                  className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none transition-colors"
+                                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-brand-emerald rounded-xl pl-11 pr-11 py-3 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:bg-white dark:focus:bg-slate-900 transition-colors"
                                 />
                               </div>
                               {merchRegisterForm.formState.errors.confirmPassword && (
@@ -2596,27 +2606,27 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                             </div>
                           </div>
 
-                          {/* Action Buttons: Back and Submit */}
-                          <div className="flex items-center gap-3 pt-3">
+                          {/* Action Buttons: Back and Submit - Sticky on Mobile */}
+                          <div className="fixed sm:static bottom-0 left-0 right-0 z-30 p-3 sm:p-0 bg-white/95 dark:bg-slate-950/95 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border-t border-slate-200 dark:border-slate-800 sm:border-0 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.08)] sm:shadow-none flex items-center gap-3 sm:pt-4 sm:border-t sm:border-slate-200 sm:dark:border-slate-800/80">
                             <button
                               type="button"
                               onClick={() => setRegisterStep(1)}
-                              className="py-4 px-5 border border-slate-800 hover:bg-slate-900 text-slate-300 hover:text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                              className="py-2.5 px-3.5 sm:py-3 sm:px-4 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0"
                             >
                               <ArrowLeft className="h-4 w-4" />
-                              <span>Back to Category</span>
+                              <span>Back</span>
                             </button>
 
                             <button
                               type="submit"
                               disabled={isLoading}
-                              className="flex-1 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 shadow-[0_0_25px_-5px_rgba(16,185,129,0.4)] active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer group"
+                              className="flex-1 py-2.5 sm:py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer group"
                             >
                               {isLoading ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
                                 <>
-                                  <span>Register Business & Launch Store</span>
+                                  <span>Launch Store</span>
                                   <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                                 </>
                               )}
@@ -2626,7 +2636,7 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                       </motion.div>
                     )}
 
-                    <div className="text-center pt-3 border-t border-slate-900/80">
+                    <div className="text-center pt-3 border-t border-slate-200 dark:border-slate-800/80">
                       <button
                         onClick={() => {
                           setMode("LOGIN");
@@ -2637,16 +2647,15 @@ export const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
                         Already have a registered store? Sign In
                       </button>
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </main>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </main>
 
-          <footer className="text-center text-[10px] text-slate-600 font-bold max-w-7xl mx-auto w-full">
-            © 2026 QuickBizs Technologies. Smart Business Management Software. All rights reserved.
-          </footer>
-        </div>
+            <footer className="text-center text-[10px] text-slate-500 dark:text-slate-500 font-bold py-2 w-full hidden sm:block">
+              © 2026 QuickBizs Technologies. Smart Business Management Software. All rights reserved.
+            </footer>
+          </div>
       )}
 
       {/* 60-SECOND INTERACTIVE APPLICATION TOUR MODAL */}

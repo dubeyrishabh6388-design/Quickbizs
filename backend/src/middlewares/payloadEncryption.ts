@@ -1,13 +1,15 @@
 import { Request, Response, NextFunction } from "express";
 import { env } from "../config/environment";
 import { encryptData, decryptData, isEncryptedEnvelope } from "../utils/cryptoPayload";
+import { deepDecryptDbFields } from "../utils/dbEncryption";
 import { logger } from "../utils/logger";
 
 /**
  * Middleware that:
  * 1. Automatically decrypts incoming AES-256 encrypted request bodies.
- * 2. Automatically encrypts outgoing JSON responses via res.json() when payload encryption is enabled.
- * 3. Gracefully preserves unencrypted traffic for backward compatibility, health checks, and uploads.
+ * 2. Automatically decrypts all database PII fields ('enc:...') across all API responses.
+ * 3. Automatically encrypts outgoing JSON responses via res.json() when payload encryption is enabled.
+ * 4. Gracefully preserves unencrypted traffic for backward compatibility, health checks, and uploads.
  */
 export const payloadEncryptionMiddleware = (
   req: Request,
@@ -32,10 +34,19 @@ export const payloadEncryptionMiddleware = (
     }
   }
 
-  // 2. Intercept res.json to encrypt outgoing response payload
+  // 2. Intercept res.json to decrypt DB fields and optionally encrypt outgoing response payload
   const originalJson = res.json.bind(res);
 
   res.json = function (data: any): Response {
+    // Automatically decrypt any database PII fields in the outgoing response
+    if (data !== null && data !== undefined) {
+      try {
+        data = deepDecryptDbFields(data);
+      } catch (err) {
+        logger.error("[Crypto] deepDecryptDbFields error:", err);
+      }
+    }
+
     if (!env.payloadEncryptionEnabled) {
       return originalJson(data);
     }

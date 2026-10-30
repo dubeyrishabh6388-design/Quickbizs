@@ -1,4 +1,18 @@
 import { prisma } from "../config/prisma";
+import { decryptDbField } from "../utils/dbEncryption";
+
+function decryptOrderCustomer(o: any) {
+  if (!o) return o;
+  if (o.customer) {
+    o.customer = {
+      ...o.customer,
+      name: o.customer.name ? (decryptDbField(o.customer.name) as string) : o.customer.name,
+      mobile: o.customer.mobile ? (decryptDbField(o.customer.mobile) as string) : o.customer.mobile,
+      email: o.customer.email ? (decryptDbField(o.customer.email) as string) : o.customer.email,
+    };
+  }
+  return o;
+}
 
 export class BillingRepository {
   async findMany(params: {

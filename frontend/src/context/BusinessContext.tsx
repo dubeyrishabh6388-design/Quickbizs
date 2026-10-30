@@ -389,6 +389,13 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Customers Database State
   const [customers, setCustomers] = useState<Customer[]>([]);
 
+  const cleanField = (val?: string | null, fallback: string = ""): string => {
+    if (!val) return fallback;
+    const str = String(val).trim();
+    if (str.startsWith("enc:")) return fallback;
+    return str;
+  };
+
   const fetchCustomers = async () => {
     const userStr = localStorage.getItem("qb_user");
     const user = userStr ? JSON.parse(userStr) : null;
@@ -405,11 +412,11 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (json.success && json.data?.customers) {
         const mapped = json.data.customers.map((c: any) => ({
           id: c.id,
-          name: c.name,
-          phone: c.mobile,
+          name: cleanField(c.name, "Customer"),
+          phone: cleanField(c.mobile, ""),
           pendingDues: c.pendingAmount,
           advancedPayment: 0,
-          email: c.email || undefined,
+          email: cleanField(c.email, "") || undefined,
           lastActive: c.lastPurchaseAt ? c.lastPurchaseAt.split("T")[0] : c.createdAt.split("T")[0],
           rewardPoints: c.rewardPoints || 0,
           customerType: c.membershipLevel || "Retail Customer",
@@ -447,9 +454,9 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const mapped = json.data.suppliers.map((s: any) => ({
           id: s.id,
           name: s.companyName,
-          phone: s.mobile,
+          phone: cleanField(s.mobile, ""),
           pendingDues: s.outstandingAmount,
-          contactPerson: s.contactPerson,
+          contactPerson: cleanField(s.contactPerson, "Manager"),
           lastOrdered: s.lastPurchaseDate ? s.lastPurchaseDate.split("T")[0] : s.createdAt.split("T")[0],
         }));
         setSuppliers(mapped);
@@ -485,7 +492,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const mapped = json.data.orders.map((o: any) => ({
           id: o.invoiceNumber,
           customerId: o.customerId,
-          customerName: o.customer?.name || o.customerName || "Walk-in Customer",
+          customerName: cleanField(o.customer?.name || o.customerName, "Walk-in Customer"),
           customerType: o.customerType,
           date: o.createdAt,
           items: o.items.map((i: any) => ({

@@ -76,3 +76,38 @@ export function decryptDbField(cipherText: string | null | undefined): string | 
 export function isDbFieldEncrypted(val: any): boolean {
   return typeof val === "string" && val.startsWith(PREFIX);
 }
+
+/**
+ * Recursively traverses any data structure (object, array, primitive) and decrypts
+ * any string field that starts with the 'enc:' prefix.
+ */
+export function deepDecryptDbFields<T = any>(data: T): T {
+  if (data === null || data === undefined) {
+    return data;
+  }
+
+  if (typeof data === "string") {
+    if (data.startsWith(PREFIX)) {
+      return (decryptDbField(data) as unknown) as T;
+    }
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return (data.map((item) => deepDecryptDbFields(item)) as unknown) as T;
+  }
+
+  if (typeof data === "object") {
+    if (data instanceof Date || (typeof Buffer !== "undefined" && Buffer.isBuffer(data))) {
+      return data;
+    }
+
+    const result: Record<string, any> = {};
+    for (const key of Object.keys(data)) {
+      result[key] = deepDecryptDbFields((data as Record<string, any>)[key]);
+    }
+    return result as T;
+  }
+
+  return data;
+}

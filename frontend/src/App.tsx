@@ -313,7 +313,7 @@ function AppContent() {
   }
 
   if (!isAuthenticated) {
-    return <Login onAuthSuccess={handleAuthSuccess} />;
+    return <Login onAuthSuccess={handleAuthSuccess} theme={theme} toggleTheme={toggleTheme} />;
   }
 
   if ((currentRole as string) === "Customer") {
