@@ -162,7 +162,92 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Brand Luxury Accent Top Bar */}
         <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-amber-500 to-transparent shadow-[0_0_20px_rgba(245,158,11,0.9)]" />
 
-        <div className="flex items-center justify-between gap-4 lg:gap-8 w-full px-4 sm:px-6 lg:px-10 py-3 sm:py-3.5">
+        {/* ─── MOBILE NATIVE SUPERADMIN APP BAR (Visible on < lg screens) ─── */}
+        <div className="flex lg:hidden flex-col w-full bg-slate-950 px-3 pt-2 pb-1.5 border-b border-slate-800/80">
+          <div className="flex items-center justify-between gap-2 w-full">
+            {/* Left: Brand & Admin Tag */}
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="relative shrink-0">
+                <img
+                  src={logo}
+                  alt="QuickBizs Logo"
+                  className="h-7 w-7 rounded-lg object-cover ring-1 ring-amber-500/50 shadow-xs"
+                />
+                <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-slate-950 animate-pulse" />
+              </div>
+              <div className="flex flex-col min-w-0 leading-tight">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black text-white tracking-tight">
+                    Quick<span className="text-amber-400">Bizs</span>
+                  </span>
+                  <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    Admin
+                  </span>
+                </div>
+                <span className="text-[9px] text-slate-400 font-mono">
+                  Master Control
+                </span>
+              </div>
+            </div>
+
+            {/* Right: Theme, Profile & Mobile Logout */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center bg-slate-900 text-amber-400 border border-slate-800 active:scale-95 shadow-xs"
+                title={isDark ? "Light Mode" : "Dark Mode"}
+                aria-label="Toggle Theme"
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4 text-slate-300" />}
+              </button>
+
+              {/* Notification Bell */}
+              <NotificationBell />
+
+              {/* Admin Avatar */}
+              <div className="h-7 w-7 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center font-black text-[10px] shrink-0 select-none shadow-xs ring-1 ring-amber-400/50">
+                {initials}
+              </div>
+
+              {/* Sign Out */}
+              <button
+                onClick={onLogout}
+                className="p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center bg-rose-500/15 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 active:scale-95 shadow-xs ml-0.5"
+                title="Sign Out"
+                aria-label="Sign Out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Native Pill Carousel for Admin Modules */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2 pb-0.5 -mx-1 px-1">
+            {adminNavTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeAdminTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleAdminTabClick(tab.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold shrink-0 transition-all cursor-pointer select-none active:scale-95 ${
+                    isActive
+                      ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/30"
+                      : "bg-slate-900/90 text-slate-400 hover:text-slate-200 border border-slate-800/90"
+                  }`}
+                >
+                  <Icon className={`h-3.5 w-3.5 ${isActive ? "text-white" : "text-slate-400"}`} />
+                  <span className="whitespace-nowrap">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ─── DESKTOP SUPERADMIN NAVBAR (Visible on lg+ screens) ─── */}
+        <div className="hidden lg:flex items-center justify-between gap-4 lg:gap-8 w-full px-6 lg:px-10 py-3 sm:py-3.5">
           {/* Left: QuickBizs Brand & Root OS Badge */}
           <div className="flex items-center gap-3 shrink-0">
             <div className="relative">

@@ -30,7 +30,12 @@ import {
   Receipt, 
   Package, 
   BarChart3,
-  HandCoins
+  HandCoins,
+  Store,
+  UserCheck,
+  Activity,
+  Tag,
+  Database
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -362,7 +367,7 @@ function AppContent() {
       )}
 
       {/* Main Content Area */}
-      <main className={`flex-1 h-screen overflow-hidden flex flex-col relative ${isSuperAdmin ? "pb-0" : "pb-20 lg:pb-0"} bg-slate-50 dark:bg-slate-950 transition-all duration-300`}>
+      <main className="flex-1 h-screen overflow-hidden flex flex-col relative pb-16 lg:pb-0 bg-slate-50 dark:bg-slate-950 transition-all duration-300">
         
         {/* Unified Responsive Header */}
         <Header 
@@ -382,7 +387,81 @@ function AppContent() {
       </main>
 
       {/* Native Mobile App Floating Dock Navigation */}
-      {currentRole !== "SuperAdmin" && (
+      {currentRole === "SuperAdmin" ? (
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/90 px-2 pt-1 pb-[max(env(safe-area-inset-bottom),6px)] shadow-[0_-4px_24px_rgba(0,0,0,0.4)]">
+          <div className="flex items-center justify-around max-w-md mx-auto relative">
+            {[
+              { id: "tenants", label: "Stores", icon: Store },
+              { id: "users", label: "Users", icon: UserCheck },
+              { id: "logs", label: "Live Logs", icon: Activity, isCenter: true },
+              { id: "categories", label: "Categories", icon: Tag },
+              { id: "diagnostics", label: "Health", icon: Database },
+            ].map((item) => {
+              const Icon = item.icon;
+              const currentAdminTab = (() => {
+                try {
+                  return localStorage.getItem("qb_admin_tab") || "tenants";
+                } catch {
+                  return "tenants";
+                }
+              })();
+              const isActive = currentAdminTab === item.id;
+
+              const handleAdminDockClick = (tabId: string) => {
+                try {
+                  localStorage.setItem("qb_admin_tab", tabId);
+                } catch {}
+                setActiveScreen("superadmin");
+                window.dispatchEvent(new CustomEvent("qb-admin-tab-change", { detail: tabId }));
+                window.dispatchEvent(new CustomEvent("qb-admin-tab-updated", { detail: tabId }));
+              };
+
+              if (item.isCenter) {
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleAdminDockClick(item.id)}
+                    className="flex flex-col items-center -mt-5 group cursor-pointer active:scale-90 transition-transform relative z-10"
+                  >
+                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-lg transition-all ${
+                      isActive
+                        ? "bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-amber-500/40 ring-4 ring-slate-950 scale-105"
+                        : "bg-slate-900 text-amber-400 border border-slate-700/80 ring-4 ring-slate-950"
+                    }`}>
+                      <Icon className="h-5.5 w-5.5 stroke-[2.5]" />
+                    </div>
+                    <span className={`text-[10px] font-black mt-1 tracking-tight ${
+                      isActive ? "text-amber-400" : "text-slate-400"
+                    }`}>
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              }
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleAdminDockClick(item.id)}
+                  className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl cursor-pointer transition-all active:scale-90 ${
+                    isActive
+                      ? "text-amber-400 font-black"
+                      : "text-slate-400 hover:text-slate-200 font-medium"
+                  }`}
+                >
+                  <div className="relative">
+                    <Icon className={`h-5 w-5 transition-transform ${isActive ? "scale-110" : ""}`} />
+                    {isActive && (
+                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-amber-400" />
+                    )}
+                  </div>
+                  <span className="text-[10px] mt-0.5 tracking-tight">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      ) : (
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 px-3 pt-1 pb-[max(env(safe-area-inset-bottom),6px)] shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-around max-w-md mx-auto relative">
           {[
