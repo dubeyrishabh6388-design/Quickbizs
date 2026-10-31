@@ -163,7 +163,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-amber-500 to-transparent shadow-[0_0_20px_rgba(245,158,11,0.9)]" />
 
         {/* ─── MOBILE NATIVE SUPERADMIN APP BAR (Visible on < lg screens) ─── */}
-        <div className="flex lg:hidden flex-col w-full bg-slate-950 px-3 pt-2 pb-1.5 border-b border-slate-800/80">
+        <div className="flex lg:hidden flex-col w-full bg-slate-950 px-3 pt-2 pb-1 border-b border-slate-850">
           <div className="flex items-center justify-between gap-2 w-full">
             {/* Left: Brand & Admin Tag */}
             <div className="flex items-center gap-2 min-w-0">
@@ -171,114 +171,81 @@ export const Header: React.FC<HeaderProps> = ({
                 <img
                   src={logo}
                   alt="QuickBizs Logo"
-                  className="h-7 w-7 rounded-lg object-cover ring-1 ring-amber-500/50 shadow-xs"
+                  className="h-6 w-6 rounded-md object-cover ring-1 ring-amber-500/50 shadow-xs"
                 />
-                <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-slate-950 animate-pulse" />
+                <span className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500 ring-1 ring-slate-950 animate-pulse" />
               </div>
-              <div className="flex flex-col min-w-0 leading-tight">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-black text-white tracking-tight">
-                    Quick<span className="text-amber-400">Bizs</span>
-                  </span>
-                  <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    Admin
-                  </span>
-                </div>
-                <span className="text-[9px] text-slate-400 font-mono">
-                  Master Control
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-xs font-black text-white tracking-tight">
+                  Quick<span className="text-amber-400">Bizs</span>
+                </span>
+                <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  Admin
                 </span>
               </div>
             </div>
 
             {/* Right: Theme, Profile & Mobile Logout */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center bg-slate-900 text-amber-400 border border-slate-800 active:scale-95 shadow-xs"
+                className="p-1 rounded-lg transition-all cursor-pointer flex items-center justify-center bg-slate-900 text-amber-400 border border-slate-800 active:scale-95 shadow-xs"
                 title={isDark ? "Light Mode" : "Dark Mode"}
                 aria-label="Toggle Theme"
               >
-                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4 text-slate-300" />}
+                {isDark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5 text-slate-300" />}
               </button>
 
               {/* Notification Bell */}
               <NotificationBell />
 
               {/* Admin Avatar */}
-              <div className="h-7 w-7 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center font-black text-[10px] shrink-0 select-none shadow-xs ring-1 ring-amber-400/50">
+              <div className="h-6 w-6 rounded-md bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center font-black text-[9px] shrink-0 select-none shadow-xs ring-1 ring-amber-400/50">
                 {initials}
               </div>
 
               {/* Sign Out */}
               <button
                 onClick={onLogout}
-                className="p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center bg-rose-500/15 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 active:scale-95 shadow-xs ml-0.5"
+                className="p-1 rounded-lg transition-all cursor-pointer flex items-center justify-center bg-rose-500/15 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 active:scale-95 shadow-xs ml-0.5"
                 title="Sign Out"
                 aria-label="Sign Out"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-3.5 w-3.5" />
               </button>
             </div>
-          </div>
-
-          {/* Mobile Native Pill Carousel for Admin Modules */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2 pb-0.5 -mx-1 px-1">
-            {adminNavTabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeAdminTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => handleAdminTabClick(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold shrink-0 transition-all cursor-pointer select-none active:scale-95 ${
-                    isActive
-                      ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/30"
-                      : "bg-slate-900/90 text-slate-400 hover:text-slate-200 border border-slate-800/90"
-                  }`}
-                >
-                  <Icon className={`h-3.5 w-3.5 ${isActive ? "text-white" : "text-slate-400"}`} />
-                  <span className="whitespace-nowrap">{tab.label}</span>
-                </button>
-              );
-            })}
           </div>
         </div>
 
         {/* ─── DESKTOP SUPERADMIN NAVBAR (Visible on lg+ screens) ─── */}
-        <div className="hidden lg:flex items-center justify-between gap-4 lg:gap-8 w-full px-6 lg:px-10 py-3 sm:py-3.5">
+        <div className="hidden lg:flex items-center justify-between gap-4 lg:gap-6 w-full px-5 lg:px-8 py-2">
           {/* Left: QuickBizs Brand & Root OS Badge */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0">
             <div className="relative">
               <img
                 src={logo}
                 alt="QuickBizs Logo"
-                className="h-10 w-10 rounded-xl object-cover ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/25 shrink-0"
+                className="h-8 w-8 rounded-lg object-cover ring-1.5 ring-amber-500/40 shadow-sm shrink-0"
               />
-              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-slate-950 animate-pulse" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-slate-950 animate-pulse" />
             </div>
 
             <div className="flex flex-col leading-none">
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-black text-white tracking-tight">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base font-black text-white tracking-tight">
                   Quick<span className="text-amber-400">Bizs</span>
                 </span>
-                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                  Root Admin
+                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  Root
                 </span>
               </div>
-              <span className="text-[11px] text-slate-400 font-semibold tracking-wider mt-0.5">
-                Platform SaaS OS
-              </span>
             </div>
-
-            <div className="hidden md:block h-8 w-[1px] bg-slate-800 ml-2" />
           </div>
 
-          {/* Center / Expanded: Spacious Navigation Tabs (Zero Congestion) */}
-          <div className="flex-1 flex items-center justify-center overflow-x-auto no-scrollbar py-0.5">
-            <nav className="flex items-center gap-2 sm:gap-3 p-1.5 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-inner">
+          {/* Center / Compact Modern Segmented Navigation Tabs */}
+          <div className="flex items-center justify-center">
+            <nav className="flex items-center gap-1 p-1 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-xl shadow-inner">
               {adminNavTabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeAdminTab === tab.id;
@@ -288,23 +255,23 @@ export const Header: React.FC<HeaderProps> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => handleAdminTabClick(tab.id)}
-                    className={`relative flex items-center gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer whitespace-nowrap group select-none shrink-0 ${
+                    className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap group select-none shrink-0 ${
                       isActive
-                        ? "text-white shadow-lg shadow-amber-500/25"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/70 border border-transparent hover:border-slate-700/60"
+                        ? "text-white shadow-sm"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                     }`}
                   >
                     {isActive && (
                       <motion.div
                         layoutId="activeSuperAdminHeaderTab"
-                        className="absolute inset-0 z-0 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 rounded-xl shadow-md border border-amber-400/40"
+                        className="absolute inset-0 z-0 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg shadow-xs"
                         transition={{ type: "spring", stiffness: 420, damping: 32 }}
                       />
                     )}
 
                     <Icon
-                      className={`h-4 sm:h-4.5 w-4 sm:w-4.5 shrink-0 relative z-10 transition-transform duration-200 group-hover:scale-110 ${
-                        isActive ? "text-white drop-shadow-sm" : "text-slate-400 group-hover:text-amber-400"
+                      className={`h-3.5 w-3.5 shrink-0 relative z-10 ${
+                        isActive ? "text-white" : "text-slate-400 group-hover:text-amber-400"
                       }`}
                     />
 
@@ -317,45 +284,40 @@ export const Header: React.FC<HeaderProps> = ({
             </nav>
           </div>
 
-          {/* Right: Live System Heartbeat, Controls, Profile & Logout */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+          {/* Right: Controls, Profile & Logout */}
+          <div className="flex items-center gap-2 shrink-0">
             {/* Live Status Badge */}
-            <div className="hidden 2xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs font-bold shadow-2xs">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[11px] font-mono text-emerald-400 tracking-wider font-extrabold">SYSTEM LIVE</span>
+            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 text-xs font-semibold">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-mono text-emerald-400 font-bold">LIVE</span>
             </div>
 
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 sm:p-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center bg-slate-900/90 hover:bg-slate-850 text-amber-400 border border-slate-700/80 hover:border-amber-500/40 shadow-xs active:scale-95"
-              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              className="p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center bg-slate-900 hover:bg-slate-850 text-amber-400 border border-slate-800 active:scale-95"
+              title={isDark ? "Light Mode" : "Dark Mode"}
               aria-label="Toggle Theme"
             >
               {isDark ? (
-                <Sun className="h-4.5 w-4.5 text-amber-400" />
+                <Sun className="h-4 w-4 text-amber-400" />
               ) : (
-                <Moon className="h-4.5 w-4.5 text-slate-300" />
+                <Moon className="h-4 w-4 text-slate-300" />
               )}
             </button>
 
             {/* Notification Bell */}
             <NotificationBell />
 
-            <div className="h-7 w-[1px] hidden sm:block bg-slate-800" />
-
             {/* Admin Profile Capsule */}
-            <div className="flex items-center gap-2.5 p-1 sm:pr-3.5 rounded-2xl bg-slate-900/90 border border-amber-500/30 shadow-inner">
-              <div className="h-8 sm:h-9 w-8 sm:w-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center font-black text-xs sm:text-sm shrink-0 select-none shadow-[0_0_14px_rgba(245,158,11,0.4)] ring-1 ring-amber-400/50">
+            <div className="flex items-center gap-2 pl-1 pr-2.5 py-0.5 rounded-xl bg-slate-900/90 border border-amber-500/30">
+              <div className="h-6 w-6 rounded-md bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center font-black text-[10px] shrink-0 select-none shadow-xs">
                 {initials}
               </div>
 
-              <div className="hidden lg:flex flex-col text-left leading-tight">
-                <span className="text-xs sm:text-sm font-black text-white truncate max-w-[140px]">
+              <div className="hidden md:flex flex-col text-left leading-none">
+                <span className="text-xs font-bold text-white truncate max-w-[120px]">
                   {displayName}
-                </span>
-                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider truncate">
-                  Master Admin
                 </span>
               </div>
             </div>
@@ -363,10 +325,10 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Logout Button */}
             <button
               onClick={onLogout}
-              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all active:scale-95 cursor-pointer bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 hover:border-rose-600 shadow-xs"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all active:scale-95 cursor-pointer bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 hover:border-rose-600 shadow-xs"
               title="Sign Out as Administrator"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>

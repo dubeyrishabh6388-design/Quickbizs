@@ -959,7 +959,7 @@ ${log.details ? `\n🔍 Stack Trace:\n${log.details}` : ""}`;
   };
 
   return (
-    <div className="p-3 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto space-y-4 sm:space-y-6 pb-24 lg:pb-12 text-slate-900 dark:text-white">
+    <div className="p-3 sm:p-5 lg:p-6 w-full max-w-6xl mx-auto space-y-3 sm:space-y-4 pb-20 lg:pb-8 text-slate-900 dark:text-white">
       
       {/* Toast Notification */}
       <AnimatePresence>
@@ -968,7 +968,7 @@ ${log.details ? `\n🔍 Stack Trace:\n${log.details}` : ""}`;
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className={`fixed top-4 sm:top-6 right-3 sm:right-6 left-3 sm:left-auto z-50 px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-2xl border backdrop-blur-xl ${
+            className={`fixed top-3 sm:top-5 right-3 sm:right-5 left-3 sm:left-auto z-50 px-3.5 py-2.5 rounded-xl flex items-center gap-2 shadow-xl border backdrop-blur-xl ${
               toastMsg.type === "error"
                 ? "bg-rose-950/95 border-rose-800 text-rose-200"
                 : toastMsg.type === "info"
@@ -977,39 +977,39 @@ ${log.details ? `\n🔍 Stack Trace:\n${log.details}` : ""}`;
             }`}
           >
             {toastMsg.type === "error" ? (
-              <XCircle className="h-5 w-5 text-rose-400 shrink-0" />
+              <XCircle className="h-4 w-4 text-rose-400 shrink-0" />
             ) : toastMsg.type === "info" ? (
-              <Info className="h-5 w-5 text-sky-400 shrink-0" />
+              <Info className="h-4 w-4 text-sky-400 shrink-0" />
             ) : (
-              <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
             )}
             <span className="text-xs font-bold text-white flex-1">{toastMsg.text}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Console Header Banner */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3.5">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 sm:p-3 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-2xl ring-4 ring-rose-500/10 shrink-0">
-            <ShieldCheck className="h-6 w-6 sm:h-7 sm:w-7" />
+      {/* Compact Header Bar */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-3 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2 bg-rose-500/10 text-rose-500 rounded-xl shrink-0">
+            <ShieldCheck className="h-5 w-5" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white truncate">
-                Master Admin Console
+              <h1 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                Admin Console
               </h1>
-              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
+              <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-rose-500/15 text-rose-500 border border-rose-500/25 shrink-0">
                 Root
               </span>
             </div>
-            <p className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
-              Live error trace · User access · Store categories &amp; diagnostics
+            <p className="text-[10px] text-slate-400 hidden sm:block truncate mt-0.5">
+              Live monitoring, merchant stores, users &amp; system health
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1.5 self-end sm:self-auto">
           {/* Onboard New Merchant Button */}
           <button
             onClick={() => {
@@ -1021,20 +1021,21 @@ ${log.details ? `\n🔍 Stack Trace:\n${log.details}` : ""}`;
               setOnboardAddress("");
               setIsOnboardModalOpen(true);
             }}
-            className="col-span-2 sm:col-span-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+            className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
             title="Create store account for shopkeeper"
           >
             <UserPlus className="h-3.5 w-3.5 shrink-0" />
-            <span>+ Onboard New Merchant</span>
+            <span>+ Onboard Merchant</span>
           </button>
 
           {/* Change Admin Password Button */}
           <button
             onClick={() => setIsAdminPassModalOpen(true)}
-            className="bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 active:scale-95 text-amber-700 dark:text-amber-400 font-bold px-3 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-amber-200/60 dark:border-amber-500/20"
+            className="bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold px-2.5 py-1.5 rounded-xl text-xs flex items-center justify-center gap-1 transition-all cursor-pointer border border-amber-200/60 dark:border-amber-500/20 active:scale-95"
+            title="Change Master Admin Password"
           >
             <KeyRound className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">Admin Pass</span>
+            <span className="hidden sm:inline">Pass</span>
           </button>
 
           {/* Refresh Button */}
@@ -1044,12 +1045,13 @@ ${log.details ? `\n🔍 Stack Trace:\n${log.details}` : ""}`;
               else if (activeTab === "users") fetchUsers();
               else if (activeTab === "categories") fetchCategories();
               else if (activeTab === "diagnostics") fetchDiagnostics();
-              showToast("Refreshing admin data...", "info");
+              showToast("Refreshing data...", "info");
             }}
-            className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 active:scale-95 text-slate-700 dark:text-slate-200 font-bold px-3 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95"
+            title="Refresh current module"
           >
             <RefreshCw className={`h-3.5 w-3.5 shrink-0 ${isLoadingLogs || isLoadingUsers || isLoadingCategories || isLoadingDiagnostics ? "animate-spin" : ""}`} />
-            <span>Refresh</span>
+            <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
       </div>
@@ -1060,63 +1062,63 @@ ${log.details ? `\n🔍 Stack Trace:\n${log.details}` : ""}`;
       {/* TAB 1: LIVE ERROR & SYSTEM LOGS                                           */}
       {/* ========================================================================= */}
       {activeTab === "logs" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex items-center justify-between">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Errors Recorded</p>
-                <p className="text-2xl font-black text-rose-500 mt-1">{logStats?.errors ?? 0}</p>
+                <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Errors</p>
+                <p className="text-xl font-black text-rose-500 mt-0.5">{logStats?.errors ?? 0}</p>
               </div>
-              <div className="p-2.5 bg-rose-500/10 text-rose-500 rounded-xl">
-                <AlertTriangle className="h-5 w-5" />
+              <div className="p-2 bg-rose-500/10 text-rose-500 rounded-lg">
+                <AlertTriangle className="h-4 w-4" />
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Warnings</p>
-                <p className="text-2xl font-black text-amber-500 mt-1">{logStats?.warnings ?? 0}</p>
+                <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Warnings</p>
+                <p className="text-xl font-black text-amber-500 mt-0.5">{logStats?.warnings ?? 0}</p>
               </div>
-              <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl">
-                <Info className="h-5 w-5" />
+              <div className="p-2 bg-amber-500/10 text-amber-500 rounded-lg">
+                <Info className="h-4 w-4" />
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Info / Events</p>
-                <p className="text-2xl font-black text-emerald-500 mt-1">{logStats?.infos ?? 0}</p>
+                <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Events</p>
+                <p className="text-xl font-black text-emerald-500 mt-0.5">{logStats?.infos ?? 0}</p>
               </div>
-              <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl">
-                <CheckCircle2 className="h-5 w-5" />
+              <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
+                <CheckCircle2 className="h-4 w-4" />
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Buffer Depth</p>
-                <p className="text-2xl font-black text-slate-700 dark:text-slate-300 mt-1">
-                  {logStats?.total ?? 0} <span className="text-xs font-normal text-slate-400">/ {logStats?.bufferCapacity ?? 1000}</span>
+                <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Depth</p>
+                <p className="text-xl font-black text-slate-700 dark:text-slate-300 mt-0.5">
+                  {logStats?.total ?? 0} <span className="text-[10px] font-normal text-slate-400">/ {logStats?.bufferCapacity ?? 1000}</span>
                 </p>
               </div>
-              <div className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl">
-                <Layers className="h-5 w-5" />
+              <div className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg">
+                <Layers className="h-4 w-4" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 md:pb-0 no-scrollbar">
               {[
-                { id: "ALL", label: "All Logs" },
-                { id: "ERROR", label: "Errors Only", count: logStats?.errors },
-                { id: "WARN", label: "Warnings", count: logStats?.warnings },
+                { id: "ALL", label: "All" },
+                { id: "ERROR", label: "Errors", count: logStats?.errors },
+                { id: "WARN", label: "Warn", count: logStats?.warnings },
                 { id: "INFO", label: "Info", count: logStats?.infos },
               ].map(f => (
                 <button
                   key={f.id}
                   onClick={() => setLogLevelFilter(f.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer transition-colors flex items-center gap-1 shrink-0 ${
                     logLevelFilter === f.id
                       ? f.id === "ERROR"
                         ? "bg-rose-500 text-white"
@@ -1126,7 +1128,7 @@ ${log.details ? `\n🔍 Stack Trace:\n${log.details}` : ""}`;
                 >
                   <span>{f.label}</span>
                   {f.count !== undefined && f.count > 0 && (
-                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-black/20 text-white">
+                    <span className="text-[9px] px-1 py-0.2 rounded-full bg-black/20 text-white font-mono">
                       {f.count}
                     </span>
                   )}
@@ -1134,25 +1136,25 @@ ${log.details ? `\n🔍 Stack Trace:\n${log.details}` : ""}`;
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1 sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                 <input
                   type="text"
                   value={logSearchQuery}
                   onChange={(e) => setLogSearchQuery(e.target.value)}
-                  placeholder="Search logs or stack trace..."
-                  className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  placeholder="Search logs or trace..."
+                  className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-lg pl-8 pr-3 py-1.5 text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-rose-500"
                 />
               </div>
 
               <button
                 onClick={handleClearLogs}
                 title="Flush log buffer"
-                className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Clear Buffer</span>
+                <span className="hidden sm:inline">Clear</span>
               </button>
             </div>
           </div>
@@ -1781,94 +1783,94 @@ ${log.details ? `\n🔍 Stack Trace:\n${log.details}` : ""}`;
       {/* TAB 4: STORES & TENANTS                                                    */}
       {/* ========================================================================= */}
       {activeTab === "tenants" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs flex flex-col justify-between h-32">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl shadow-xs flex flex-col justify-between">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">SaaS Revenue Run-rate</p>
-                  <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1.5 font-sans">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Revenue Run-rate</p>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1 font-sans">
                     ₹{totalMonthlyEarnings.toLocaleString()}
                   </h3>
                 </div>
-                <div className="p-2.5 rounded-xl text-emerald-500 bg-emerald-500/10">
-                  <DollarSign className="h-5 w-5" />
+                <div className="p-2 rounded-lg text-emerald-500 bg-emerald-500/10">
+                  <DollarSign className="h-4 w-4" />
                 </div>
               </div>
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">
-                {activeTenantsCount} active paying businesses
+              <div className="text-[10px] font-medium text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-1.5">
+                {activeTenantsCount} active stores
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs flex flex-col justify-between h-32">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl shadow-xs flex flex-col justify-between">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Registered Stores</p>
-                  <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1.5 font-sans">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Registered Stores</p>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1 font-sans">
                     {activeTenantsCount} / {tenants.length}
                   </h3>
                 </div>
-                <div className="p-2.5 rounded-xl text-brand-orange bg-brand-orange/10">
-                  <Store className="h-5 w-5" />
+                <div className="p-2 rounded-lg text-brand-orange bg-brand-orange/10">
+                  <Store className="h-4 w-4" />
                 </div>
               </div>
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">
-                {tenants.filter(t => t.status === "Suspended").length} stores suspended
+              <div className="text-[10px] font-medium text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-1.5">
+                {tenants.filter(t => t.status === "Suspended").length} suspended
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs flex flex-col justify-between h-32">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl shadow-xs flex flex-col justify-between">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Enterprise Accounts</p>
-                  <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1.5 font-sans">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Enterprise Accounts</p>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1 font-sans">
                     {tenants.filter(t => t.plan === "Enterprise").length}
                   </h3>
                 </div>
-                <div className="p-2.5 rounded-xl text-purple-500 bg-purple-500/10">
-                  <ShieldCheck className="h-5 w-5" />
+                <div className="p-2 rounded-lg text-purple-500 bg-purple-500/10">
+                  <ShieldCheck className="h-4 w-4" />
                 </div>
               </div>
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">
-                Unlimited scale &amp; dedicated support
+              <div className="text-[10px] font-medium text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-1.5">
+                Dedicated support
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs flex flex-col justify-between h-32">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl shadow-xs flex flex-col justify-between">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Health Status</p>
-                  <h3 className="text-2xl font-black text-emerald-500 mt-1.5 font-sans">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cluster Health</p>
+                  <h3 className="text-lg sm:text-xl font-black text-emerald-500 mt-1 font-sans">
                     99.98%
                   </h3>
                 </div>
-                <div className="p-2.5 rounded-xl text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800">
-                  <Activity className="h-5 w-5" />
+                <div className="p-2 rounded-lg text-slate-500 bg-slate-100 dark:bg-slate-800">
+                  <Activity className="h-4 w-4" />
                 </div>
               </div>
-              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">
-                All cloud clusters operational
+              <div className="text-[10px] font-medium text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-1.5">
+                All cloud clusters online
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                <span>Business Stores Directory</span>
-                <span className="text-xs bg-slate-900 dark:bg-slate-800 text-white px-2 py-0.5 rounded-full font-bold">
-                  {tenants.length} Total
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>Stores Directory</span>
+                <span className="text-[10px] bg-slate-900 dark:bg-slate-800 text-white px-2 py-0.2 rounded-full font-bold">
+                  {tenants.length}
                 </span>
               </h3>
 
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                 <input
                   type="text"
                   value={tenantSearchQuery}
                   onChange={(e) => setTenantSearchQuery(e.target.value)}
                   placeholder="Search store name or plan..."
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-orange"
                 />
               </div>
             </div>
