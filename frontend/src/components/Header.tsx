@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Sun, 
   Moon, 
@@ -24,8 +24,13 @@ import {
   Store,
   Tag,
   Terminal,
-  Cpu
+  Cpu,
+  WalletCards,
+  Languages,
+  Check,
+  X
 } from "lucide-react";
+import { useTranslation } from "../context/LanguageContext";
 import logo from "../assets/logo.jpg";
 import { NotificationBell } from "./NotificationDrawer";
 import type { ScreenType } from "./Sidebar";
@@ -68,31 +73,34 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSearch
 }) => {
   const { operatingMode, setCurrentRole, getRoleAllowedModules, products, customers } = useBusiness();
+  const { t, language, toggleLanguage } = useTranslation();
   const { isInstalled, platformType } = usePWAInstall();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isOwnerPinOpen, setIsOwnerPinOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const lowStockCount = products.filter(p => p.stock > 0 && p.stock <= p.minStock).length;
   const pendingDuesCount = customers.filter(c => (c.pendingDues || 0) > 0).length;
 
   const allNavItems: { id: ScreenType; label: string; icon: React.ElementType; badge?: number }[] = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: lowStockCount + pendingDuesCount },
-    { id: "incoming-orders", label: "Orders", icon: ShoppingCart },
-    { id: "billing", label: "POS", icon: Receipt },
-    { id: "counter", label: "Counter", icon: Zap },
-    { id: "inventory", label: "Inventory", icon: Package, badge: lowStockCount },
-    { id: "customers", label: "Customers", icon: Users, badge: pendingDuesCount },
-    { id: "recovery", label: "Recovery", icon: HandCoins },
-    { id: "suppliers", label: "Suppliers", icon: Truck },
-    { id: "staff", label: "Staff", icon: UserCheck },
-    { id: "reports", label: "Reports", icon: BarChart3 },
-    { id: "ai", label: "AI Copilot", icon: Sparkles },
-    { id: "settings", label: "Settings", icon: Settings },
-    { id: "superadmin", label: "Admin", icon: Shield },
+    { id: "dashboard", label: t("nav.dashboard"), icon: LayoutDashboard, badge: lowStockCount + pendingDuesCount },
+    { id: "incoming-orders", label: t("nav.incomingOrders"), icon: ShoppingCart },
+    { id: "billing", label: t("nav.billing"), icon: Receipt },
+    { id: "counter", label: t("nav.counter"), icon: Zap },
+    { id: "inventory", label: t("nav.inventory"), icon: Package, badge: lowStockCount },
+    { id: "customers", label: t("nav.customers"), icon: Users, badge: pendingDuesCount },
+    { id: "recovery", label: t("nav.recovery"), icon: HandCoins },
+    { id: "suppliers", label: t("nav.suppliers"), icon: Truck },
+    { id: "expenses", label: t("nav.expenses"), icon: WalletCards },
+    { id: "staff", label: t("nav.staff"), icon: UserCheck },
+    { id: "reports", label: t("nav.reports"), icon: BarChart3 },
+    { id: "ai", label: t("nav.ai"), icon: Sparkles },
+    { id: "settings", label: t("nav.settings"), icon: Settings },
+    { id: "superadmin", label: t("nav.superadmin"), icon: Shield },
   ];
 
   const allowedModules = getRoleAllowedModules ? getRoleAllowedModules(currentRole) : [];
-  const headerNavItems = allNavItems.filter(item => allowedModules.includes(item.id));
+  const headerNavItems = allNavItems.filter(item => currentRole === "Owner" ? item.id !== "superadmin" : allowedModules.includes(item.id));
 
   const [activeAdminTab, setActiveAdminTab] = useState<string>(() => {
     try {
@@ -156,6 +164,197 @@ export const Header: React.FC<HeaderProps> = ({
   const isDark = theme === "dark";
 
   // ─── ULTRA PREMIUM SUPERADMIN NAVBAR (Full Width, Spacious, No Congestion) ───
+  
+  const renderProfileModal = () => (
+    <AnimatePresence>
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-start justify-center sm:justify-end p-2 sm:p-4 sm:pr-8 pt-2 sm:pt-16 bg-black/60 backdrop-blur-sm">
+          <div 
+            className="absolute inset-0" 
+            onClick={() => setIsProfileModalOpen(false)} 
+          />
+
+          <motion.div 
+            initial={{ opacity: 0, y: -70, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -70, scale: 0.95 }}
+            transition={{ type: "spring", damping: 26, stiffness: 320 }}
+            className="relative w-full max-w-sm sm:max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-4 sm:p-6 space-y-4 max-h-[88vh] overflow-y-auto z-10 mt-1 sm:mt-0"
+          >
+            {/* Top native collapse pill handle */}
+            <div 
+              className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto -mt-1 mb-1 sm:hidden cursor-pointer" 
+              onClick={() => setIsProfileModalOpen(false)} 
+            />
+            {/* Header: User Avatar & Info */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-brand-orange to-amber-500 text-white flex items-center justify-center font-black text-base shadow-md shadow-brand-orange/30 shrink-0">
+                  {initials}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-black text-sm text-slate-900 dark:text-white truncate">
+                    {displayName}
+                  </h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-orange/15 text-brand-orange border border-brand-orange/30">
+                      {currentRole}
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
+                      {currentUser?.businessName || "Store"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsProfileModalOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* SECTION 1: LANGUAGE SWITCHER (1-CLICK) */}
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Languages className="h-3.5 w-3.5 text-brand-orange" />
+                <span>{language === "hi" ? "ऐप की भाषा चुनें (Language)" : "Application Language"}</span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (language !== "en") toggleLanguage();
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                    language === "en"
+                      ? "border-brand-orange bg-brand-orange/10 ring-2 ring-brand-orange/20 text-brand-orange font-black"
+                      : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🇬🇧</span>
+                    <span className="text-xs font-bold">English</span>
+                  </div>
+                  {language === "en" && <Check className="h-4 w-4 text-brand-orange" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (language !== "hi") toggleLanguage();
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                    language === "hi"
+                      ? "border-brand-orange bg-brand-orange/10 ring-2 ring-brand-orange/20 text-brand-orange font-black"
+                      : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🇮🇳</span>
+                    <span className="text-xs font-bold">हिन्दी (Hindi)</span>
+                  </div>
+                  {language === "hi" && <Check className="h-4 w-4 text-brand-orange" />}
+                </button>
+              </div>
+            </div>
+
+            {/* SECTION 2: THEME APPEARANCE */}
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                {isDark ? <Moon className="h-3.5 w-3.5 text-amber-400" /> : <Sun className="h-3.5 w-3.5 text-amber-500" />}
+                <span>{language === "hi" ? "थीम मोड (Appearance)" : "Theme Appearance"}</span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isDark) toggleTheme();
+                  }}
+                  className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    !isDark
+                      ? "border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/20 text-amber-600 font-black"
+                      : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <Sun className="h-4 w-4 text-amber-500" />
+                  <span className="text-xs font-bold">{language === "hi" ? "लाइट मोड" : "Light Mode"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isDark) toggleTheme();
+                  }}
+                  className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    isDark
+                      ? "border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/20 text-amber-400 font-black"
+                      : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <Moon className="h-4 w-4 text-slate-300" />
+                  <span className="text-xs font-bold">{language === "hi" ? "डार्क मोड" : "Dark Mode"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* SECTION 3: APP SHORTCUTS (Settings, Install App) */}
+            <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+              {!isInstalled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileModalOpen(false);
+                    window.dispatchEvent(new Event("open-pwa-install"));
+                  }}
+                  className="w-full flex items-center justify-between p-3 rounded-2xl bg-brand-orange/10 hover:bg-brand-orange/15 text-brand-orange font-bold text-xs transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Download className="h-4 w-4 animate-bounce" />
+                    <span>{language === "hi" ? "क्विकबिज़ ऐप इंस्टॉल करें" : "Install QuickBizs Mobile App"}</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-brand-orange text-white">App</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileModalOpen(false);
+                  setActiveScreen("settings");
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Settings className="h-4 w-4 text-slate-400" />
+                  <span>{language === "hi" ? "दुकान सेटिंग्स व प्रोफाइल" : "Store Settings & Configuration"}</span>
+                </div>
+                <span className="text-[10px] text-slate-400">➔</span>
+              </button>
+            </div>
+
+            {/* SECTION 4: SIGN OUT */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileModalOpen(false);
+                  onLogout();
+                }}
+                className="w-full py-3 px-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500 text-rose-600 dark:text-rose-400 hover:text-white border border-rose-500/20 hover:border-rose-500 font-black text-xs flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>{language === "hi" ? "खाते से लॉगआउट करें (Sign Out)" : "Sign Out of Store"}</span>
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   if (currentRole === "SuperAdmin") {
     return (
       <header className="sticky top-0 z-50 shrink-0 bg-slate-950/98 backdrop-blur-2xl border-b border-slate-800 text-slate-200 shadow-xl select-none">
@@ -187,7 +386,19 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Right: Theme, Profile & Mobile Logout */}
             <div className="flex items-center gap-1 shrink-0">
-              {/* Theme Toggle */}
+              {/* 1-Click Language Switcher (EN / हिन्दी) */}
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl transition-all cursor-pointer bg-slate-900/80 hover:bg-slate-850 text-slate-200 border border-slate-700/80 active:scale-95 shadow-xs text-[11px] font-black"
+            title={language === "en" ? "हिन्दी में बदलें (Switch to Hindi)" : "Switch to English"}
+            aria-label="Toggle Language"
+          >
+            <Languages className="h-3.5 w-3.5 text-brand-orange" />
+            <span className="font-bold">{language === "en" ? "HI" : "EN"}</span>
+          </button>
+
+          {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
                 className="p-1 rounded-lg transition-all cursor-pointer flex items-center justify-center bg-slate-900 text-amber-400 border border-slate-800 active:scale-95 shadow-xs"
@@ -292,7 +503,19 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-[10px] font-mono text-emerald-400 font-bold">LIVE</span>
             </div>
 
-            {/* Theme Toggle */}
+            {/* 1-Click Language Switcher (EN / हिन्दी) */}
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl transition-all cursor-pointer bg-slate-900/80 hover:bg-slate-850 text-slate-200 border border-slate-700/80 active:scale-95 shadow-xs text-[11px] font-black"
+            title={language === "en" ? "हिन्दी में बदलें (Switch to Hindi)" : "Switch to English"}
+            aria-label="Toggle Language"
+          >
+            <Languages className="h-3.5 w-3.5 text-brand-orange" />
+            <span className="font-bold">{language === "en" ? "HI" : "EN"}</span>
+          </button>
+
+          {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
               className="p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center bg-slate-900 hover:bg-slate-850 text-amber-400 border border-slate-800 active:scale-95"
@@ -333,6 +556,8 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
         </div>
+      
+        {renderProfileModal()}
       </header>
     );
   }
@@ -371,20 +596,18 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Right: Quick Actions + Mobile Logout */}
-        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          {/* Install App Quick Action on Mobile */}
-          {!isInstalled && (
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event("open-pwa-install"))}
-              className="flex items-center gap-1 px-2 py-1 rounded-xl text-[10px] font-black bg-brand-orange/20 hover:bg-brand-orange/30 text-brand-orange border border-brand-orange/40 active:scale-95 transition-all shadow-xs shrink-0 cursor-pointer"
-              title="Install QuickBizs App"
-            >
-              <Download className="h-3 w-3 animate-bounce" />
-              <span>App</span>
-            </button>
-          )}
+        {/* Right: Quick Actions + Clean Profile Trigger */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* AI Copilot Quick Action on Mobile */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("open-ai-assist"))}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-brand-orange to-amber-500 text-white shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
+            title="QuickBizs AI Copilot"
+          >
+            <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+            <span>AI</span>
+          </button>
 
           {/* Quick Search */}
           <button
@@ -396,41 +619,17 @@ export const Header: React.FC<HeaderProps> = ({
             <Search className="h-4 w-4" />
           </button>
 
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-1.5 rounded-xl transition-all cursor-pointer flex items-center justify-center bg-slate-900/80 hover:bg-slate-850 text-brand-orange border border-slate-700/80 active:scale-95 shadow-xs"
-            aria-label="Toggle Theme"
-            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            {isDark ? (
-              <Sun className="h-4 w-4 text-amber-400" />
-            ) : (
-              <Moon className="h-4 w-4 text-slate-300" />
-            )}
-          </button>
-
           {/* Notification Bell */}
           <NotificationBell />
 
-          {/* User Initials Avatar */}
-          <div 
-            onClick={onToggleSidebar}
-            className="h-7 w-7 rounded-xl bg-brand-orange text-white flex items-center justify-center font-black text-[10px] shrink-0 select-none shadow-sm cursor-pointer active:scale-95 ring-1 ring-brand-orange/40"
-            title={`${displayName} (${currentRole})`}
+          {/* User Initials Avatar -> Opens Profile Drawer */}
+          <button 
+            type="button"
+            onClick={() => setIsProfileModalOpen(true)}
+            className="h-8 w-8 rounded-xl bg-gradient-to-tr from-brand-orange to-amber-500 text-white flex items-center justify-center font-black text-xs shrink-0 select-none shadow-sm cursor-pointer active:scale-95 ring-2 ring-brand-orange/40 hover:opacity-95 transition-all"
+            title={displayName + " - Profile, Language & Settings"}
           >
             {initials}
-          </div>
-
-          {/* Direct Mobile Logout Button */}
-          <button
-            type="button"
-            onClick={onLogout}
-            className="p-1.5 rounded-xl transition-all cursor-pointer flex items-center justify-center bg-rose-500/15 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 active:scale-95 shadow-xs shrink-0 ml-0.5"
-            aria-label="Log Out"
-            title="Sign Out"
-          >
-            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -525,6 +724,18 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
+          {/* 1-Click Language Switcher (EN / हिन्दी) */}
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all cursor-pointer bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/80 hover:border-brand-orange/40 shadow-xs text-xs font-black"
+            title={language === "en" ? "हिन्दी में बदलें (Switch to Hindi)" : "Switch to English"}
+            aria-label="Toggle Language"
+          >
+            <Languages className="h-4 w-4 text-brand-orange" />
+            <span>{language === "en" ? "हिन्दी" : "English"}</span>
+          </button>
+
           {/* Dark / Light Mode Toggle */}
           <button
             onClick={toggleTheme}
@@ -558,7 +769,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="h-6 w-[1px] hidden sm:block bg-slate-800" />
 
           {/* Logged-In User Profile Details in Capsule */}
-          <div className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-2xl transition-all bg-slate-900/80 hover:bg-slate-850 border border-slate-700/80 shadow-inner">
+          <div onClick={() => setIsProfileModalOpen(true)} className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-2xl transition-all bg-slate-900/80 hover:bg-slate-850 border border-slate-700/80 shadow-inner cursor-pointer hover:border-brand-orange/50 active:scale-98" title="Click to open Profile & Language">
             <div className="h-9 w-9 rounded-xl bg-brand-orange text-white flex items-center justify-center font-bold text-xs shrink-0 select-none shadow-[0_0_16px_rgba(249,115,22,0.35)] ring-2 ring-brand-orange/30">
               {initials}
             </div>
@@ -600,6 +811,7 @@ export const Header: React.FC<HeaderProps> = ({
           setActiveScreen("dashboard");
         }}
       />
+      {renderProfileModal()}
     </header>
   );
 };

@@ -163,6 +163,8 @@ export const BUSINESS_CATEGORIES = [
   { id: "Bookstore", label: "Bookstore & Publishing", desc: "ISBN, Titles & Academic Books", icon: BookOpen },
   { id: "Cosmetics Store", label: "Cosmetics & Beauty", desc: "Skincare, Makeup & Fragrances", icon: Sparkles },
   { id: "Paan & Convenience", label: "Paan & Convenience", desc: "Paan, Mints, Snacks & Drinks", icon: Store },
+  { id: "Restaurant & Dine-in", label: "Restaurant & Dine-in", desc: "Tables, Multi-round KOT & Full Service", icon: Utensils },
+  { id: "Cafe & QSR", label: "Cafe & Fast Food (QSR)", desc: "Coffee, Quick Counter, Tokens & Takeaway", icon: Coffee },
   { id: "Custom Business", label: "General Retail", desc: "Flexible Retail Setup", icon: Store },
 ];
 
@@ -172,11 +174,40 @@ export const POPULAR_CATEGORY_IDS = [
   "Pharmacy",
   "Mobile Store",
   "Hardware Store",
+  "Restaurant & Dine-in",
+  "Cafe & QSR",
   "Custom Business"
 ];
 
 const getCategoryHighlight = (id: string) => {
   const customMap: Record<string, { tag: string; highlights: string[]; badge: string }> = {
+    "Restaurant & Dine-in": {
+      tag: "Tables, Multi-round KOT & Full Service",
+      highlights: [
+        "Interactive Table Floor Grid (T-1 to T-16) with live seated timers",
+        "Multi-round KOT tickets (Starters -> Mains -> Desserts) on running tables",
+        "Split billing, table transfer & thermal check presentation"
+      ],
+      badge: "Restaurant & Dine-in POS"
+    },
+    "Cafe & QSR": {
+      tag: "Coffee, Quick Counter, Tokens & Takeaway",
+      highlights: [
+        "Sub-10 second rapid counter billing with automated Token # queue",
+        "Beverage modifier engine (Milk types, sugar level, extra shots)",
+        "Instant UPI QR & customer pickup calling display"
+      ],
+      badge: "Cafe & QSR Fast Terminal"
+    },
+    "Restaurant & Cafe": {
+      tag: "Dine-in, Cafe, QSR & Food Services",
+      highlights: [
+        "Table management with Dine-in, Takeaway & Delivery",
+        "Instant KOT (Kitchen Order Ticket) generation & thermal print",
+        "Dietary Veg / Non-Veg badges & course category catalog"
+      ],
+      badge: "Hospitality & Dining OS"
+    },
     "Grocery Store": {
       tag: "FMCG, Food & Provisions",
       highlights: [
@@ -290,7 +321,7 @@ export const CATEGORY_SECTORS = [
     id: "RETAIL", 
     label: "Grocery & Food", 
     icon: ShoppingCart, 
-    matches: ["Grocery Store", "Dairy Store", "Bakery Store", "Sweet Shop", "Paan & Convenience", "Stationery Store", "Bookstore", "Cosmetics Store", "Custom Business"] 
+    matches: ["Grocery Store", "Dairy Store", "Bakery Store", "Sweet Shop", "Paan & Convenience", "Stationery Store", "Bookstore", "Cosmetics Store", "Restaurant & Dine-in", "Cafe & QSR", "Custom Business"] 
   },
   { 
     id: "SPARES", 

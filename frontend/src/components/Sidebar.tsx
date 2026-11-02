@@ -26,16 +26,18 @@ import {
   Store,
   Tag,
   Terminal,
-  Cpu
+  Cpu,
+  WalletCards
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBusiness } from "../context/BusinessContext";
 import type { UserRole } from "../context/BusinessContext";
 import { OwnerPinModal } from "./OwnerPinModal";
 import { usePWAInstall } from "../hooks/usePWAInstall";
+import { useTranslation } from "../context/LanguageContext";
 import logo from "../assets/logo.jpg";
 
-export type ScreenType = "dashboard" | "incoming-orders" | "billing" | "inventory" | "customers" | "suppliers" | "reports" | "ai" | "staff" | "superadmin" | "automation" | "settings" | "tasks" | "recovery" | "counter";
+export type ScreenType = "dashboard" | "incoming-orders" | "billing" | "inventory" | "customers" | "suppliers" | "reports" | "ai" | "staff" | "superadmin" | "automation" | "settings" | "tasks" | "recovery" | "counter" | "expenses";
 
 interface SidebarProps {
   activeScreen: ScreenType;
@@ -134,6 +136,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   pendingDuesCount
 }) => {
   const { currentRole, setCurrentRole, operatingMode, getRoleAllowedModules } = useBusiness();
+  const { t } = useTranslation();
   const { isInstalled, platformType } = usePWAInstall();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [pinModalOpen, setPinModalOpen] = useState(false);
@@ -243,25 +246,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Streamlined retail navigation - completely dynamic based on department permissions
   const allMenuItems: { id: ScreenType; label: string; icon: React.ElementType; badge?: number; highlight?: boolean }[] = [
-    { id: "superadmin", label: "Admin Console", icon: ShieldCheck, highlight: true },
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, badge: lowStockCount + pendingDuesCount },
-    { id: "incoming-orders", label: "Incoming Orders", icon: ShoppingCart },
-    { id: "billing", label: "Billing / POS", icon: Receipt },
-    { id: "counter", label: "Counter Mode", icon: Zap },
-    { id: "inventory", label: "Inventory", icon: Package, badge: lowStockCount },
-    { id: "customers", label: "Customers & Khata", icon: Users },
-    { id: "recovery", label: "Udhaar & Recovery", icon: HandCoins, badge: pendingDuesCount },
-    { id: "suppliers", label: "Suppliers", icon: Truck },
-    { id: "staff", label: "Staff Attendance", icon: UserCheck },
-    { id: "reports", label: "Business Reports", icon: BarChart3 },
-    { id: "ai", label: "AI Assistant", icon: Sparkles, highlight: true },
-    { id: "settings", label: "Store Settings", icon: Settings },
+    { id: "superadmin", label: t("nav.superadmin"), icon: ShieldCheck, highlight: true },
+    { id: "dashboard", label: t("nav.dashboard"), icon: LayoutDashboard, badge: lowStockCount + pendingDuesCount },
+    { id: "incoming-orders", label: t("nav.incomingOrders"), icon: ShoppingCart },
+    { id: "billing", label: t("nav.billing"), icon: Receipt },
+    { id: "counter", label: t("nav.counter"), icon: Zap },
+    { id: "inventory", label: t("nav.inventory"), icon: Package, badge: lowStockCount },
+    { id: "customers", label: t("nav.customers"), icon: Users },
+    { id: "recovery", label: t("nav.recovery"), icon: HandCoins, badge: pendingDuesCount },
+    { id: "suppliers", label: t("nav.suppliers"), icon: Truck },
+    { id: "expenses", label: t("nav.expenses"), icon: WalletCards },
+    { id: "staff", label: t("nav.staff"), icon: UserCheck },
+    { id: "reports", label: t("nav.reports"), icon: BarChart3 },
+    { id: "ai", label: t("nav.ai"), icon: Sparkles, highlight: true },
+    { id: "settings", label: t("nav.settings"), icon: Settings },
   ];
 
   // Dynamic modules permitted for the current department
   const allowedModules = getRoleAllowedModules(currentRole);
   const menuItems = allMenuItems
-    .filter(item => allowedModules.includes(item.id))
+    .filter(item => {
+      if (currentRole === "Owner" && item.id !== "superadmin") return true;
+      return allowedModules.includes(item.id);
+    })
     .filter(item => SHOW_INCOMING_ORDERS || item.id !== "incoming-orders")
     .sort((a, b) => {
       if (currentRole === "SuperAdmin") {

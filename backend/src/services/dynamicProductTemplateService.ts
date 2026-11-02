@@ -19,6 +19,42 @@ export interface DynamicFormConfig {
 }
 
 export const PRESET_TEMPLATES: Record<string, DynamicFormConfig> = {
+  "Restaurant & Cafe": {
+    businessType: "Restaurant & Cafe",
+    sections: [
+      {
+        name: "Dish Information",
+        order: 1,
+        fields: [
+          { name: "name", label: "Dish / Item Name", type: "text", required: true, placeholder: "e.g. Paneer Butter Masala, Cappuccino, Veg Hakka Noodles" },
+          { name: "category", label: "Course / Section", type: "select", required: true, options: ["Main Course", "Starters & Appetizers", "Beverages & Drinks", "Breads & Rice", "Desserts", "Combos & Thalis", "Fast Food & Snacks"] },
+          { name: "foodType", label: "Food Type", type: "select", required: true, options: ["Pure Veg", "Non-Veg", "Contains Egg", "Vegan"] },
+          { name: "spiceLevel", label: "Spice Level", type: "select", required: false, options: ["Mild", "Medium", "Spicy", "Extra Spicy", "Not Applicable"] },
+          { name: "prepTime", label: "Kitchen Prep Time (mins)", type: "number", required: false, placeholder: "e.g. 15" },
+          { name: "portionSize", label: "Portion Size", type: "text", required: false, placeholder: "e.g. Regular / Full / Half" },
+          { name: "kitchenStation", label: "Kitchen Station", type: "select", required: false, options: ["Main Kitchen", "Tandoor", "Beverage Bar", "Dessert / Pantry", "Fast Food Station"] },
+          { name: "unit", label: "Serving Unit", type: "select", required: true, options: ["Plate", "Portion", "Cup", "Glass", "Piece", "Bowl", "Serving", "Bottle", "Can", "Set"] }
+        ]
+      },
+      {
+        name: "Pricing & Costing",
+        order: 2,
+        fields: [
+          { name: "costPrice", label: "Ingredient / Food Cost (₹)", type: "number", required: false, placeholder: "e.g. 60" },
+          { name: "price", label: "Dine-in Menu Price (₹)", type: "number", required: true, placeholder: "e.g. 180" },
+          { name: "takeawayPrice", label: "Takeaway / Parcel Price (₹)", type: "number", required: false, placeholder: "e.g. 190" }
+        ]
+      },
+      {
+        name: "Kitchen Inventory & Portions",
+        order: 3,
+        fields: [
+          { name: "stock", label: "Daily Available Portions", type: "number", required: true, placeholder: "e.g. 100" },
+          { name: "minStock", label: "Low Portion Alert", type: "number", required: false, placeholder: "e.g. 10" }
+        ]
+      }
+    ]
+  },
   "Grocery Store": {
     businessType: "Grocery Store",
     sections: [

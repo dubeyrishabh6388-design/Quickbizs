@@ -22,21 +22,50 @@ import {
   AlertTriangle,
   Globe,
   Loader2,
-  Share2
+  Share2,
+  Utensils,
+  Printer,
+  Coffee,
+  ArrowLeft
 } from "lucide-react";
 import { useBusiness } from "../context/BusinessContext";
+import { useTranslation } from "../context/LanguageContext";
 import type { Product } from "../context/BusinessContext";
 import { useProductSearch } from "../hooks/useProductSearch";
 import { motion, AnimatePresence } from "framer-motion";
 import { DynamicProductForm } from "../components/dynamic";
+import { TableFloorGrid } from "../components/hospitality/TableFloorGrid";
+import type { RestaurantTable, RunningItem } from "../components/hospitality/TableFloorGrid";
+import { BeverageModifierModal } from "../components/hospitality/BeverageModifierModal";
 import { getCategorySearchPlaceholder, getCategoryAttributeBadges } from "../utils/categorySearch";
 
 interface BillingProps {
   setActiveScreen?: (screen: any) => void;
 }
 
+
+const DEFAULT_RESTAURANT_TABLES: RestaurantTable[] = [
+  { id: "T-1", name: "Table 1", section: "Main Dining Hall", capacity: 4, status: "VACANT" },
+  { id: "T-2", name: "Table 2", section: "Main Dining Hall", capacity: 4, status: "VACANT" },
+  { id: "T-3", name: "Table 3", section: "Main Dining Hall", capacity: 2, status: "VACANT" },
+  { id: "T-4", name: "Table 4", section: "Main Dining Hall", capacity: 6, status: "VACANT" },
+  { id: "T-5", name: "Table 5", section: "Main Dining Hall", capacity: 4, status: "VACANT" },
+  { id: "T-6", name: "Table 6", section: "Main Dining Hall", capacity: 4, status: "VACANT" },
+  { id: "T-7", name: "Table 7", section: "Main Dining Hall", capacity: 2, status: "VACANT" },
+  { id: "T-8", name: "Table 8", section: "Main Dining Hall", capacity: 8, status: "VACANT" },
+  { id: "T-9", name: "Family Booth 1", section: "AC Family Section", capacity: 6, status: "VACANT" },
+  { id: "T-10", name: "Family Booth 2", section: "AC Family Section", capacity: 6, status: "VACANT" },
+  { id: "T-11", name: "AC Table 3", section: "AC Family Section", capacity: 4, status: "VACANT" },
+  { id: "T-12", name: "AC Table 4", section: "AC Family Section", capacity: 4, status: "VACANT" },
+  { id: "T-13", name: "Rooftop Table 1", section: "Rooftop Garden", capacity: 4, status: "VACANT" },
+  { id: "T-14", name: "Rooftop Table 2", section: "Rooftop Garden", capacity: 4, status: "VACANT" },
+  { id: "T-15", name: "Rooftop Table 3", section: "Rooftop Garden", capacity: 2, status: "VACANT" },
+  { id: "T-16", name: "Rooftop Lounge", section: "Rooftop Garden", capacity: 8, status: "VACANT" },
+];
+
 export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
-  const { products, customers, addOrder, addCustomer, addProduct, productSchema, businessPreferences, storeProfile } = useBusiness();
+  const { t, language } = useTranslation();
+  const { products, customers, addOrder, addCustomer, addProduct, productSchema, businessPreferences, storeProfile, gstSettings } = useBusiness();
   const [protectionCustomer, setProtectionCustomer] = useState<any | null>(null);
 
   const userStr = typeof window !== "undefined" ? localStorage.getItem("qb_user") : null;
@@ -44,7 +73,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
   const effectiveShopName = storeProfile?.name || cachedUser?.businessName || cachedUser?.shopName || "My Store";
   const effectiveShopAddress = storeProfile?.address || "";
   const effectiveShopPhone = storeProfile?.phone || cachedUser?.phone || "";
-  const effectiveShopGst = storeProfile?.gstNumber || "";
+  const effectiveShopGst = gstSettings?.gstNumber || storeProfile?.gstNumber || "";
 
   const getProductWarranty = (prod: Product): string | undefined => {
     if (!prod.customFields) return undefined;
@@ -94,12 +123,17 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
   const isAuto = bType.toLowerCase().includes("auto");
   const isElect = bType.toLowerCase().includes("electr");
   const isHardware = bType.toLowerCase().includes("hardw");
+  const isRestaurant = bType.toLowerCase().includes("restaurant") || bType.toLowerCase().includes("dine");
+  const isCafe = bType.toLowerCase().includes("cafe") || bType.toLowerCase().includes("qsr") || bType.toLowerCase().includes("coffee");
+  const isHospitality = isRestaurant || isCafe || bType.toLowerCase().includes("food");
 
   const availableGroups = React.useMemo(() => {
     const custTypes = (productSchema as any)?.customerTypes;
     if (custTypes && Array.isArray(custTypes) && custTypes.length > 0) {
       return custTypes.map((ct: any) => ct.key || ct.label);
     }
+    if (isRestaurant) return ["Dine-in Guest", "Takeaway Customer", "VIP Guest", "Delivery Partner"];
+    if (isCafe) return ["Counter Walk-in", "Loyalty Member", "Takeaway", "Delivery Partner"];
     if (isAuto) return ["Retail", "Wholesale", "Mechanic"];
     if (isElect) return ["Retail", "Wholesale", "Contractor", "Electrician"];
     if (isHardware) return ["Retail", "Wholesale", "Contractor"];
@@ -113,6 +147,171 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
   const [newCustName, setNewCustName] = useState("");
   const [newCustPhone, setNewCustPhone] = useState("");
   const [duplicatePhoneWarning, setDuplicatePhoneWarning] = useState<string | null>(null);
+
+  // Dual-Engine Hospitality States (Table Floor View + Rapid Cafe Counter)
+  const [hospitalityView, setHospitalityView] = useState<"TABLES" | "COUNTER">(isCafe ? "COUNTER" : "TABLES");
+  const [activeTableOrderMode, setActiveTableOrderMode] = useState<boolean>(false);
+  const [activeTableId, setActiveTableId] = useState<string | null>(null);
+  const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
+
+  // Load persisted tables
+  const [restaurantTables, setRestaurantTables] = useState<RestaurantTable[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("qb_restaurant_tables");
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return DEFAULT_RESTAURANT_TABLES;
+  });
+
+  // Load persisted token counter
+  const [tokenCounter, setTokenCounter] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("qb_cafe_token");
+        if (saved) return Number(saved);
+      } catch {}
+    }
+    return 101;
+  });
+
+  // Sync tables to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("qb_restaurant_tables", JSON.stringify(restaurantTables));
+    }
+  }, [restaurantTables]);
+
+  // Sync token to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("qb_cafe_token", String(tokenCounter));
+    }
+  }, [tokenCounter]);
+
+  const [diningMode, setDiningMode] = useState<string>("Dine-in");
+  const [selectedTable, setSelectedTable] = useState<string>("T-1");
+  const [tableGuests, setTableGuests] = useState<number>(2);
+  const [kitchenNotes, setKitchenNotes] = useState<string>("");
+  const [showKotModal, setShowKotModal] = useState<boolean>(false);
+  const [kotReceipt, setKotReceipt] = useState<any | null>(null);
+
+  const activeTable = restaurantTables.find(t => t.id === (activeTableId || selectedTable));
+
+  // Table Floor Handlers
+  const handleSelectTable = (tbl: RestaurantTable) => {
+    setActiveTableId(tbl.id);
+    setSelectedTable(tbl.id);
+    setDiningMode("Dine-in");
+    setCustomerGroup("Dine-in Guest");
+    setTableGuests(tbl.guests || 2);
+    setActiveTableOrderMode(true);
+
+    if (tbl.status === "OCCUPIED" && tbl.runningItems && tbl.runningItems.length > 0) {
+      // Map running items into cart
+      const restoredCart = tbl.runningItems.map(item => {
+        const prod = products.find(p => p.id === item.productId) || {
+          id: item.productId,
+          name: item.name,
+          price: item.price,
+          category: "Dishes",
+          stock: 999
+        } as Product;
+        return {
+          product: prod,
+          quantity: item.quantity
+        };
+      });
+      setCart(restoredCart);
+      showToast(`🍽️ Loaded Table ${tbl.name} (${tbl.runningItems.length} running items)`);
+    } else {
+      setCart([]);
+      showToast(`🍽️ Opened Table ${tbl.name} for new order`);
+    }
+  };
+
+  const handleSettleTable = (tbl: RestaurantTable) => {
+    handleSelectTable(tbl);
+    showToast(`💳 Ready to settle bill for ${tbl.name}`);
+    setTimeout(() => {
+      const checkoutBtn = document.getElementById("pos-checkout-btn");
+      checkoutBtn?.scrollIntoView({ behavior: "smooth" });
+    }, 150);
+  };
+
+  const handleReleaseTable = (tableId: string) => {
+    setRestaurantTables(prev => prev.map(t => 
+      t.id === tableId ? { ...t, status: "VACANT", runningItems: [], seatedAt: undefined, notes: undefined } : t
+    ));
+    if (activeTableId === tableId) {
+      setActiveTableId(null);
+      setActiveTableOrderMode(false);
+      setCart([]);
+    }
+    showToast(`✓ Table ${tableId} released & marked Vacant`);
+  };
+
+  // Generate KOT & update table tab
+  const handleGenerateKot = () => {
+    if (cart.length === 0) {
+      showToast("Cart is empty! Add dishes to generate KOT.");
+      return;
+    }
+    const currentTableId = activeTableId || selectedTable;
+    const kotData = {
+      kotNumber: "KOT-" + Date.now().toString().slice(-4),
+      tableNumber: diningMode === "Dine-in" ? currentTableId : diningMode,
+      diningMode,
+      guests: tableGuests,
+      server: "Captain / Waiter",
+      notes: kitchenNotes,
+      items: cart.map(item => {
+        let foodType = "Veg";
+        if (item.product.customFields) {
+          try {
+            const c = typeof item.product.customFields === "string" ? JSON.parse(item.product.customFields) : item.product.customFields;
+            if (c.foodType) foodType = c.foodType;
+          } catch {}
+        }
+        return {
+          name: item.product.name,
+          quantity: item.quantity,
+          foodType
+        };
+      }),
+      time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    };
+
+    // If dining in, update table to OCCUPIED with running items
+    if (diningMode === "Dine-in" && currentTableId) {
+      const runningCartItems: RunningItem[] = cart.map(i => ({
+        productId: i.product.id,
+        name: i.product.name,
+        price: getItemPrice(i.product, customerGroup),
+        quantity: i.quantity,
+      }));
+
+      setRestaurantTables(prev => prev.map(t => {
+        if (t.id === currentTableId) {
+          return {
+            ...t,
+            status: "OCCUPIED",
+            guests: tableGuests,
+            seatedAt: t.seatedAt || new Date().toISOString(),
+            runningItems: runningCartItems,
+            notes: kitchenNotes || t.notes,
+          };
+        }
+        return t;
+      }));
+    }
+
+    setKotReceipt(kotData);
+    setShowKotModal(true);
+    showToast("🍳 Kitchen Order Ticket " + kotData.kotNumber + " Sent to Kitchen!");
+  };
+
 
   const getItemPrice = (prod: Product, group: string) => {
     if (prod.customFields) {
@@ -278,6 +477,9 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
     total: number;
     paymentMethod: string;
     splitDetails?: { cash: number; upi: number };
+    tableNumber?: string;
+    diningMode?: string;
+    kitchenNotes?: string;
     items: { name: string; quantity: number; price: number; warranty?: string }[];
     date: string;
   } | null>(null);
@@ -359,8 +561,13 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
     }
   }
 
+  const isGstActive = gstSettings?.gstEnabled !== false;
+  const activeGstRate = isGstActive ? (Number(gstSettings?.gstRate) || 0) : 0;
+
   const taxableAmount = cartSubtotal - cartDiscount;
-  const cartGst = Math.round(taxableAmount * 0.05 * 100) / 100;
+  const cartGst = isGstActive 
+    ? Math.round(taxableAmount * (activeGstRate / 100) * 100) / 100 
+    : 0;
   const rawTotal = taxableAmount + cartGst;
   const cartTotal = Math.round(rawTotal);
   const cartRoundOff = Math.round((cartTotal - rawTotal) * 100) / 100;
@@ -487,10 +694,25 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       })
     });
 
+    // If table was settled, release it back to Vacant
+    const currentTableId = activeTableId || selectedTable;
+    if (isRestaurant && diningMode === "Dine-in" && currentTableId) {
+      setRestaurantTables(prev => prev.map(t => 
+        t.id === currentTableId ? { ...t, status: "VACANT", runningItems: [], seatedAt: undefined, notes: undefined } : t
+      ));
+      setActiveTableId(null);
+      setActiveTableOrderMode(false);
+    }
+
+    // Advance Token counter in counter/takeaway mode
+    if (hospitalityView === "COUNTER" || diningMode === "Takeaway") {
+      setTokenCounter(prev => prev + 1);
+    }
+
     setCart([]);
     setSplitCashAmount("");
     setSplitUpiAmount("");
-    setIsCartOpenMobile(false); // Close mobile drawer overlay
+    setIsCartOpenMobile(false);
   };
 
   const handleRzpSuccess = async () => {
@@ -569,7 +791,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
       `---------------------------------------\n` +
       `*Subtotal:* ₹${invoiceReceipt.subtotal.toLocaleString()}\n` +
       `${discountText}` +
-      `*GST (5%):* ₹${invoiceReceipt.gst.toLocaleString()}\n` +
+      `${isGstActive && invoiceReceipt.gst > 0 ? `*GST (${activeGstRate}%):* ₹${invoiceReceipt.gst.toLocaleString()}\n` : ""}` +
       `${roundOffText}` +
       `---------------------------------------\n` +
       `*GRAND TOTAL: ₹${invoiceReceipt.total.toLocaleString()}*\n` +
@@ -636,7 +858,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
           <div class="summary-block">
             <div>Subtotal: ₹${invoiceReceipt.subtotal.toLocaleString()}</div>
             ${invoiceReceipt.discount > 0 ? `<div>Discount: -₹${invoiceReceipt.discount.toLocaleString()}</div>` : ""}
-            <div>GST (5%): ₹${invoiceReceipt.gst.toLocaleString()}</div>
+            ${isGstActive && invoiceReceipt.gst > 0 ? `<div>GST (${activeGstRate}%): ₹${invoiceReceipt.gst.toLocaleString()}</div>` : ""}
             ${invoiceReceipt.roundOff !== 0 ? `<div>Round Off: ₹${invoiceReceipt.roundOff.toLocaleString()}</div>` : ""}
             
             <div class="total-row">
@@ -727,7 +949,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
           <div class="summary-block">
             <div>Subtotal: ₹${invoiceReceipt.subtotal.toLocaleString()}</div>
             ${invoiceReceipt.discount > 0 ? `<div>Discount: -₹${invoiceReceipt.discount.toLocaleString()}</div>` : ""}
-            <div>GST (5%): ₹${invoiceReceipt.gst.toLocaleString()}</div>
+            ${isGstActive && invoiceReceipt.gst > 0 ? `<div>GST (${activeGstRate}%): ₹${invoiceReceipt.gst.toLocaleString()}</div>` : ""}
             ${invoiceReceipt.roundOff !== 0 ? `<div>Round Off: ₹${invoiceReceipt.roundOff.toLocaleString()}</div>` : ""}
             
             <div class="total-row">
@@ -813,7 +1035,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
             }}
             className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 sm:py-2.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-brand-orange"
           >
-            <option value="walkin">Walk-in Customer (Retail)</option>
+            <option value="walkin">{language === "hi" ? "दुकान ग्राहक (Walk-in)" : "Walk-in Customer (Retail)"}</option>
             {customers.map(c => (
               <option key={c.id} value={c.id}>
                 {c.name} ({c.phone})
@@ -837,6 +1059,94 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
               </button>
             ))}
           </div>
+
+                    {/* Restaurant Dining Mode & Table Management Bar */}
+          {isRestaurant && (
+            <div className="pt-2.5 border-t border-slate-200/50 dark:border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <Utensils className="h-3 w-3 text-emerald-500" />
+                  Restaurant Mode
+                </span>
+                <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                  {diningMode === "Dine-in" ? `Table ${selectedTable}` : diningMode}
+                </span>
+              </div>
+
+              {/* Mode Selector */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { id: "Dine-in", label: "🍽️ Dine-in", grp: "Dine-in Guest" },
+                  { id: "Takeaway", label: "🥡 Parcel", grp: "Takeaway Customer" },
+                  { id: "Delivery", label: "🛵 Delivery", grp: "Delivery Partner" }
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      setDiningMode(m.id);
+                      setCustomerGroup(m.grp);
+                    }}
+                    className={`py-1.5 px-1 rounded-xl text-[10px] font-extrabold transition-all border text-center cursor-pointer ${
+                      diningMode === m.id
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Table Selector for Dine-in */}
+              {diningMode === "Dine-in" && (
+                <div className="space-y-1.5 bg-slate-100/70 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                    <span>Select Floor Table:</span>
+                    <div className="flex items-center gap-1">
+                      <span>Guests:</span>
+                      <select
+                        value={tableGuests}
+                        onChange={(e) => setTableGuests(Number(e.target.value))}
+                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-1 text-[10px] font-bold"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 8, 10, 12].map(n => (
+                          <option key={n} value={n}>{n} Pax</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
+                    {["T-1", "T-2", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9", "T-10", "T-11", "T-12"].map((tbl) => (
+                      <button
+                        key={tbl}
+                        type="button"
+                        onClick={() => setSelectedTable(tbl)}
+                        className={`py-1 rounded-lg text-[10px] font-extrabold border transition-all cursor-pointer text-center ${
+                          selectedTable === tbl
+                            ? "bg-emerald-600 text-white border-emerald-600 shadow-xs scale-102"
+                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
+                        }`}
+                      >
+                        {tbl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cooking / Kitchen Notes Input */}
+              <div>
+                <input
+                  type="text"
+                  value={kitchenNotes}
+                  onChange={(e) => setKitchenNotes(e.target.value)}
+                  placeholder="Kitchen / Chef notes: e.g. Less spicy, no onion garlic..."
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-[11px] text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Vehicle Details Input (Auto Parts) */}
           {isAuto && (
@@ -862,7 +1172,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
           {cart.length === 0 ? (
             <div className="h-40 flex flex-col items-center justify-center text-center text-slate-400 dark:text-slate-600">
               <Receipt className="h-7 w-7 mb-2 opacity-50" />
-              <p className="text-xs font-bold">Cart is empty</p>
+              <p className="text-xs font-bold">{t("billing.cartEmpty", "Cart is empty")}</p>
               <p className="text-[10px] text-slate-400 mt-0.5">Tap products on the left to add items</p>
             </div>
           ) : (
@@ -1055,6 +1365,23 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
             </div>
           </div>
 
+                    {/* KOT (Kitchen Order Ticket) Button for Restaurant Mode */}
+          {isRestaurant && (
+            <button
+              type="button"
+              onClick={handleGenerateKot}
+              disabled={cart.length === 0}
+              className={`w-full py-2 sm:py-2.5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer border transition-all active:scale-[0.99] ${
+                cart.length === 0
+                  ? "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-sm"
+              }`}
+            >
+              <Utensils className="h-3.5 w-3.5" />
+              🍳 Print KOT (Kitchen Order Ticket)
+            </button>
+          )}
+
           <button
             id="pos-checkout-btn"
             onClick={handleCheckout}
@@ -1107,6 +1434,121 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
               Select items to bill · Instant barcode lookup & customer category discount engine
             </p>
           </div>
+
+                    {/* Hospitality Dual Mode Switcher (Table Floor vs Rapid Counter) */}
+          {isHospitality && (
+            <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+              <div className="flex items-center gap-1.5 flex-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHospitalityView("TABLES");
+                    setDiningMode("Dine-in");
+                  }}
+                  className={`flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    hospitalityView === "TABLES"
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/60 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Utensils className="h-3.5 w-3.5" />
+                  <span>🍽️ Table Floor View</span>
+                  {restaurantTables.filter(t => t.status === "OCCUPIED").length > 0 && (
+                    <span className="bg-white/20 text-white px-1.5 py-0.2 rounded-full text-[10px] font-black">
+                      {restaurantTables.filter(t => t.status === "OCCUPIED").length} Busy
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHospitalityView("COUNTER");
+                    setActiveTableOrderMode(false);
+                    setDiningMode("Takeaway");
+                    setCustomerGroup("Counter Walk-in");
+                  }}
+                  className={`flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    hospitalityView === "COUNTER"
+                      ? "bg-amber-600 text-white shadow-xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/60 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Coffee className="h-3.5 w-3.5" />
+                  <span>☕ Rapid Counter & Token</span>
+                  <span className="bg-white/20 text-white px-1.5 py-0.2 rounded-full text-[10px] font-black">
+                    #{tokenCounter}
+                  </span>
+                </button>
+              </div>
+
+              {activeTableId && hospitalityView === "TABLES" && (
+                <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                  <span>Selected: {activeTable?.name || activeTableId}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Active Table Order Bar (When punched into a table) */}
+          {isHospitality && hospitalityView === "TABLES" && activeTableOrderMode && (
+            <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-2 sm:p-2.5 rounded-2xl">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTableOrderMode(false)}
+                  className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-black text-slate-700 dark:text-slate-200 flex items-center gap-1 hover:bg-slate-50 cursor-pointer shadow-xs"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Floor Map
+                </button>
+                <div>
+                  <span className="font-black text-xs sm:text-sm text-emerald-900 dark:text-emerald-300 block">
+                    {activeTable?.name || selectedTable} ({activeTable?.section})
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block">
+                    {activeTable?.status === "OCCUPIED" ? "Dining · Add more dishes to running KOT" : "New Table Seating"}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                  {tableGuests} Pax
+                </span>
+                {activeTable?.status === "OCCUPIED" && (
+                  <button
+                    type="button"
+                    onClick={() => handleReleaseTable(activeTable.id)}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-rose-100 hover:bg-rose-200 text-rose-700 cursor-pointer transition-colors"
+                  >
+                    Release Table
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Rapid Cafe Counter Banner */}
+          {isHospitality && hospitalityView === "COUNTER" && (
+            <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-2 sm:p-2.5 rounded-2xl">
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-xs">
+                  ☕
+                </div>
+                <div>
+                  <span className="font-black text-xs sm:text-sm text-amber-900 dark:text-amber-300 block">
+                    Rapid Cafe / QSR Mode · Next Order: Token #{tokenCounter}
+                  </span>
+                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 block">
+                    Sub-10 second counter billing · Custom coffee modifiers enabled
+                  </span>
+                </div>
+              </div>
+              <span className="text-[10px] font-black text-amber-800 dark:text-amber-300 bg-amber-200/60 dark:bg-amber-900/60 px-2.5 py-1 rounded-full border border-amber-300 dark:border-amber-700">
+                Token #{tokenCounter}
+              </span>
+            </div>
+          )}
 
           {/* Desktop POS Shortcut Ribbon */}
           <div className="hidden lg:flex items-center gap-2 text-[10px] font-bold text-slate-500 mb-1">
@@ -1166,7 +1608,17 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-0.5 pb-20 lg:pb-0">
+        {/* If in Hospitality Table Mode and viewing Floor Plan, display TableFloorGrid */}
+        {isHospitality && hospitalityView === "TABLES" && !activeTableOrderMode ? (
+          <TableFloorGrid
+            tables={restaurantTables}
+            selectedTableId={activeTableId}
+            onSelectTable={handleSelectTable}
+            onSettleTable={handleSettleTable}
+            onReleaseTable={handleReleaseTable}
+          />
+        ) : (
+          <div className="flex-1 overflow-y-auto pr-0.5 pb-20 lg:pb-0">
           {filteredProducts.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8 sm:p-12 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900">
               <Search className="h-8 w-8 sm:h-10 sm:w-10 text-slate-300 dark:text-slate-600 mb-2 sm:mb-3" />
@@ -1217,6 +1669,18 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
                         </span>
                       </div>
                       {renderCustomBadges(prod)}
+                      {isCafe && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCustomizingProduct(prod);
+                          }}
+                          className="mt-1 text-[9px] font-extrabold text-amber-700 dark:text-amber-300 hover:text-amber-800 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 rounded px-1.5 py-0.5 flex items-center justify-center gap-1 w-full cursor-pointer"
+                        >
+                          ☕ Customize (Size/Milk)
+                        </button>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-1">
@@ -1231,6 +1695,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
             </div>
           )}
         </div>
+      )}
       </div>
 
       {/* Sticky Bottom bar triggering mobile view cart panel */}
@@ -1383,6 +1848,120 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
         )}
       </AnimatePresence>
 
+                  {/* Beverage / Item Customization Modal (Cafe Mode) */}
+      <AnimatePresence>
+        {customizingProduct && (
+          <BeverageModifierModal
+            product={customizingProduct}
+            onConfirm={(prod, mods, finalPrice) => {
+              const customizedProd: Product = {
+                ...prod,
+                price: finalPrice,
+                name: `${prod.name} (${mods.size}, ${mods.temperature}${mods.milk !== "Whole Milk" ? `, ${mods.milk}` : ""}${mods.extraShot ? ", +Shot" : ""})`,
+              };
+              addToCart(customizedProd);
+              setCustomizingProduct(null);
+              showToast(`✓ Added customized "${customizedProd.name}"`);
+            }}
+            onCancel={() => setCustomizingProduct(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Modal: KOT (Kitchen Order Ticket) Dialog */}
+      <AnimatePresence>
+        {showKotModal && kotReceipt && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl w-full max-w-sm p-5 border border-slate-100 shadow-2xl relative text-slate-800"
+            >
+              <div className="flex items-center justify-between border-b border-dashed border-slate-300 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-9 w-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black">
+                    🍳
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm uppercase tracking-wide text-slate-900">Kitchen Order Ticket</h3>
+                    <p className="text-[11px] font-bold text-emerald-600">{kotReceipt.kotNumber}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowKotModal(false)}
+                  className="h-7 w-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* KOT Info Header */}
+              <div className="py-2.5 border-b border-dashed border-slate-200 text-[11px] space-y-1">
+                <div className="flex justify-between font-bold">
+                  <span className="text-slate-500">Service:</span>
+                  <span className="text-slate-900 uppercase font-black">{kotReceipt.diningMode}</span>
+                </div>
+                <div className="flex justify-between font-bold">
+                  <span className="text-slate-500">Table / Token:</span>
+                  <span className="text-emerald-700 font-black text-xs">{kotReceipt.tableNumber} {kotReceipt.guests ? `(${kotReceipt.guests} Pax)` : ""}</span>
+                </div>
+                <div className="flex justify-between font-bold">
+                  <span className="text-slate-500">Order Time:</span>
+                  <span className="text-slate-700">{kotReceipt.time}</span>
+                </div>
+                {kotReceipt.notes && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 p-1.5 rounded-lg text-[10px] font-bold mt-1">
+                    ⚠️ Notes: {kotReceipt.notes}
+                  </div>
+                )}
+              </div>
+
+              {/* Items List */}
+              <div className="py-3 space-y-2 border-b border-dashed border-slate-200">
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Order Items</div>
+                {kotReceipt.items.map((it: any, idx: number) => {
+                  const isVeg = it.foodType.toLowerCase().includes("veg") && !it.foodType.toLowerCase().includes("non");
+                  return (
+                    <div key={idx} className="flex items-center justify-between text-xs font-bold">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px]">{isVeg ? "🟢" : "🔴"}</span>
+                        <span className="text-slate-900 font-extrabold">{it.name}</span>
+                      </div>
+                      <span className="bg-slate-100 text-slate-900 font-black px-2 py-0.5 rounded-lg border border-slate-200 text-xs">
+                        x{it.quantity}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer Actions */}
+              <div className="pt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.print();
+                    setShowKotModal(false);
+                  }}
+                  className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Print KOT to Kitchen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowKotModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Modal: Receipt Invoice Dialog */}
       <AnimatePresence>
         {invoiceReceipt && (
@@ -1405,6 +1984,12 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
               </div>
 
               {/* Receipt details */}
+                                {invoiceReceipt.tableNumber && (
+                  <div className="bg-emerald-50 border border-emerald-200 p-2 rounded-xl flex justify-between text-xs font-bold text-emerald-800">
+                    <span>🍽️ Dining Table:</span>
+                    <span>{invoiceReceipt.tableNumber} ({invoiceReceipt.diningMode})</span>
+                  </div>
+                )}
               <div className="py-4 space-y-3 font-sans text-xs">
                 <div className="flex justify-between text-slate-500 font-semibold">
                   <span>Customer:</span>
@@ -1456,7 +2041,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveScreen }) => {
                 <div className="space-y-1 text-right text-[11px] font-medium text-slate-400">
                   <div>Subtotal: ₹{invoiceReceipt.subtotal.toLocaleString()}</div>
                   {invoiceReceipt.discount > 0 && <div>Discount: -₹{invoiceReceipt.discount.toLocaleString()}</div>}
-                  <div>GST (5%): ₹{invoiceReceipt.gst.toLocaleString()}</div>
+                  {isGstActive && invoiceReceipt.gst > 0 && <div>GST ({activeGstRate}%): ₹{invoiceReceipt.gst.toLocaleString()}</div>}
                   {invoiceReceipt.roundOff !== 0 && <div>Round Off: ₹{invoiceReceipt.roundOff.toLocaleString()}</div>}
                 </div>
 

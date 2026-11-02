@@ -1,5 +1,6 @@
 import { env } from "../config/env";
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "../context/LanguageContext";
 import { 
   ArrowLeft, 
   HandCoins, 
@@ -65,6 +66,7 @@ interface RecoveryCenterProps {
 }
 
 export const RecoveryCenter: React.FC<RecoveryCenterProps> = ({ setActiveScreen }) => {
+  const { language } = useTranslation();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -176,7 +178,8 @@ export const RecoveryCenter: React.FC<RecoveryCenterProps> = ({ setActiveScreen 
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 w-full space-y-6 pb-28 text-slate-900 dark:text-white">
+    <div className="p-3 sm:p-5 lg:p-8 w-full space-y-4 sm:space-y-6 pb-28 text-slate-900 dark:text-white">
+      <div className="w-full space-y-4 sm:space-y-6">
       
       {/* Toast */}
       {successMsg && (
@@ -195,14 +198,14 @@ export const RecoveryCenter: React.FC<RecoveryCenterProps> = ({ setActiveScreen 
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                QuickBizs Recovery Center
+                {language === "hi" ? "उधार वसूली केंद्र (Recovery)" : "QuickBizs Recovery Center"}
               </h1>
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                Active Dues Recovery
+                {language === "hi" ? "सक्रिय वसूली" : "Active Dues Recovery"}
               </span>
             </div>
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-              Automated payment reminders, overdue customer escalation, and credit collection tracking
+              {language === "hi" ? "फंसी हुई उधारी की तेजी से वसूली और व्हाट्सएप ऑटो-तगादा" : "Automated payment reminders, overdue customer escalation, and credit collection tracking"}
             </p>
           </div>
         </div>
@@ -212,7 +215,7 @@ export const RecoveryCenter: React.FC<RecoveryCenterProps> = ({ setActiveScreen 
           className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
+          {language === "hi" ? "डैशबोर्ड पर वापस" : "Back to Dashboard"}
         </button>
       </div>
 
@@ -227,17 +230,17 @@ export const RecoveryCenter: React.FC<RecoveryCenterProps> = ({ setActiveScreen 
         <div className="space-y-6">
           
           {/* Key KPI Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
             
             {/* Total Pending */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Total Outstanding</span>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 sm:p-5 rounded-2xl shadow-xs">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">{language === "hi" ? "कुल फंसा उधार" : "Total Outstanding"}</span>
               <span className="text-xl sm:text-2xl font-black text-rose-500 tabular-nums">₹{data.stats.totalPendingAmount.toLocaleString()}</span>
             </div>
 
             {/* Customers count */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Pending Customers</span>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 sm:p-5 rounded-2xl shadow-xs">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">{language === "hi" ? "बाकी वाले ग्राहक" : "Pending Customers"}</span>
               <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-1.5 tabular-nums">
                 <Users className="h-4.5 w-4.5 text-brand-orange" />
                 {data.stats.uniqueCustomersCount} accounts
@@ -245,8 +248,8 @@ export const RecoveryCenter: React.FC<RecoveryCenterProps> = ({ setActiveScreen 
             </div>
 
             {/* Oldest Pending */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Oldest Balance</span>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 sm:p-5 rounded-2xl shadow-xs">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">{language === "hi" ? "सबसे पुराना उधार" : "Oldest Balance"}</span>
               <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums">₹{data.stats.oldestAmount.toLocaleString()}</span>
               {data.stats.oldestDaysAgo > 0 && (
                 <span className="text-[10px] text-rose-500 font-bold block mt-1">Pending &gt; {data.stats.oldestDaysAgo} days</span>
@@ -254,7 +257,7 @@ export const RecoveryCenter: React.FC<RecoveryCenterProps> = ({ setActiveScreen 
             </div>
 
             {/* Highest Dues Customer */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 sm:p-5 rounded-2xl shadow-xs">
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Top Debtor</span>
               <span className="text-sm font-black text-slate-900 dark:text-white truncate block">{data.stats.highestCustomerName}</span>
               <span className="text-[10px] text-slate-400 font-bold">Dues: ₹{data.stats.highestAmount.toLocaleString()}</span>
@@ -292,31 +295,66 @@ export const RecoveryCenter: React.FC<RecoveryCenterProps> = ({ setActiveScreen 
                           <div
                             key={task.id}
                             onClick={() => setSelectedTaskId(task.id)}
-                            className={`p-3 border rounded-2xl cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                            className={`p-3.5 border rounded-2xl cursor-pointer transition-all flex flex-col gap-2.5 ${
                               isSelected 
-                                ? "bg-slate-900 border-slate-900 text-white dark:bg-slate-700 dark:border-slate-600" 
-                                : "bg-slate-50 hover:bg-slate-100 border-slate-100 dark:bg-slate-900/30 dark:border-slate-700"
+                                ? "bg-slate-900 border-slate-900 text-white dark:bg-slate-700 dark:border-slate-600 shadow-md" 
+                                : "bg-slate-50 hover:bg-slate-100 border-slate-200 dark:bg-slate-900/40 dark:border-slate-800"
                             }`}
                           >
-                            <div className="min-w-0">
-                              <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${getPriorityStyle(task.priority)}`}>
-                                {task.priority}
-                              </span>
-                              <h5 className="font-extrabold text-xs mt-1.5 truncate">
-                                {task.customer.name}
-                              </h5>
-                              <span className="text-[10px] text-slate-400 font-bold block mt-0.5">
-                                Mob: {task.customer.mobile}
-                              </span>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${getPriorityStyle(task.priority)}`}>
+                                    {task.priority}
+                                  </span>
+                                  <span className={`text-[9px] font-bold ${
+                                    task.status === "InProgress" ? "text-brand-orange" : "text-slate-400"
+                                  }`}>
+                                    {task.status === "InProgress" ? "• Follow Up" : "• New"}
+                                  </span>
+                                </div>
+                                <h5 className="font-extrabold text-xs mt-1 truncate">
+                                  {task.customer.name}
+                                </h5>
+                                <span className="text-[10px] text-slate-400 font-medium block mt-0.5 truncate">
+                                  {task.customer.mobile}
+                                </span>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                <span className="text-sm font-black text-rose-500">₹{task.amount.toLocaleString()}</span>
+                                <span className="text-[9px] text-slate-400 block font-bold">Pending</span>
+                              </div>
                             </div>
 
-                            <div className="text-right">
-                              <span className="text-xs font-black">₹{task.amount.toLocaleString()}</span>
-                              <span className={`text-[9px] font-bold block mt-0.5 ${
-                                task.status === "InProgress" ? "text-brand-orange" : "text-slate-400"
-                              }`}>
-                                {task.status === "InProgress" ? "Follow Up" : "New Task"}
-                              </span>
+                            {/* Mobile Quick Action Buttons Bar */}
+                            <div className="flex items-center gap-1.5 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const msg = `Hi ${task.customer.name}, gentle reminder from store regarding outstanding dues of ₹${task.amount}. Kindly clear at your earliest convenience.`;
+                                  window.open(`https://api.whatsapp.com/send?phone=${task.customer.mobile.replace(/\D/g, '')}&text=${encodeURIComponent(msg)}`, '_blank');
+                                }}
+                                className="flex-1 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                                title="Send WhatsApp Reminder"
+                              >
+                                <Send className="h-3 w-3" />
+                                <span>WhatsApp</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.location.href = `tel:${task.customer.mobile}`;
+                                }}
+                                className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-[10px] rounded-xl flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                                title="Call Customer"
+                              >
+                                <Phone className="h-3 w-3" />
+                                <span>Call</span>
+                              </button>
                             </div>
                           </div>
                         );
@@ -511,6 +549,7 @@ export const RecoveryCenter: React.FC<RecoveryCenterProps> = ({ setActiveScreen 
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -15,6 +15,7 @@ import {
   FileSpreadsheet
 } from "lucide-react";
 import { useBusiness } from "../context/BusinessContext";
+import { useTranslation } from "../context/LanguageContext";
 import type { Employee } from "../context/BusinessContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { env } from "../config/env";
@@ -56,6 +57,7 @@ interface MonthlySummary {
 }
 
 export const Staff: React.FC = () => {
+  const { language } = useTranslation();
   const { employees, toggleEmployeeStatus } = useBusiness();
 
   // Active View Tab: "today" or "monthly"
@@ -305,8 +307,7 @@ export const Staff: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 w-full space-y-6 pb-28 text-slate-900 dark:text-white">
-      
+    <div className="w-full p-3 sm:p-5 lg:p-8 space-y-4 sm:space-y-6 pb-28 text-slate-900 dark:text-white">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMsg && (
@@ -331,7 +332,7 @@ export const Staff: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                Staff & Attendance Operations
+                {language === "hi" ? "स्टाफ और दैनिक हाजिरी" : "Staff & Attendance"} Operations
               </h1>
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                 {employees.length} Staff Members
@@ -377,7 +378,7 @@ export const Staff: React.FC = () => {
         <div className="space-y-6">
 
           {/* Month Navigation & Action Bar */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 rounded-3xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             
             {/* Month Navigator */}
             <div className="flex items-center gap-3">
@@ -449,10 +450,10 @@ export const Staff: React.FC = () => {
 
           {/* 4 Monthly KPI Cards */}
           {monthlyData && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
               
               {/* Card 1: Total Staff */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl shadow-sm">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Store Staff</span>
                 <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1 block tabular-nums">
                   {monthlyData.summary.totalStaff} Members
@@ -463,7 +464,7 @@ export const Staff: React.FC = () => {
               </div>
 
               {/* Card 2: Total Days Present */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl shadow-sm">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Days Present</span>
                 <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block tabular-nums">
                   {monthlyData.summary.totalPresentDays} Days
@@ -475,7 +476,7 @@ export const Staff: React.FC = () => {
               </div>
 
               {/* Card 3: Total Days Absent */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl shadow-sm">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Staff Absences</span>
                 <span className="text-2xl sm:text-3xl font-black text-rose-500 dark:text-rose-400 mt-1 block tabular-nums">
                   {monthlyData.summary.totalAbsentDays} Days
@@ -487,7 +488,7 @@ export const Staff: React.FC = () => {
               </div>
 
               {/* Card 4: Monthly Attendance Rate */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl shadow-sm">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Monthly Attendance Rate</span>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="text-2xl sm:text-3xl font-black text-brand-orange tabular-nums">
@@ -520,7 +521,76 @@ export const Staff: React.FC = () => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Mobile View: High-Touch Staff Attendance Cards (md:hidden) */}
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800 p-2 space-y-3">
+              {filteredStaff.length === 0 ? (
+                <div className="text-center py-8 text-xs text-slate-400 italic">No staff records match filter.</div>
+              ) : (
+                filteredStaff.map((s) => (
+                  <div key={s.id} className="p-3 bg-slate-50/70 dark:bg-slate-850/50 rounded-2xl border border-slate-200/70 dark:border-slate-800 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="h-9 w-9 rounded-xl bg-brand-orange/10 text-brand-orange font-black flex items-center justify-center text-xs shrink-0">
+                          {s.name.split(" ").map(n => n[0]).join("")}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-extrabold text-xs text-slate-900 dark:text-white truncate">{s.name}</h4>
+                          <span className="text-[10px] text-slate-400 block truncate">{s.role} • {s.phone}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-black text-brand-orange">{s.attendanceRate}%</span>
+                        <span className="text-[9px] text-slate-400 block font-bold">Attendance</span>
+                      </div>
+                    </div>
+
+                    {/* Attendance Metric Badges */}
+                    <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] font-black">
+                      <div className="p-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50">
+                        <span>{s.presentDays}d Present</span>
+                      </div>
+                      <div className={`p-1.5 rounded-xl border ${
+                        s.absentDays > 0 
+                          ? "bg-rose-50 dark:bg-rose-950/30 text-rose-600 border-rose-200/50" 
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700"
+                      }`}>
+                        <span>{s.absentDays}d Absent</span>
+                      </div>
+                      <div className={`p-1.5 rounded-xl border ${
+                        s.lateDays > 0 
+                          ? "bg-brand-orange/10 text-brand-orange border-brand-orange/20" 
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700"
+                      }`}>
+                        <span>{s.lateDays} Late</span>
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStaffDetail(s)}
+                        className="flex-1 py-1.5 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                      >
+                        <Eye className="h-3 w-3 text-brand-orange" />
+                        <span>Month Drilldown</span>
+                      </button>
+
+                      <a
+                        href={`tel:${s.phone}`}
+                        className="p-1.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center gap-1"
+                      >
+                        <Phone className="h-3 w-3" />
+                      </a>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop View: Full Muster Roll Table (hidden md:block) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-extrabold tracking-wider">
@@ -781,7 +851,7 @@ export const Staff: React.FC = () => {
         <div className="space-y-6">
 
           {/* Today Summary Header Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Present Staff Today</span>
@@ -814,7 +884,7 @@ export const Staff: React.FC = () => {
           </div>
 
           {/* Today Staff Visual Card Deck */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {employees.map((emp) => (
               <motion.div
                 key={emp.id}

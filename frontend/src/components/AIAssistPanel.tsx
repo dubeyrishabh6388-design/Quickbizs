@@ -20,11 +20,22 @@ import { useBusiness } from "../context/BusinessContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { AIMarkdownRenderer } from "./AIMarkdownRenderer";
 
-export const AIAssistPanel: React.FC = () => {
+interface AIAssistPanelProps {
+  activeScreen?: string;
+}
+
+export const AIAssistPanel: React.FC<AIAssistPanelProps> = ({ activeScreen: _activeScreen }) => {
   const { alerts, askAI } = useBusiness();
   const [isOpen, setIsOpen] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showInsights, setShowInsights] = useState(true);
+
+  // Listen for programmatic open trigger from header or screens
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener("open-ai-assist", handleOpen);
+    return () => window.removeEventListener("open-ai-assist", handleOpen);
+  }, []);
 
   const initialGreeting = {
     sender: "ai" as const,
@@ -110,11 +121,11 @@ export const AIAssistPanel: React.FC = () => {
 
   return (
     <>
-      {/* Floating Toggle Button */}
+      {/* Floating Toggle Button (Desktop only; on mobile, triggered cleanly from Header bar without covering cards) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle QuickBizs AI Assistant"
-        className={`fixed bottom-20 lg:bottom-6 right-4 lg:right-6 z-50 h-14 w-14 rounded-full flex items-center justify-center text-white shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-white/25 ${
+        className={`hidden lg:flex fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full items-center justify-center text-white shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-white/25 ${
           isOpen 
             ? "rotate-90 bg-slate-800 shadow-slate-900/60" 
             : "bg-gradient-to-tr from-brand-orange to-amber-500 shadow-brand-orange/40"

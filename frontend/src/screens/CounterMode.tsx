@@ -26,6 +26,7 @@ import {
   X
 } from "lucide-react";
 import { useBusiness } from "../context/BusinessContext";
+import { useTranslation } from "../context/LanguageContext";
 import { getCategoryFormConfig, formatCurrencyLabel } from "../utils/categoryFormConfig";
 
 interface Product {
@@ -102,6 +103,7 @@ class WeightMachineAdapter {
 const scaleAdapter = new WeightMachineAdapter();
 
 export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => {
+  const { t, language } = useTranslation();
   const { products, productSchema, storeProfile } = useBusiness();
   const userStr = typeof window !== "undefined" ? localStorage.getItem("qb_user") : null;
   const cachedUser = userStr ? JSON.parse(userStr) : null;
@@ -116,6 +118,20 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
     if (fromProds.length) return fromProds;
     return ["General", "Fast Moving", "Spares", "Standard"];
   }, [productSchema, products]);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  const categoryTabs = React.useMemo(() => {
+    const list = ["All", ...availableCategories];
+    return Array.from(new Set(list));
+  }, [availableCategories]);
+
+  const filteredProducts = React.useMemo(() => {
+    return products.filter(p => {
+      if (selectedCategory === "All") return true;
+      return p.category?.toLowerCase() === selectedCategory.toLowerCase();
+    });
+  }, [products, selectedCategory]);
+
   const [sellingMode, setSellingMode] = useState("Counter Speed Business");
   const [rushMode, setRushMode] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -649,6 +665,23 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
   const updateCartItemPrice = (productId: string, price: number) => {
     const updated = cart.map((item) =>
       item.productId === productId ? { ...item, price } : item
+    );
+    setCart(updated);
+    if (activeQueueId) syncQueueCartItems(activeQueueId, updated);
+  };
+
+  const updateCartItemQty = (productId: string, delta: number) => {
+    const existing = cart.find((item) => item.productId === productId);
+    if (!existing) return;
+    const newQty = existing.quantity + delta;
+    if (newQty <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+    const updated = cart.map((item) =>
+      item.productId === productId
+        ? { ...item, quantity: newQty, price: parseFloat((item.unitPrice * newQty).toFixed(2)) }
+        : item
     );
     setCart(updated);
     if (activeQueueId) syncQueueCartItems(activeQueueId, updated);
@@ -1266,42 +1299,45 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
         </div>
       )}
 
-      {/* Top Header Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
+      {/* Widescreen & Retina Layout Constraint Container */}
+      <div className="w-full space-y-3 sm:space-y-4">
+
+      {/* Top Header Bar - Compact Native 1-Line App Bar */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 rounded-2xl shadow-xs flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button 
             onClick={() => setActiveScreen("dashboard")}
-            className="p-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl transition-all cursor-pointer shrink-0"
+            className="p-2 sm:p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl transition-all cursor-pointer shrink-0 active:scale-95"
             title="Back to Dashboard"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                <Zap className="h-5 w-5 text-brand-orange animate-pulse" />
-                Weight & Qty Engine OS
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <h1 className="text-base sm:text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
+                <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-brand-orange animate-pulse shrink-0" />
+                <span>Counter POS</span>
               </h1>
-              <span className={`text-[9px] px-2 py-0.5 rounded-full font-black border tracking-wide uppercase ${
+              <span className={`text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-full font-black border tracking-wide uppercase shrink-0 ${
                 isOnline 
                   ? "bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-800" 
                   : "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/20 dark:border-rose-800 animate-pulse"
               }`}>
-                {isOnline ? "Online" : "Offline Mode"}
+                {isOnline ? "Online" : "Offline"}
               </span>
             </div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-              Real-time simultaneous customer cart manager designed for peak dairy/kirana rush hour operations
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 hidden sm:block truncate max-w-md">
+              Real-time multi-customer queue &amp; high-speed counter billing terminal
             </p>
           </div>
         </div>
 
         {/* Header configurations deck */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Sounds switcher */}
           <button
             onClick={() => setEnableSounds(!enableSounds)}
-            className={`p-2.5 rounded-xl border flex items-center justify-center cursor-pointer transition-all ${
+            className={`p-1.5 sm:p-2 rounded-xl border flex items-center justify-center cursor-pointer transition-all active:scale-95 ${
               enableSounds 
                 ? "bg-slate-100 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-white" 
                 : "bg-slate-50 border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800"
@@ -1311,56 +1347,99 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
             {enableSounds ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
 
+          {/* AI Copilot trigger in Header */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("open-ai-assist"))}
+            className="p-1.5 sm:p-2 rounded-xl border border-brand-orange/30 bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/20 cursor-pointer transition-all flex items-center justify-center active:scale-95"
+            title="Ask AI Copilot"
+          >
+            <Zap className="h-4 w-4 fill-brand-orange" />
+          </button>
+
           {/* Onboarding Mode Selection */}
           <select
             value={sellingMode}
             onChange={(e) => handleUpdateSellingMode(e.target.value)}
-            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-brand-orange cursor-pointer"
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-brand-orange cursor-pointer"
           >
-            <option value="Counter Speed Business">⚡ Speed Mode</option>
-            <option value="Retail Store">🛍️ Retail Store</option>
+            <option value="Counter Speed Business">⚡ Speed</option>
+            <option value="Retail Store">🛍️ Retail</option>
             <option value="Wholesale Business">📦 Wholesale</option>
           </select>
 
           {/* Rush Mode trigger */}
           <button
             onClick={handleToggleRushMode}
-            className={`px-3 py-2 rounded-xl border flex items-center gap-1.5 cursor-pointer font-bold text-xs transition-all ${
+            className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border flex items-center gap-1 cursor-pointer font-bold text-[10px] sm:text-xs transition-all active:scale-95 ${
               rushMode 
                 ? "bg-rose-600 border-rose-600 text-white shadow-rose-500/20" 
                 : "bg-white border-slate-200 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
             }`}
             title="Toggle Rush Hour Mode"
           >
-            <Flame className="h-4 w-4 text-brand-orange" />
-            <span>Rush Hour</span>
+            <Flame className="h-3.5 w-3.5 text-brand-orange" />
+            <span className="hidden xs:inline sm:inline">{t("counter.rushMode", "Rush")}</span>
           </button>
         </div>
       </div>
 
       {/* Mobile Tab Selector */}
-      <div className="flex lg:hidden bg-white dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-205 dark:border-slate-700 mb-6 font-bold shadow-sm">
+      <div className="flex lg:hidden bg-white dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 font-bold shadow-xs">
         <button
           onClick={() => setMobileTab('catalog')}
-          className={`flex-1 py-3 text-center text-xs rounded-xl transition-all cursor-pointer ${
+          className={`flex-1 py-2 text-center text-xs rounded-xl transition-all cursor-pointer ${
             mobileTab === 'catalog'
-              ? 'bg-slate-900 text-white dark:bg-slate-700'
+              ? 'bg-slate-900 text-white dark:bg-slate-700 shadow-xs'
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          🥛 Catalog & Queues
+          {language === "hi" ? "🥛 सामान सूची (Catalog)" : "🥛 Catalog"}
         </button>
         <button
           onClick={() => setMobileTab('cart')}
-          className={`flex-1 py-3 text-center text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 text-center text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
             mobileTab === 'cart'
-              ? 'bg-slate-900 text-white dark:bg-slate-700'
+              ? 'bg-slate-900 text-white dark:bg-slate-700 shadow-xs'
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          🛒 Active Cart ({cart.reduce((acc, i) => acc + (i.unit === "pcs" ? i.quantity : 1), 0)})
-          {totalAmount > 0 && <span className="bg-brand-orange text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">₹{totalAmount}</span>}
+          🛒 Cart ({cart.reduce((acc, i) => acc + (i.unit === "pcs" ? i.quantity : 1), 0)})
+          {totalAmount > 0 && <span className="bg-brand-orange text-white text-[9px] px-1.5 py-0.2 rounded-full font-black">₹{totalAmount}</span>}
         </button>
+      </div>
+
+      {/* Mobile Queues Horizontal Chip Bar (Clean Native Strip) */}
+      <div className="flex lg:hidden items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        <button
+          onClick={() => handleCreateQueue()}
+          className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-black rounded-xl cursor-pointer flex items-center gap-1 shadow-xs shrink-0 active:scale-95 transition-transform"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          <span>New Q</span>
+        </button>
+        {filteredQueues.length === 0 ? (
+          <span className="text-[11px] text-slate-400 font-medium italic pl-1">No active queues</span>
+        ) : (
+          filteredQueues.map((q) => {
+            const isActive = q.id === activeQueueId;
+            const qTotal = q.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+            return (
+              <button
+                key={q.id}
+                onClick={() => handleLoadQueue(q)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1.5 border shadow-2xs ${
+                  isActive
+                    ? "bg-emerald-500 text-white border-emerald-600 font-black shadow-emerald-500/20"
+                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
+                }`}
+              >
+                {q.isPinned && <Pin className="h-3 w-3 fill-current text-brand-orange" />}
+                <span>Q#{q.queueNumber}</span>
+                <span className="text-[10px] opacity-80">(₹{qTotal})</span>
+              </button>
+            );
+          })
+        )}
       </div>
 
       {/* Main Grid */}
@@ -1370,7 +1449,7 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
         <div className={`lg:col-span-7 space-y-6 ${mobileTab === 'catalog' ? 'block' : 'hidden lg:block'}`}>
           
           {/* Active Queues Panel Row */}
-          <div className="bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 p-5 rounded-3xl shadow-sm dark:shadow-slate-950/50 space-y-4">
+          <div className="hidden lg:block bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 p-5 rounded-3xl shadow-sm dark:shadow-slate-950/50 space-y-4">
             
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 dark:border-slate-700/80 pb-3">
               <span className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider block flex items-center gap-2">
@@ -1518,41 +1597,55 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
           </div>
 
           {/* Real Merchant Products Quick Terminal */}
-          <div className="bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 p-5 rounded-3xl shadow-sm dark:shadow-slate-950/50 space-y-4">
-            <div className="flex items-center justify-between mb-2">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 p-3.5 sm:p-5 rounded-3xl shadow-sm dark:shadow-slate-950/50 space-y-3">
+            <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider block flex items-center gap-2">
                 <span className="p-1.5 bg-brand-orange/10 rounded-lg text-brand-orange">
                   <Zap className="h-4 w-4" />
                 </span>
-                Quick Tap Catalog ({products.length} Products)
+                Quick Tap Catalog ({filteredProducts.length} Items)
               </span>
               <button
                 onClick={() => setIsAddProductOpen(true)}
-                className="px-3 py-1.5 bg-brand-orange hover:bg-brand-orange-hover text-white text-xs font-black rounded-xl cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 transition-all"
+                className="px-2.5 sm:px-3 py-1.5 bg-brand-orange hover:bg-brand-orange-hover text-white text-[11px] sm:text-xs font-black rounded-xl cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 transition-all"
               >
-                <Plus className="h-4 w-4" />
-                Add Product
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Product</span>
               </button>
             </div>
+
+            {/* Category Filter Chips Bar */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+              {categoryTabs.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
+                    selectedCategory === cat
+                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
+                      : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
             
-            {products.length === 0 ? (
-              <div className="text-center py-10 px-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+            {filteredProducts.length === 0 ? (
+              <div className="text-center py-8 px-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
                 <p className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                  No products in your catalog yet.
-                </p>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Click "Add Product" above or visit the Inventory section to add your items.
+                  No products in "{selectedCategory}".
                 </p>
                 <button
-                  onClick={() => setIsAddProductOpen(true)}
-                  className="mt-3 px-4 py-2 bg-brand-orange text-white text-xs font-black rounded-xl cursor-pointer inline-flex items-center gap-1 shadow-sm"
+                  onClick={() => setSelectedCategory("All")}
+                  className="mt-2 text-xs font-black text-brand-orange hover:underline cursor-pointer"
                 >
-                  <Plus className="h-4 w-4" /> Add First Product
+                  View All Products
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-80 overflow-y-auto pr-1">
-                {products.map((p) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 lg:max-h-[460px] lg:overflow-y-auto pr-1 scrollbar-thin">
+                {filteredProducts.map((p) => (
                   <button
                     key={p.id}
                     onClick={() => handleProductTap({ id: p.id, name: p.name, price: p.price, category: p.category, barcode: p.barcode })}
@@ -1595,7 +1688,7 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="flex sm:grid sm:grid-cols-3 gap-2.5 overflow-x-auto no-scrollbar pb-1">
                 {data.frequentlySold.map((prod) => (
                   <button
                     key={prod.id}
@@ -1624,7 +1717,7 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
                 Quick Combos
               </span>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="flex sm:grid sm:grid-cols-2 gap-2.5 overflow-x-auto no-scrollbar pb-1">
                 {data.combos.map((combo) => (
                   <button
                     key={combo.id}
@@ -1649,7 +1742,7 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
         </div>
 
         {/* Right Side: Cart Summary, Quick Cash Prediction & One-Hand Checkout Deck (Col span 5/12) */}
-        <div className={`lg:col-span-5 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 p-6 rounded-3xl shadow-sm dark:shadow-slate-950/50 min-h-[500px] flex flex-col justify-between relative overflow-hidden ${mobileTab === 'cart' ? 'flex' : 'hidden lg:flex'}`}>
+        <div className={`lg:col-span-5 lg:sticky lg:top-4 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-6 rounded-3xl shadow-sm dark:shadow-slate-950/50 min-h-[500px] flex flex-col justify-between relative overflow-hidden ${mobileTab === 'cart' ? 'flex' : 'hidden lg:flex'}`}>
           <div className="absolute top-0 right-0 h-32 w-32 bg-brand-orange/10 rounded-full blur-3xl -z-10" />
 
           {/* Cart Header */}
@@ -1701,7 +1794,28 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Quantity Stepper */}
+                      <div className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-0.5 shadow-2xs">
+                        <button
+                          type="button"
+                          onClick={() => updateCartItemQty(item.productId, -1)}
+                          className="h-6 w-6 flex items-center justify-center text-slate-500 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-xs font-black cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <span className="w-6 text-center text-xs font-black text-slate-800 dark:text-white">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => updateCartItemQty(item.productId, 1)}
+                          className="h-6 w-6 flex items-center justify-center text-slate-500 hover:text-emerald-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-xs font-black cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+
                       {editingPriceProductId === item.productId ? (
                         <input
                           type="number"
@@ -1980,21 +2094,30 @@ export const CounterMode: React.FC<CounterModeProps> = ({ setActiveScreen }) => 
         </div>
       )}
 
-      {/* Mobile Floating Cart Summary Button */}
+      {/* Mobile Floating Cart Summary Pill */}
       {mobileTab === 'catalog' && cart.length > 0 && (
-        <div className="fixed bottom-20 left-6 right-6 lg:hidden z-40">
-          <button
-            onClick={() => setMobileTab('cart')}
-            className="w-full bg-brand-orange hover:bg-brand-orange/95 text-white py-4 px-6 rounded-2xl font-black text-xs shadow-2xl flex items-center justify-between transition-transform active:scale-[0.98]"
-          >
-            <span className="flex items-center gap-2">
-              <ShoppingCart className="h-4.5 w-4.5 text-white animate-bounce" />
-              View Active Cart ({cart.length} items)
-            </span>
-            <span>₹{totalAmount.toLocaleString()} →</span>
-          </button>
+        <div className="fixed bottom-3 left-3 right-3 lg:hidden z-40 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="bg-slate-900/98 dark:bg-slate-800/98 text-white backdrop-blur-xl border border-slate-700/80 p-2.5 px-3.5 rounded-2xl shadow-2xl flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-brand-orange text-white flex items-center justify-center font-black text-xs shadow-xs">
+                {cart.reduce((acc, i) => acc + (i.unit === "pcs" ? i.quantity : 1), 0)}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider">Active Cart</span>
+                <span className="text-sm font-black text-white">₹{totalAmount.toLocaleString()}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setMobileTab('cart')}
+              className="bg-brand-orange hover:bg-brand-orange-hover text-white text-xs font-black px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              <span>Checkout →</span>
+            </button>
+          </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

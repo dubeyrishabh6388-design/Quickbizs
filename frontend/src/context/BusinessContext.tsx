@@ -62,7 +62,13 @@ export interface OrderItem {
 
 export type UserRole = "Owner" | "Cashier" | "Accountant" | "Warehouse" | "SuperAdmin" | "Manager" | "Employee";
 
-export type ScreenType = "dashboard" | "incoming-orders" | "billing" | "inventory" | "customers" | "suppliers" | "reports" | "ai" | "staff" | "superadmin" | "automation" | "settings" | "tasks" | "recovery" | "counter";
+export type ScreenType = "dashboard" | "incoming-orders" | "billing" | "inventory" | "customers" | "suppliers" | "reports" | "ai" | "staff" | "superadmin" | "automation" | "settings" | "tasks" | "recovery" | "counter" | "expenses";
+
+export interface GstSettings {
+  gstEnabled: boolean;
+  gstRate: number;
+  gstNumber: string;
+}
 
 export interface RoleDepartmentConfig {
   pin: string;
@@ -204,6 +210,9 @@ interface BusinessContextType {
   stockMovementLogs: StockMovementLog[];
   logStockMovement: (productId: string, productName: string, quantity: number, reason: string) => void;
   approveExpense: (id: string) => void;
+  deleteExpense: (id: string) => Promise<void>;
+  gstSettings: GstSettings;
+  updateGstSettings: (settings: Partial<GstSettings>) => void;
   automationLogs: AutomationLog[];
   logAutomation: (trigger: string, action: string, result: string, status: "Success" | "Failed", duration: string) => void;
   triggerScheduledJobs: () => void;
@@ -274,6 +283,27 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch {}
     return {};
   });
+
+  // GST Tax Settings State
+  const [gstSettings, setGstSettings] = useState<GstSettings>(() => {
+    try {
+      const cached = localStorage.getItem("qb_gst_settings");
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return {
+      gstEnabled: true,
+      gstRate: 5,
+      gstNumber: "",
+    };
+  });
+
+  const updateGstSettings = (newSettings: Partial<GstSettings>) => {
+    setGstSettings((prev) => {
+      const updated = { ...prev, ...newSettings };
+      localStorage.setItem("qb_gst_settings", JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const fetchStoreProfile = async () => {
     try {
@@ -635,7 +665,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       description: "Full store control, financial analytics & system settings",
       allowedModules: [
         "dashboard", "incoming-orders", "billing", "inventory", 
-        "customers", "suppliers", "reports", "ai", "staff", 
+        "customers", "suppliers", "reports", "expenses", "ai", "staff", 
         "settings", "recovery", "counter"
       ]
     },
@@ -645,7 +675,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       description: "Floor supervision, billing, customers, stock & reports",
       allowedModules: [
         "dashboard", "billing", "inventory", "customers", 
-        "suppliers", "reports", "incoming-orders", "counter"
+        "suppliers", "reports", "expenses", "incoming-orders", "counter"
       ]
     },
     Accountant: {
@@ -653,7 +683,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       label: "Store Accountant",
       description: "Khata ledger, debts, tax reports & vendor payables",
       allowedModules: [
-        "reports", "customers", "suppliers", "recovery"
+        "reports", "expenses", "customers", "suppliers", "recovery"
       ]
     },
     Cashier: {
@@ -695,6 +725,16 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const saved = localStorage.getItem("qb_role_departments");
       if (saved) {
         const parsed = JSON.parse(saved);
+        // Ensure new system modules (like "expenses") are automatically migrated if missing in existing cached session
+        if (parsed.Owner?.allowedModules && !parsed.Owner.allowedModules.includes("expenses")) {
+          parsed.Owner.allowedModules.push("expenses");
+        }
+        if (parsed.Manager?.allowedModules && !parsed.Manager.allowedModules.includes("expenses")) {
+          parsed.Manager.allowedModules.push("expenses");
+        }
+        if (parsed.Accountant?.allowedModules && !parsed.Accountant.allowedModules.includes("expenses")) {
+          parsed.Accountant.allowedModules.push("expenses");
+        }
         // Force SuperAdmin to always retain unrestricted module access regardless of previous localStorage state
         parsed.SuperAdmin = defaultDepartmentConfigs.SuperAdmin;
         localStorage.setItem("qb_role_departments", JSON.stringify({ ...defaultDepartmentConfigs, ...parsed }));
@@ -750,7 +790,11 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (role === "SuperAdmin") {
       return ["superadmin"];
     }
-    return departmentConfigs[role]?.allowedModules || defaultDepartmentConfigs[role]?.allowedModules || [];
+    const current = departmentConfigs[role]?.allowedModules || defaultDepartmentConfigs[role]?.allowedModules || [];
+    if ((role === "Owner" || role === "Manager" || role === "Accountant") && !current.includes("expenses")) {
+      return [...current, "expenses"];
+    }
+    return current;
   };
 
   const setOwnerPin = (newPin: string) => {
@@ -1421,6 +1465,26 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  // Delete Expense via backend API
+  const deleteExpense = async (id: string) => {
+    const token = localStorage.getItem("qb_token");
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${env.apiUrl}/api/v1/finance/expenses/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await response.json();
+      if (json.success) {
+        fetchExpenses();
+        logAutomation(`Expense ${id} Deleted`, "Expense Ledger Reversal", `Removed expense record`, "Success", "3ms");
+      }
+    } catch (err) {
+      console.error("Failed to delete expense:", err);
+    }
+  };
+
   // Toggle Shop Readiness Morning Tasks (Chapter 3)
   const toggleReadinessTask = (id: string) => {
     setReadinessChecklist(prev =>
@@ -1556,6 +1620,9 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         stockMovementLogs,
         logStockMovement,
         approveExpense,
+        deleteExpense,
+        gstSettings,
+        updateGstSettings,
         automationLogs,
         logAutomation,
         triggerScheduledJobs,

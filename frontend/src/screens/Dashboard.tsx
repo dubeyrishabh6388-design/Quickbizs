@@ -28,9 +28,11 @@ import {
   Wrench,
   Pill,
   Shirt,
-  Layers
+  Layers,
+  Utensils
 } from "lucide-react";
 import { useBusiness } from "../context/BusinessContext";
+import { useTranslation } from "../context/LanguageContext";
 import type { Alert, Expense, Order } from "../context/BusinessContext";
 import { api } from "../config/api";
 import { DailyBriefingModal } from "../components/DailyBriefingModal";
@@ -43,6 +45,7 @@ type TimeHorizon = "today" | "yesterday" | "week" | "month";
 type ChartMetric = "sales" | "orders" | "profit";
 
 export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
+  const { t, language } = useTranslation();
   const { 
     orders, 
     customers, 
@@ -93,6 +96,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
     const isHardware = bType.toLowerCase().includes("hardw");
     const isClothing = bType.toLowerCase().includes("cloth") || bType.toLowerCase().includes("apparel");
     const isWholesale = bType.toLowerCase().includes("wholesale");
+    const isRestaurant = bType.toLowerCase().includes("restaurant") || bType.toLowerCase().includes("cafe");
+    let vegCount = 0;
+    let nonVegCount = 0;
 
     let countWithPartNo = 0;
     let nearExpiryCount = 0;
@@ -110,6 +116,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
           const c = typeof p.customFields === "string" ? JSON.parse(p.customFields) : p.customFields;
           if (c.partNumber) countWithPartNo++;
           if (c.moq) wholesaleMoqCount++;
+          if (c.foodType) {
+            const ft = String(c.foodType).toLowerCase();
+            if (ft.includes("veg") && !ft.includes("non")) vegCount++;
+            else nonVegCount++;
+          }
           if (c.expiryDate) {
             const exp = new Date(c.expiryDate);
             if (!isNaN(exp.getTime()) && exp <= sixtyDaysLater) {
@@ -152,6 +163,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
       isHardware,
       isClothing,
       isWholesale,
+      isRestaurant,
+      vegCount,
+      nonVegCount,
+      totalMenuItems: products.length,
       countWithPartNo,
       nearExpiryCount,
       outOfStockCount,
@@ -599,7 +614,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
   };
 
   return (
-    <div className="relative min-h-screen p-2.5 sm:p-5 lg:p-8 w-full space-y-2.5 sm:space-y-5 pb-24 text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-950 transition-colors duration-200">
+    <div className="relative min-h-screen p-2.5 sm:p-5 lg:p-8 w-full max-w-full overflow-x-hidden space-y-2.5 sm:space-y-5 pb-24 text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-950 transition-colors duration-200">
       
       {/* Ambient background glow effects */}
       <div className="absolute top-10 right-1/4 w-96 h-96 bg-brand-orange/5 dark:bg-brand-orange/10 rounded-full blur-3xl pointer-events-none -z-10" />
@@ -613,6 +628,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
         </div>
       )}
 
+      <div className="w-full space-y-2.5 sm:space-y-5">
       {/* 1. TOP HERO COMMAND BAR - RESPONSIVE & MOBILE-OPTIMIZED */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-2.5 sm:gap-4 pt-0.5 pb-0.5">
 
@@ -626,7 +642,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <h1 className="text-base sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white truncate">
-                  Store Command Center
+                  {t("dashboard.title", "Store Command Center")}
                 </h1>
                 <span className="inline-flex items-center gap-1 px-1.5 sm:px-2.5 py-0.2 sm:py-0.5 rounded-full text-[8px] sm:text-[10px] font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 shrink-0">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -678,7 +694,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                 }`}
                 title={tab === "yesterday" ? "Click to view Yesterday's Full Briefing popup" : undefined}
               >
-                {tab === "week" ? "7 Days" : tab === "month" ? "30 Days" : tab}
+                {tab === "today" ? (language === "hi" ? "आज" : "Today") : tab === "yesterday" ? (language === "hi" ? "कल" : "Yesterday") : tab === "week" ? (language === "hi" ? "7 दिन" : "7 Days") : (language === "hi" ? "30 दिन" : "30 Days")}
               </button>
             ))}
           </div>
@@ -691,7 +707,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
               className="flex-1 sm:flex-initial bg-brand-orange hover:bg-brand-orange-hover text-white font-black px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
             >
               <ShoppingCart className="h-3.5 w-3.5" />
-              <span>+ New Bill</span>
+              <span>+ {language === "hi" ? "नया बिल" : "New Bill"}</span>
             </button>
 
             {/* Full Store Data Analysis */}
@@ -701,7 +717,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
               title="Analyze why sales drop, check stockouts, Udhaar, and get step-by-step instructions"
             >
               <Sparkles className="h-3.5 w-3.5" />
-              <span>Analyze</span>
+              <span>{language === "hi" ? "एनालिटिक्स" : "Analyze"}</span>
             </button>
 
             {/* Counter Mode */}
@@ -711,7 +727,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
               title="Counter Terminal"
             >
               <Zap className="h-3.5 w-3.5 text-brand-orange" />
-              <span className="hidden xs:inline sm:inline">Counter</span>
+              <span className="hidden xs:inline sm:inline">{language === "hi" ? "काउंटर" : "Counter"}</span>
             </button>
           </div>
 
@@ -726,7 +742,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
           <div>
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate pr-1">
-                {periodLabel} Sales
+                {periodLabel} {language === "hi" ? "बिक्री (Sales)" : "Sales"}
               </span>
               <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                 <Receipt className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -742,7 +758,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             </svg>
           </div>
           <div className="pt-1 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] sm:text-[11px]">
-            <span className="font-bold text-slate-500 dark:text-slate-400 truncate">{billsCount} Bills</span>
+            <span className="font-bold text-slate-500 dark:text-slate-400 truncate">{billsCount} {language === "hi" ? "बिल" : "Bills"}</span>
             <span className="font-extrabold text-brand-orange flex items-center gap-0.5 shrink-0" title={compLabel}>
               <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
               +{salesGrowthPct}% <span className="hidden sm:inline font-normal text-slate-400">{compLabel}</span>
@@ -750,7 +766,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
           </div>
         </div>
 
-        {/* KPI 2: Gross Profit & Margin */}
+        {/* KPI 2: {language === "hi" ? "सकल लाभ (Profit)" : "Gross Profit"} & Margin */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs hover:shadow-md hover:border-brand-orange/40 transition-all flex flex-col justify-between group">
           <div>
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
@@ -771,7 +787,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             </svg>
           </div>
           <div className="pt-1 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] sm:text-[11px]">
-            <span className="font-bold text-slate-500 dark:text-slate-400">Margin</span>
+            <span className="font-bold text-slate-500 dark:text-slate-400">{language === "hi" ? "मार्जिन" : "Margin"}</span>
             <span className="font-extrabold text-brand-orange shrink-0">
               {profitMarginPct}%
             </span>
@@ -783,7 +799,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
           <div>
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate pr-1">
-                Avg Basket
+                {language === "hi" ? "औसत बिल" : "Avg Basket"}
               </span>
               <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                 <Percent className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -799,7 +815,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             </svg>
           </div>
           <div className="pt-1 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] sm:text-[11px]">
-            <span className="font-bold text-slate-500 dark:text-slate-400">Net Profit</span>
+            <span className="font-bold text-slate-500 dark:text-slate-400">{language === "hi" ? "शुद्ध लाभ" : "Net Profit"}</span>
             <span className="font-extrabold text-slate-700 dark:text-slate-300 shrink-0">
               ₹{netProfit.toLocaleString("en-IN")}
             </span>
@@ -811,7 +827,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
           <div>
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate pr-1">
-                Udhaar Khata
+                {language === "hi" ? "उधार खाता (Dues)" : "Udhaar Khata"}
               </span>
               <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                 <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -827,12 +843,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             </svg>
           </div>
           <div className="pt-1 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] sm:text-[11px]">
-            <span className="font-bold text-slate-500 dark:text-slate-400 truncate">{totalDebtorsCount} Due</span>
+            <span className="font-bold text-slate-500 dark:text-slate-400 truncate">{totalDebtorsCount} {language === "hi" ? "बाकी" : "Due"}</span>
             <button 
               onClick={() => setActiveScreen("recovery")}
               className="font-extrabold text-brand-orange hover:underline cursor-pointer flex items-center gap-0.5 shrink-0"
             >
-              Collect <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+              {language === "hi" ? "उगाही करें" : "Collect"} <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
             </button>
           </div>
         </div>
@@ -842,7 +858,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
           <div>
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate pr-1">
-                Stock Value
+                {language === "hi" ? "स्टॉक मूल्य" : "Stock Value"}
               </span>
               <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                 <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -858,9 +874,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             </svg>
           </div>
           <div className="pt-1 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] sm:text-[11px]">
-            <span className="font-bold text-slate-500 dark:text-slate-400 truncate">{totalCatalogItems} SKUs</span>
+            <span className="font-bold text-slate-500 dark:text-slate-400 truncate">{totalCatalogItems} {language === "hi" ? "सामान" : "SKUs"}</span>
             <span className={`font-extrabold shrink-0 ${lowStockItems.length > 0 ? "text-brand-orange" : "text-emerald-500"}`}>
-              {lowStockItems.length > 0 ? `${lowStockItems.length} Low` : "Optimal"}
+              {lowStockItems.length > 0 ? `${lowStockItems.length} ${language === "hi" ? "कम" : "Low"}` : (language === "hi" ? "संतोषजनक" : "Optimal")}
             </span>
           </div>
         </div>
@@ -870,7 +886,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
           <div>
             <div className="flex items-center justify-between mb-1 sm:mb-1.5">
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate pr-1">
-                Staff Ops
+                {language === "hi" ? "स्टाफ स्थिति" : "Staff Ops"}
               </span>
               <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                 <ShieldCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -886,12 +902,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             </svg>
           </div>
           <div className="pt-1 sm:pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] sm:text-[11px]">
-            <span className="font-bold text-slate-500 dark:text-slate-400 truncate">Exp: ₹{periodExpenses.toLocaleString("en-IN")}</span>
+            <span className="font-bold text-slate-500 dark:text-slate-400 truncate">{language === "hi" ? "खर्च:" : "Exp:"} ₹{periodExpenses.toLocaleString("en-IN")}</span>
             <button 
               onClick={() => setIsExpenseModalOpen(true)}
               className="font-extrabold text-brand-orange hover:underline cursor-pointer shrink-0"
             >
-              + Log
+              {language === "hi" ? "+ खर्च" : "+ Log"}
             </button>
           </div>
         </div>
@@ -912,7 +928,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
 
           <div className="flex items-center justify-between mb-1.5 sm:mb-4 relative z-10">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-              Store Health
+              {language === "hi" ? "दुकान स्वास्थ्य" : "Store Health"}
             </span>
             <span className={`px-2 py-0.5 rounded-md text-[9px] font-black ${
               storeHealthScore >= 80
@@ -921,7 +937,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                 ? "bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/25"
                 : "bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/25"
             }`}>
-              {storeHealthScore >= 80 ? "OPTIMAL" : storeHealthScore >= 60 ? "STABLE" : "ACTION REQ"}
+              {storeHealthScore >= 80 ? (language === "hi" ? "उत्कृष्ट" : "OPTIMAL") : storeHealthScore >= 60 ? (language === "hi" ? "सामान्य" : "STABLE") : (language === "hi" ? "ध्यान दें" : "ACTION REQ")}
             </span>
           </div>
 
@@ -951,10 +967,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             </div>
             <div className="text-left sm:text-center">
               <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white block">
-                {storeHealthScore >= 80 ? "Operational" : storeHealthScore >= 60 ? "Good" : "Attention"}
+                {storeHealthScore >= 80 ? (language === "hi" ? "सक्रिय व चालू" : "Operational") : storeHealthScore >= 60 ? (language === "hi" ? "अच्छा" : "Good") : (language === "hi" ? "ध्यान दें" : "Attention")}
               </span>
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block mt-0.5">
-                {lowStockItems.length === 0 ? "No bottlenecks" : `${lowStockItems.length} low stock`}
+                {lowStockItems.length === 0 ? (language === "hi" ? "कोई रुकावट नहीं" : "No bottlenecks") : `${lowStockItems.length} ${language === "hi" ? "कम स्टॉक" : "low stock"}`}
               </span>
             </div>
           </div>
@@ -962,11 +978,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
           <div className="pt-2 sm:pt-3 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-2 gap-2 text-center relative z-10 mt-1 sm:mt-0">
             <div>
               <div className="text-[11px] font-black text-brand-orange">~38s</div>
-              <div className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase">Checkout</div>
+              <div className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase">{language === "hi" ? "औसत बिल" : "Checkout"}</div>
             </div>
             <div>
               <div className="text-[11px] font-black text-slate-800 dark:text-white">99.4%</div>
-              <div className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase">Uptime</div>
+              <div className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase">{language === "hi" ? "चालू समय" : "Uptime"}</div>
             </div>
           </div>
         </div>
@@ -1503,7 +1519,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-brand-orange/20 text-brand-orange">
-                  {categoryStats.isAuto ? <Wrench className="h-4 w-4" /> :
+                  {categoryStats.isRestaurant ? <Utensils className="h-4 w-4" /> :
+                   categoryStats.isAuto ? <Wrench className="h-4 w-4" /> :
                    categoryStats.isPharm ? <Pill className="h-4 w-4" /> :
                    categoryStats.isClothing ? <Shirt className="h-4 w-4" /> :
                    categoryStats.isWholesale ? <Layers className="h-4 w-4" /> :
@@ -1520,6 +1537,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                            {categoryStats.isRestaurant && (
+                <div className="space-y-2 col-span-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Menu Dishes</span>
+                      <span className="text-sm font-black text-amber-400">{categoryStats.totalMenuItems} items</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block font-bold">Floor Capacity</span>
+                      <span className="text-sm font-black text-emerald-400">12 Tables (T1-T12)</span>
+                    </div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400 font-bold">Dietary Catalog</span>
+                    <span className="text-xs font-bold text-white">
+                      🟢 {categoryStats.vegCount} Veg &nbsp;|&nbsp; 🔴 {categoryStats.nonVegCount} Non-Veg
+                    </span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400 font-bold">Active Service Modes</span>
+                    <span className="text-[10px] font-bold text-amber-300">
+                      🍽️ Dine-in • 🥡 Parcel • 🛵 Delivery
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {categoryStats.isAuto && (
                 <div className="space-y-2 col-span-2">
                   <div className="grid grid-cols-2 gap-2">
@@ -1680,7 +1724,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
                 </>
               )}
 
-              {!categoryStats.isAuto && !categoryStats.isElect && !categoryStats.isHardware && !categoryStats.isPharm && !categoryStats.isWholesale && (
+              {!categoryStats.isAuto && !categoryStats.isElect && !categoryStats.isHardware && !categoryStats.isPharm && !categoryStats.isWholesale && !categoryStats.isRestaurant && (
                 <>
                   <div className="p-2 rounded-xl bg-slate-800/80 border border-slate-700/60">
                     <span className="text-[10px] text-slate-400 block font-bold">Active Catalog</span>
@@ -2071,6 +2115,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveScreen }) => {
           </div>
         </div>
       )}
+
+      </div>
 
       {/* 9. ONCE-A-DAY YESTERDAY'S PERFORMANCE BRIEFING POPUP */}
       <DailyBriefingModal

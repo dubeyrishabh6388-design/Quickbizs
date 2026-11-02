@@ -185,7 +185,7 @@ export class OnboardingController {
 
       // Automatically configure smart layouts, templates, and widgets
       let sellingStyle = "Retail Mode";
-      if (["Dairy Shop", "Kirana Store", "Paan Shop", "Sweet Shop", "Bakery", "Juice Center", "Grocery Store"].includes(businessType)) {
+      if (["Dairy Shop", "Kirana Store", "Paan Shop", "Sweet Shop", "Bakery", "Juice Center", "Grocery Store", "Restaurant & Cafe", "Restaurant"].includes(businessType)) {
         sellingStyle = "Counter Mode";
       } else if (businessType === "Wholesale Business") {
         sellingStyle = "Wholesale Mode";

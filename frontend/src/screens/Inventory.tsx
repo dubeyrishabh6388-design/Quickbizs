@@ -8,12 +8,14 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { useBusiness } from "../context/BusinessContext";
+import { useTranslation } from "../context/LanguageContext";
 import type { Product } from "../context/BusinessContext";
 import { api } from "../config/api";
 import { DynamicProductForm } from "../components/dynamic";
 import { getCategorySearchPlaceholder, getCategoryAttributeBadges } from "../utils/categorySearch";
 
 export const Inventory: React.FC = () => {
+  const { language } = useTranslation();
   const { products, updateProductStock, addProduct, productSchema } = useBusiness();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -85,6 +87,7 @@ export const Inventory: React.FC = () => {
         </div>
       )}
 
+      <div className="w-full space-y-3 sm:space-y-4">
       {/* Standard Adaptive Page Header Card */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-5 rounded-xl sm:rounded-2xl shadow-xs flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -94,14 +97,14 @@ export const Inventory: React.FC = () => {
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <h1 className="text-base sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white truncate">
-                Live Stock
+                {language === "hi" ? "इन्वेंट्री और स्टॉक प्रबंधन" : "Live Stock"}
               </h1>
               <span className="text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-full bg-brand-orange/10 text-brand-orange border border-brand-orange/20 shrink-0">
                 {products.length} Products
               </span>
             </div>
             <p className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5 hidden sm:block">
-              Manage product catalog, live batch stock, wholesale cost price, and instant restock quantities
+              {language === "hi" ? "दुकान का सारा सामान, बारकोड, खरीद रेट, बिक्री रेट और कम स्टॉक अलर्ट" : "Manage product catalog, live batch stock, wholesale cost price, and instant restock quantities"}
             </p>
           </div>
         </div>
@@ -112,8 +115,8 @@ export const Inventory: React.FC = () => {
           className="bg-brand-orange hover:bg-brand-orange-hover text-white font-black px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer shrink-0"
         >
           <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="hidden sm:inline">Add Product</span>
-          <span className="sm:hidden">Add</span>
+          <span className="hidden sm:inline">{language === "hi" ? "+ नया सामान" : "Add Product"}</span>
+          <span className="sm:hidden">{language === "hi" ? "+ जोड़ें" : "Add"}</span>
         </button>
       </div>
 
@@ -285,6 +288,7 @@ export const Inventory: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
 
     </div>
   );

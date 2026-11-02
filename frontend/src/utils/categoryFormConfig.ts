@@ -33,6 +33,59 @@ export interface CategoryFormSpec {
 }
 
 export const CATEGORY_FORM_CONFIGS: Record<string, CategoryFormSpec> = {
+  CAFE_QSR: {
+    verticalId: "CAFE_QSR",
+    businessType: "Cafe & QSR",
+    displayName: "Cafe & Fast Food (QSR)",
+    nameLabel: "Beverage / Item Name",
+    namePlaceholder: "e.g. Vanilla Latte, Hazelnut Cold Coffee, Paneer Burger",
+    categoryLabel: "Menu Category",
+    supplierLabel: "Beans & Dairy / Food Supplier",
+    supplierPlaceholder: "e.g. Blue Tokai, Amul, Sysco, Local Roastery",
+    barcodePlaceholder: "Scan item barcode or enter item shortcode...",
+    costPriceLabel: "Blend / Ingredient Cost (₹)",
+    costPricePlaceholder: "40",
+    priceLabel: "Counter Price / MRP (₹)",
+    pricePlaceholder: "160",
+    stockLabel: "Daily Available Cups / Portions",
+    stockPlaceholder: "150",
+    minStockLabel: "Low Stock Alert",
+    minStockPlaceholder: "15",
+    batchLabel: "Roast Batch / Lot",
+    batchPlaceholder: "e.g. ROAST-ARABICA-04",
+    serialLabel: "Token Number",
+    serialPlaceholder: "e.g. TOKEN-101",
+    defaultTrackingMode: "NONE",
+    searchPlaceholder: "Search coffee, shakes, burgers, snacks or tokens...",
+    quickAddPlaceholder: "e.g. Cappuccino, Brownie Shake, Veg Burger",
+  },
+  RESTAURANT: {
+    verticalId: "RESTAURANT",
+    businessType: "Restaurant & Cafe",
+    displayName: "Restaurant & Cafe",
+    nameLabel: "Dish / Menu Item Name",
+    namePlaceholder: "e.g. Paneer Butter Masala, Cappuccino, Veg Hakka Noodles, Butter Naan",
+    categoryLabel: "Course / Menu Section",
+    supplierLabel: "Kitchen Grocery & Vendor Supplier",
+    supplierPlaceholder: "e.g. Metro Cash & Carry, Local Dairy & Veg Supplier",
+    barcodePlaceholder: "Scan dish QR or enter short KOT code...",
+    costPriceLabel: "Food Cost / Ingredient Cost (₹)",
+    costPricePlaceholder: "65",
+    priceLabel: "Dine-in Menu Price (₹)",
+    pricePlaceholder: "180",
+    stockLabel: "Daily Available Portions",
+    stockPlaceholder: "100",
+    minStockLabel: "Low Portion Alert",
+    minStockPlaceholder: "10",
+    batchLabel: "Kitchen Batch / Slot",
+    batchPlaceholder: "e.g. LUNCH-SLOT-01",
+    serialLabel: "KOT Token Number",
+    serialPlaceholder: "e.g. KOT-8921",
+    defaultTrackingMode: "NONE",
+    searchPlaceholder: "Search dishes by name, dietary veg/non-veg, course or code...",
+    quickAddPlaceholder: "e.g. Paneer Butter Masala, Cold Coffee, Veg Biryani",
+  },
+
   // ==========================================
   // 1. HEALTHCARE & MEDICINE
   // ==========================================
@@ -897,6 +950,16 @@ export function getCategoryFormConfig(verticalOrBusinessType?: any): CategoryFor
   // Dairy & Milk
   if (lower.includes("dairy") || lower.includes("milk") || lower.includes("paneer")) {
     return applyCustomFieldOverrides(CATEGORY_FORM_CONFIGS.DAIRY, verticalOrBusinessType);
+  }
+
+  // Cafe & Quick Service (QSR)
+  if (lower.includes("cafe") || lower.includes("qsr") || lower.includes("coffee") || lower.includes("fast food") || lower.includes("burger") || lower.includes("pizza") || lower.includes("boba")) {
+    return applyCustomFieldOverrides(CATEGORY_FORM_CONFIGS.CAFE_QSR, verticalOrBusinessType);
+  }
+
+  // Restaurant & Dine-in
+  if (lower.includes("restaurant") || lower.includes("dine-in") || lower.includes("dhaba") || lower.includes("bistro") || lower.includes("eatery") || lower.includes("food service")) {
+    return applyCustomFieldOverrides(CATEGORY_FORM_CONFIGS.RESTAURANT, verticalOrBusinessType);
   }
 
   // Bakery & Confectionery

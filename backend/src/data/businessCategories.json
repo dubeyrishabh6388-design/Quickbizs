@@ -393,6 +393,38 @@
     "isCustom": false
   },
   {
+    "id": "Restaurant & Dine-in",
+    "label": "Restaurant & Dine-in",
+    "desc": "Tables, Multi-round KOT & Full Service",
+    "icon": "Utensils",
+    "defaultCategories": [
+      "Main Course",
+      "Starters & Appetizers",
+      "Beverages & Drinks",
+      "Breads & Rice",
+      "Desserts",
+      "Combos & Thalis",
+      "Soups & Salads"
+    ],
+    "isCustom": false
+  },
+  {
+    "id": "Cafe & QSR",
+    "label": "Cafe & Fast Food (QSR)",
+    "desc": "Coffee, Quick Counter, Tokens & Takeaway",
+    "icon": "Coffee",
+    "defaultCategories": [
+      "Hot Coffee & Espresso",
+      "Cold Brews & Shakes",
+      "Burgers & Sandwiches",
+      "Pizzas & Pastas",
+      "Bakery & Desserts",
+      "Teas & Coolers",
+      "Sides & Fries"
+    ],
+    "isCustom": false
+  },
+  {
     "id": "Custom Business",
     "label": "General Retail",
     "desc": "Flexible Retail Setup",

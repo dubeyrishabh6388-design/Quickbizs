@@ -19,6 +19,8 @@ import { Tasks } from "./screens/Tasks";
 import { Header } from "./components/Header";
 import { RecoveryCenter } from "./screens/RecoveryCenter";
 import { CounterMode } from "./screens/CounterMode";
+import { Expenses } from "./screens/Expenses";
+import { LanguageProvider, useTranslation } from "./context/LanguageContext";
 import { GlobalSearchOverlay } from "./components/GlobalSearchOverlay";
 import { Login } from "./screens/Login";
 import { CustomerDashboard } from "./screens/CustomerDashboard";
@@ -42,6 +44,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "./config/api";
 
 function AppContent() {
+  const { language } = useTranslation();
   const [activeScreen, setActiveScreen] = useState<ScreenType>(() => {
     try {
       const userStr = localStorage.getItem("qb_user");
@@ -239,7 +242,7 @@ function AppContent() {
   const lowStockCount = products.filter((p) => p.stock <= p.minStock).length;
   const pendingDuesCount = customers.filter((c) => c.pendingDues > 0).length;
 
-  const isAllowed = getRoleAllowedModules(currentRole).includes(activeScreen);
+  const isAllowed = currentRole === "Owner" || getRoleAllowedModules(currentRole).includes(activeScreen);
 
   const isSuperAdmin = currentRole === "SuperAdmin" || activeScreen === "superadmin" || !!(localStorage.getItem("qb_user")?.includes('"SuperAdmin"'));
 
@@ -264,7 +267,7 @@ function AppContent() {
             </p>
             <button
               onClick={() => {
-                if (currentRole === "Owner") setActiveScreen("dashboard");
+                if ((currentRole as string) === "Owner") setActiveScreen("dashboard");
                 else if (currentRole === "Cashier") setActiveScreen("billing");
                 else if (currentRole === "Accountant") setActiveScreen("reports");
                 else if (currentRole === "Warehouse") setActiveScreen("inventory");
@@ -308,6 +311,8 @@ function AppContent() {
         return <RecoveryCenter setActiveScreen={setActiveScreen} />;
       case "counter":
         return <CounterMode setActiveScreen={setActiveScreen} />;
+      case "expenses":
+        return <Expenses setActiveScreen={setActiveScreen} />;
       default:
         return <Dashboard setActiveScreen={setActiveScreen} />;
     }
@@ -383,7 +388,7 @@ function AppContent() {
         />
 
         {/* Content container */}
-        <div className="flex-1 overflow-y-auto min-h-0 w-full">{renderScreen()}</div>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 w-full max-w-full">{renderScreen()}</div>
       </main>
 
       {/* Native Mobile App Floating Dock Navigation */}
@@ -465,11 +470,11 @@ function AppContent() {
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 px-3 pt-1 pb-[max(env(safe-area-inset-bottom),6px)] shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-around max-w-md mx-auto relative">
           {[
-            { id: "dashboard", label: "Home", icon: LayoutDashboard },
-            { id: "inventory", label: "Stock", icon: Package },
-            { id: "billing", label: "Quick POS", icon: Receipt, isCenter: true },
-            { id: "recovery", label: "Recovery", icon: HandCoins },
-            { id: "reports", label: "Analytics", icon: BarChart3 },
+            { id: "dashboard", label: language === "hi" ? "होम" : "Home", icon: LayoutDashboard },
+            { id: "inventory", label: language === "hi" ? "स्टॉक" : "Stock", icon: Package },
+            { id: "billing", label: language === "hi" ? "बिलिंग" : "Quick POS", icon: Receipt, isCenter: true },
+            { id: "recovery", label: language === "hi" ? "उधारी" : "Recovery", icon: HandCoins },
+            { id: "reports", label: language === "hi" ? "रिपोर्ट्स" : "Analytics", icon: BarChart3 },
           ].map(item => {
             const Icon = item.icon;
             const isActive = activeScreen === item.id;
@@ -522,7 +527,7 @@ function AppContent() {
       )}
 
       {/* Floating AI Panel Nudge */}
-      {currentRole === "Owner" && <AIAssistPanel />}
+      {currentRole === "Owner" && <AIAssistPanel activeScreen={activeScreen} />}
 
       {/* Global Search & Command Modal overlay */}
       <GlobalSearchOverlay 
@@ -544,8 +549,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <BusinessProvider>
-      <AppContent />
-    </BusinessProvider>
+    <LanguageProvider>
+      <BusinessProvider>
+        <AppContent />
+      </BusinessProvider>
+    </LanguageProvider>
   );
 }
